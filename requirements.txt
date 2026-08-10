@@ -17,6 +17,11 @@ pyjwt==2.10.1
 # 웹 세션 저장소 (앱은 JWT, 웹은 Redis 세션을 사용한다)
 redis==5.2.1
 
+# 시간대
+# 날짜 조회 파라미터를 한국 시간 하루로 해석할 때 zoneinfo가 IANA tz 데이터를 찾는다.
+# 리눅스에는 보통 OS에 들어 있지만 Windows에는 없어서, 없으면 ZoneInfoNotFoundError가 난다.
+tzdata==2025.2
+
 # Test
 pytest==8.3.5
 httpx==0.28.1

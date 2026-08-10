@@ -98,6 +98,13 @@ class Settings(BaseSettings):
     aws_s3_bucket_name: str = ""
     aws_region: str = "ap-northeast-2"
 
+    # ── 서비스 기준 시간대 ─────────────────────────
+    # 시각은 전부 UTC로 저장하지만, `?from=2026-08-01` 처럼 **날짜만** 오는 조회
+    # 파라미터는 어느 시간대의 하루인지 정해야 UTC 범위로 바꿀 수 있다.
+    # UTC로 해석하면 한국 시간 오전 0~9시 약속이 달력의 달 경계에서 빠져버린다.
+    # 해외 사용자를 받게 되면 이 고정 가정을 다시 검토해야 한다.
+    service_timezone: str = "Asia/Seoul"
+
     model_config = SettingsConfigDict(
         env_file=ENV_FILES,
         env_file_encoding="utf-8",

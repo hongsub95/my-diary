@@ -1,7 +1,14 @@
 # Environment variables and local secrets
+# 실제 값이 든 .env, .env.local, .env.production 등은 모두 제외하고
+# *.example 템플릿만 커밋한다.
 .env
 .env.*
 !.env.example
+!.env.*.example
+
+# 업로드된 사진 (로컬 저장소 사용 시)
+uploads/
+uploads_test/
 *.pem
 *.key
 *.crt
@@ -17,6 +24,9 @@ CLAUDE.md
 claude_desktop_config.json
 config.toml
 
+# 기획·설계 문서 (저장소에 올리지 않음)
+docs/
+
 # Python
 .venv/
 venv/
@@ -26,6 +36,9 @@ __pycache__/
 .ruff_cache/
 *.py[cod]
 
+# Local tests
+/tests/
+
 # Frontend
 frontend/node_modules/
 frontend/dist/
@@ -33,6 +46,25 @@ frontend/.vite-cache/
 frontend/.env
 frontend/.env.*
 !frontend/.env.example
+
+# Mobile (React Native / Expo)
+mobile/node_modules/
+mobile/.expo/
+mobile/dist/
+mobile/web-build/
+# expo prebuild로 생성되는 네이티브 폴더. 생성물이므로 커밋하지 않는다.
+# 네이티브 코드를 직접 수정하기 시작하면(카카오맵 브릿지 등) 이 두 줄을 지우고 커밋해야 한다.
+mobile/android/
+mobile/ios/
+mobile/.env
+mobile/.env.*
+!mobile/.env.example
+# 빌드 산출물
+*.apk
+*.aab
+*.ipa
+*.keystore
+!debug.keystore
 
 # Logs and runtime files
 *.log
