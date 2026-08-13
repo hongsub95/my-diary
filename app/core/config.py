@@ -105,6 +105,11 @@ class Settings(BaseSettings):
     # 해외 사용자를 받게 되면 이 고정 가정을 다시 검토해야 한다.
     service_timezone: str = "Asia/Seoul"
 
+    # ── 장소 검색 공급자 ───────────────────────────
+    # 지도 공급자는 아직 확정 전이라 기본값이 mock이다. 카카오 기술 검증이 끝나면
+    # 어댑터를 추가하고(app/places/providers.py) 이 값을 kakao로 바꾼다.
+    place_search_provider: str = "mock"
+
     model_config = SettingsConfigDict(
         env_file=ENV_FILES,
         env_file_encoding="utf-8",

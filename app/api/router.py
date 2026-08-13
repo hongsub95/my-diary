@@ -4,6 +4,10 @@ from app.api.v1.health import router as health_router
 from app.auth.router import router as auth_router
 from app.auth.web_router import router as auth_web_router
 from app.menus.router import router as menus_router
+from app.places.router import (
+    places_router,
+    schedule_places_router,
+)
 from app.schedules.router import (
     schedules_router,
     space_schedules_router,
@@ -21,5 +25,9 @@ api_router.include_router(spaces_router)
 # 일정은 경로가 두 갈래다. /spaces/{space_id}/schedules 는 spaces_router 뒤에 등록해야
 # /spaces/join 같은 고정 경로가 {space_id}로 먼저 잡히지 않는다.
 api_router.include_router(space_schedules_router)
+# /schedules/{id}/places 는 schedules_router보다 먼저 등록해야
+# /schedules/{schedule_id} 상세 경로에 흡수되지 않는다.
+api_router.include_router(schedule_places_router)
 api_router.include_router(schedules_router)
+api_router.include_router(places_router)
 api_router.include_router(users_router)
