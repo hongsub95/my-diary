@@ -8,21 +8,29 @@
 
 - [제품 기획서](./docs/PRODUCT_SPEC.md)
 - [개발 인수인계 문서](./docs/DEVELOPMENT_BRIEF.md)
+- [데이트 코스 추천·일정 최적화 명세](./docs/COURSE_RECOMMENDATION_SPEC.md)
 - [스페이스 모델 명세](./docs/SPACE_MODEL_SPEC.md)
 - [화면 디자인 명세](./docs/DESIGN_SPEC.md)
 - **[API 명세 (프론트엔드 연동용)](./docs/API_SPEC.md)**
 - [AI 도구 이해 노트](./docs/AI_WORKFLOW_NOTES.md)
 
-백엔드 개발자는 기획서와 인수인계 문서를 먼저 읽고, **프론트엔드 개발자는 [API 명세](./docs/API_SPEC.md)부터 읽으면 됩니다.**
+백엔드 개발자는 기획서와 인수인계 문서를 먼저 읽고, 지도·추천 기능을 개발할 때는
+[데이트 코스 추천·일정 최적화 명세](./docs/COURSE_RECOMMENDATION_SPEC.md)를 함께
+확인합니다. **프론트엔드 개발자는 [API 명세](./docs/API_SPEC.md)부터 읽으면 됩니다.**
 
 ## 프로젝트 구조
 
 ```text
 app/        FastAPI backend
 tests/      Backend tests
-frontend/   React frontend
+frontend/   React web frontend
+mobile/     React Native (Expo) app  — 프론트엔드 담당자가 생성 예정
 docs/       Product and development documents
 ```
+
+모바일 앱은 React Native(Expo)로 만들며 같은 저장소의 `mobile/`에 둡니다. 프로젝트
+생성 방법과 백엔드 연결 설정은 [개발 인수인계 문서](./docs/DEVELOPMENT_BRIEF.md)의
+"모바일 프로젝트 시작 안내"를 참고하세요.
 
 ## 백엔드 실행
 

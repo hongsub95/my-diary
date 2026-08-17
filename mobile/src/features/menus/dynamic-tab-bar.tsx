@@ -1,10 +1,10 @@
-import type { Href } from 'expo-router';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, spacing } from '@/shared/theme';
-import { useMenus } from './menu-api';
+import { useNavigableMenus } from './menu-api';
+import { tabHref } from './menu-routes';
 
 const iconGlyphs: Record<string, string> = {
   calendar: '▦',
@@ -19,17 +19,15 @@ type DynamicTabBarProps = {
 export function DynamicTabBar({ state }: DynamicTabBarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const { data: menus = [] } = useMenus();
+  const { data: menus = [] } = useNavigableMenus();
   const activeRoute = state.routes[state.index]?.name;
 
   return (
     <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
       {menus.map((menu) => {
-        if (!menu.path) return null;
-        const routeName = menu.path.replace(/^\//, '');
-        const active = routeName === activeRoute;
+        const active = menu.screen === activeRoute;
         return (
-          <Pressable key={menu.code} onPress={() => router.push(menu.path as Href)} style={styles.item}>
+          <Pressable key={menu.code} onPress={() => router.push(tabHref(menu.screen))} style={styles.item}>
             <Text style={[styles.icon, active && styles.active]}>{iconGlyphs[menu.icon ?? ''] ?? '•'}</Text>
             <Text numberOfLines={1} style={[styles.label, active && styles.active]}>{menu.name}</Text>
           </Pressable>
