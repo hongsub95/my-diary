@@ -7,7 +7,7 @@ import CalendarPage from './features/calendar/CalendarPage'
 import ScheduleListPage from './features/schedules/ScheduleListPage'
 import ScheduleDetailPage from './features/schedules/ScheduleDetailPage'
 import ScheduleNewPage from './features/schedules/ScheduleNewPage'
-import SettingsPage from './features/settings/SettingsPage'
+import MorePage from './features/more/MorePage'
 import PrototypeLab from './features/prototype/PrototypeLab'
 
 function PrivateRoute({ children }) {
@@ -34,7 +34,10 @@ export default function App() {
         <Route path="schedules" element={<ScheduleListPage />} />
         <Route path="schedules/new" element={<ScheduleNewPage />} />
         <Route path="schedules/:id" element={<ScheduleDetailPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+        <Route path="more" element={<MorePage />} />
+        {/* 설정은 더보기로 흡수됐다. 예전 주소나 북마크로 들어와도 끊기지 않도록
+            당분간 리다이렉트로 남겨둔다 (docs/BOTTOM_NAVIGATION_SPEC.md 5.1절). */}
+        <Route path="settings" element={<Navigate to="/more" replace />} />
       </Route>
     </Routes>
   )

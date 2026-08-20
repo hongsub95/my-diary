@@ -18,7 +18,7 @@
 export const MENU_PATHS = {
   calendar: '/calendar',
   schedules: '/schedules',
-  settings: '/settings',
+  more: '/more',
 }
 
 /**
