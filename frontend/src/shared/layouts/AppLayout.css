@@ -14,3 +14,9 @@
   overflow-x: hidden;
   background: var(--color-bg);
 }
+
+@media (min-width: 900px) {
+  .app-layout--wide {
+    max-width: 1180px;
+  }
+}

@@ -16,6 +16,7 @@
  * 앱(모바일)도 같은 규칙을 쓴다. mobile/src/features/menus/menu-routes.ts 참고.
  */
 export const MENU_PATHS = {
+  home: '/home',
   calendar: '/calendar',
   schedules: '/schedules',
   more: '/more',
