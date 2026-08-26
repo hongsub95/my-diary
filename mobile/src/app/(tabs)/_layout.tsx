@@ -19,7 +19,7 @@ export default function TabLayout() {
       <Tabs.Screen name="index" options={{ href: null }} />
       <Tabs.Screen name="calendar" />
       <Tabs.Screen name="schedules" />
-      <Tabs.Screen name="settings" />
+      <Tabs.Screen name="more" />
     </Tabs>
   );
 }

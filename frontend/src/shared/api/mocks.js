@@ -1,10 +1,41 @@
-export const MOCK_USER = {
-  id: '1',
-  nickname: '홍길동',
-  email: 'test@example.com',
+function demoDateTime(dayOffset, hour, minute = 0) {
+  const date = new Date()
+  date.setDate(date.getDate() + dayOffset)
+  date.setHours(hour, minute, 0, 0)
+
+  const localDate = [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, '0'),
+    String(date.getDate()).padStart(2, '0'),
+  ].join('-')
+  return `${localDate}T${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}:00`
 }
 
 export const MOCK_SCHEDULES = [
+  {
+    id: 'today-1',
+    title: '망원동 산책과 저녁',
+    start_at: demoDateTime(0, 14),
+    end_at: demoDateTime(0, 19),
+    status: 'planned',
+    places: [
+      { id: 'today-place-1', sort_order: 1, name: '망원한강공원', address: '서울 마포구 마포나루길 467', memo: '산책하기', visited: false },
+      { id: 'today-place-2', sort_order: 2, name: '망원시장', address: '서울 마포구 포은로8길 14', memo: '간식 사기', visited: false },
+      { id: 'today-place-3', sort_order: 3, name: '소금집 델리', address: '서울 마포구 월드컵로19길 14', memo: '저녁 식사', visited: false },
+    ],
+    diary: null,
+  },
+  {
+    id: 'week-1',
+    title: '전시 보러 가기',
+    start_at: demoDateTime(2, 11),
+    end_at: demoDateTime(2, 15),
+    status: 'planned',
+    places: [
+      { id: 'week-place-1', sort_order: 1, name: '서울시립미술관', address: '서울 중구 덕수궁길 61', memo: '', visited: false },
+    ],
+    diary: null,
+  },
   {
     id: '1',
     title: '한강 피크닉',

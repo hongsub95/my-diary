@@ -4,8 +4,8 @@ export const colors = {
   text: '#202126',
   muted: '#747780',
   border: '#E5E6EA',
-  primary: '#6C5CE7',
-  primarySoft: '#EEECFF',
+  primary: '#F43F5E',
+  primarySoft: '#FFF1F2',
   danger: '#D64545',
 };
 

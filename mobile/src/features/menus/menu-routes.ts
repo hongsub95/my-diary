@@ -23,7 +23,7 @@ import type { Href } from 'expo-router';
 export const MENU_SCREENS: Record<string, string> = {
   calendar: 'calendar',
   schedules: 'schedules',
-  settings: 'settings',
+  more: 'more',
 };
 
 /**

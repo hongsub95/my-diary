@@ -7,8 +7,11 @@ import { useNavigableMenus } from './menu-api';
 import { tabHref } from './menu-routes';
 
 const iconGlyphs: Record<string, string> = {
+  home: '⌂',
   calendar: '▦',
   list: '☰',
+  book: '❏',
+  'more-horizontal': '⋯',
   settings: '⚙',
 };
 
