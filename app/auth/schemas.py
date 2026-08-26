@@ -5,6 +5,7 @@
 "이미 가입된 이메일인가" 같은 비즈니스 규칙에만 집중하면 된다.
 """
 
+import uuid as uuid_module
 from datetime import datetime
 from string import ascii_letters, digits, punctuation
 
@@ -106,9 +107,32 @@ class UserResponse(BaseModel):
     # 권한 등급 (0=마스터, 1=일반). 관리자 화면 진입 여부를 클라이언트가 판단할 때 쓴다.
     # 실제 접근 차단은 서버가 하므로, 이 값은 메뉴를 감추는 용도로만 쓰고 신뢰하지 않는다.
     role: int
-    # 앱 실행 시 열어야 할 스페이스. 클라이언트는 로그인 후 이 값으로 첫 화면을 구성한다.
-    default_space_id: int | None
+    # 앱 실행 시 열어야 할 스페이스의 **공개 UUID**. 클라이언트는 로그인 후 이 값을
+    # 그대로 `/spaces/{space_id}/schedules` 경로에 넣어 첫 화면을 구성한다.
+    #
+    # 내부 정수 id를 주지 않는 이유: 그 값으로는 어떤 API도 부를 수 없어서 클라이언트가
+    # 결국 GET /spaces를 한 번 더 불러 UUID를 찾아야 했다. 스페이스의 공개 식별자는
+    # UUID 하나뿐이라는 원칙(docs/API_SPEC.md 4.1절)과도 어긋난다.
+    default_space_id: uuid_module.UUID | None
     created_at: datetime
+
+    @classmethod
+    def from_user(cls, user) -> "UserResponse":
+        """User 모델을 응답으로 바꾼다.
+
+        :param user: 변환할 User. default_space는 지연 로딩되므로 세션이 살아 있어야 한다
+
+        model_validate를 그대로 쓰지 않는 이유: 모델의 default_space_id는 내부 정수인데
+        응답은 스페이스의 UUID여야 해서, 관계를 한 단계 타고 들어가야 한다.
+        """
+        return cls(
+            id=user.id,
+            email=user.email,
+            nickname=user.nickname,
+            role=user.role,
+            default_space_id=user.default_space.uuid if user.default_space is not None else None,
+            created_at=user.created_at,
+        )
 
 
 class RegisterResponse(BaseModel):

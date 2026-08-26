@@ -21,6 +21,7 @@ import type { Href } from 'expo-router';
 // 다듬어도 메뉴가 통째로 사라진다.
 // 값은 src/app/(tabs)/ 아래의 파일 이름이다.
 export const MENU_SCREENS: Record<string, string> = {
+  home: 'home',
   calendar: 'calendar',
   schedules: 'schedules',
   more: 'more',

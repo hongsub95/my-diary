@@ -20,8 +20,8 @@ export type User = {
   id: number;
   email: string;
   nickname: string;
-  // 현재 구현된 /openapi.json은 integer다. 스페이스 API 공개 ID는 별도 UUID 문자열이다.
-  default_space_id: number | null;
+  // 스페이스의 공개 UUID. 그대로 /spaces/{id}/schedules 경로에 넣어 쓸 수 있다.
+  default_space_id: SpaceId | null;
   created_at: string;
 };
 

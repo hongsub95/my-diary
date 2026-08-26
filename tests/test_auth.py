@@ -219,6 +219,34 @@ def test_me_success(client: TestClient) -> None:
     assert response.json()["default_space_id"] is not None
 
 
+def test_me_returns_personal_space_uuid(client: TestClient) -> None:
+    """default_space_id는 내부 정수 id가 아니라 개인 스페이스의 공개 UUID여야 한다."""
+    token = register(client).json()["tokens"]["access_token"]
+    headers = auth_header(token)
+
+    me = client.get("/api/v1/auth/me", headers=headers).json()
+    spaces = client.get("/api/v1/spaces", headers=headers).json()["spaces"]
+    personal = next(space for space in spaces if space["type"] == "personal")
+
+    assert me["default_space_id"] == personal["id"]
+
+
+def test_default_space_id_is_usable_as_path_parameter(client: TestClient) -> None:
+    """받은 값을 그대로 일정 경로에 넣어 부를 수 있어야 한다.
+
+    이 성질이 없으면 클라이언트가 로그인 직후 GET /spaces를 한 번 더 불러 UUID를
+    찾아야 한다. 정수 내부 id를 내려주던 시절에 실제로 그랬다.
+    """
+    token = register(client).json()["tokens"]["access_token"]
+    headers = auth_header(token)
+    space_id = client.get("/api/v1/auth/me", headers=headers).json()["default_space_id"]
+
+    response = client.get(f"/api/v1/spaces/{space_id}/schedules", headers=headers)
+
+    assert response.status_code == 200
+    assert response.json()["items"] == []
+
+
 def test_me_without_token(client: TestClient) -> None:
     """토큰이 없으면 403이 아니라 401이어야 한다.
 

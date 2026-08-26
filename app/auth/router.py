@@ -43,7 +43,7 @@ def register(payload: RegisterRequest, request: Request, db: DbSession) -> Regis
     )
     access_token, refresh_token = service.issue_tokens(user.id)
     return RegisterResponse(
-        user=UserResponse.model_validate(user),
+        user=UserResponse.from_user(user),
         tokens=TokenResponse(access_token=access_token, refresh_token=refresh_token),
     )
 
@@ -109,4 +109,4 @@ def logout(current_user: CurrentUser, request: Request, db: DbSession) -> None:
 )
 def get_me(current_user: CurrentUser) -> UserResponse:
     """내 정보 조회. default_space_id로 첫 화면에 열 스페이스를 결정한다."""
-    return UserResponse.model_validate(current_user)
+    return UserResponse.from_user(current_user)

@@ -5,6 +5,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.places.schemas import SchedulePlaceResponse
 from app.schedules.errors import TIME_RANGE_MESSAGE
 
 # 일정 상태. 모델의 CHECK 제약(ck_schedules_status)과 같은 값이어야 한다.
@@ -100,6 +101,16 @@ class ScheduleResponse(BaseModel):
     place_count: int
     # 일기를 이미 썼는지. 목록에서 "기록 남기기" 버튼을 띄울지 판단하는 데 쓴다.
     has_diary: bool
+    # 이 일정에 담긴 장소. 목록 조회에서 `include=places`를 줬을 때만 채워진다.
+    #
+    # null과 []를 구분한다. null은 "장소를 요청하지 않았다"이고 []는 "요청했는데
+    # 장소가 없다"다. 둘을 같은 값으로 두면 홈 화면이 "장소 없는 일정"과 "아직 안
+    # 받아온 일정"을 구별하지 못해, 마커가 없는 이유를 알 수 없게 된다.
+    #
+    # 기본 조회에서 빼두는 이유: 캘린더는 한 달치를 한 번에 받는데 일정마다 장소를
+    # 붙이면 화면에 쓰지도 않을 데이터가 응답을 몇 배로 키운다. 하루 단위로 보는
+    # 홈만 필요로 하므로 요청한 쪽에만 준다.
+    places: list[SchedulePlaceResponse] | None = None
 
 
 class ScheduleListResponse(BaseModel):

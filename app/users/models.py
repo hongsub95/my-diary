@@ -55,3 +55,10 @@ class User(Base):
         back_populates="created_by_user", foreign_keys="Schedule.created_by", passive_deletes=True
     )
     space_memberships: Mapped[list["SpaceMember"]] = relationship(back_populates="user", passive_deletes=True)
+
+    # 기본 스페이스를 응답에 공개 UUID로 내보내려면 스페이스 행 자체가 필요하다.
+    # users와 spaces 사이에는 서로를 가리키는 외래키가 둘(여기와 spaces.owner_id) 있어서
+    # 어느 쪽으로 잇는지 foreign_keys로 명시해야 SQLAlchemy가 경로를 고르지 못해 실패하지 않는다.
+    # lazy는 기본값(select)으로 둔다. 인증된 요청마다 User를 읽는데 여기서 항상 조인하면
+    # 스페이스를 쓰지 않는 대부분의 요청에까지 비용이 붙는다.
+    default_space: Mapped["Space | None"] = relationship(foreign_keys=[default_space_id])

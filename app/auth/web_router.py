@@ -91,7 +91,7 @@ def web_register(
         ip_address=request.client.host if request.client else None,
     )
     _set_session_cookie(response, session_id)
-    return UserResponse.model_validate(user)
+    return UserResponse.from_user(user)
 
 
 @router.post(
@@ -122,7 +122,7 @@ def web_login(
         ip_address=request.client.host if request.client else None,
     )
     _set_session_cookie(response, session_id)
-    return UserResponse.model_validate(user)
+    return UserResponse.from_user(user)
 
 
 @router.post(

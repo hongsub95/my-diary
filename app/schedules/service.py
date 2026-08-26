@@ -9,11 +9,13 @@ from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import exists, func, or_, select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.config import get_settings
 from app.diaries.models import DiaryEntry
+from app.places import service as places_service
 from app.places.models import SchedulePlace
+from app.places.schemas import SchedulePlaceResponse
 from app.schedules.errors import (
     InvalidDateRangeError,
     InvalidTimeRangeError,
@@ -98,12 +100,19 @@ def _has_diary_column():
     return exists().where(DiaryEntry.schedule_id == Schedule.id).correlate(Schedule)
 
 
-def to_response(schedule: Schedule, place_count: int, has_diary: bool) -> ScheduleResponse:
+def to_response(
+    schedule: Schedule,
+    place_count: int,
+    has_diary: bool,
+    places: list[SchedulePlaceResponse] | None = None,
+) -> ScheduleResponse:
     """Schedule 모델을 API 응답 형태로 바꾼다.
 
     :param schedule: space와 created_by_user가 이미 로드된 일정
     :param place_count: 이 일정에 담긴 장소 수
     :param has_diary: 이 일정에 일기가 있는지
+    :param places: 장소 목록. None이면 응답에서도 null이 되어 "요청하지 않았다"는
+        뜻이 된다. 빈 리스트는 "요청했는데 장소가 없다"로 다르게 읽힌다.
     """
     return ScheduleResponse(
         id=schedule.id,
@@ -117,6 +126,7 @@ def to_response(schedule: Schedule, place_count: int, has_diary: bool) -> Schedu
         created_by=ScheduleAuthorResponse.model_validate(schedule.created_by_user),
         place_count=place_count,
         has_diary=has_diary,
+        places=places,
     )
 
 
@@ -126,6 +136,7 @@ def list_schedules(
     from_date: date | None,
     to_date: date | None,
     status: str | None,
+    include_places: bool = False,
 ) -> list[ScheduleResponse]:
     """스페이스의 기간별 일정 목록을 start_at 오름차순으로 돌려준다.
 
@@ -134,6 +145,9 @@ def list_schedules(
     :param from_date: 조회 시작일. None이면 이번 달 1일
     :param to_date: 조회 종료일. None이면 from_date가 속한 달의 말일
     :param status: planned/completed/canceled 중 하나. None이면 전체
+    :param include_places: True면 각 일정에 장소 목록을 함께 담는다. 홈 화면처럼
+        하루의 장소와 방문 순서를 지도에 찍어야 하는 화면이 쓴다. False면 응답의
+        places가 null이 되고 질의도 나가지 않는다.
     :raises InvalidDateRangeError: from이 to보다 뒤일 때
     """
     range_start, range_end = resolve_date_range(from_date, to_date)
@@ -152,16 +166,45 @@ def list_schedules(
     if status is not None:
         conditions.append(Schedule.status == status)
 
+    # space와 작성자를 함께 읽어 응답을 만들 때 추가 질의가 나가지 않게 한다.
+    options = [joinedload(Schedule.space), joinedload(Schedule.created_by_user)]
+    if include_places:
+        # 장소는 일정당 여러 건이라 joinedload로 붙이면 일정 행이 장소 수만큼 복제된다.
+        # selectinload는 일정을 먼저 읽고 장소를 IN 한 번으로 가져오므로, 일정이 몇
+        # 개든 질의는 두 번으로 끝난다.
+        options.append(selectinload(Schedule.places).joinedload(SchedulePlace.place))
+
     rows = db.execute(
         select(Schedule, _place_count_column(), _has_diary_column())
-        # space와 작성자를 함께 읽어 응답을 만들 때 추가 질의가 나가지 않게 한다.
-        .options(joinedload(Schedule.space), joinedload(Schedule.created_by_user))
+        .options(*options)
         .where(*conditions)
         .order_by(Schedule.start_at, Schedule.id)
     ).all()
 
     # 같은 start_at이 여럿일 때 순서가 뒤집히지 않도록 id를 2차 정렬 기준으로 뒀다.
-    return [to_response(schedule, place_count, has_diary) for schedule, place_count, has_diary in rows]
+    return [
+        to_response(
+            schedule,
+            place_count,
+            has_diary,
+            _places_response(schedule) if include_places else None,
+        )
+        for schedule, place_count, has_diary in rows
+    ]
+
+
+def _places_response(schedule: Schedule) -> list[SchedulePlaceResponse]:
+    """이미 로드된 장소를 방문 순서대로 응답 형태로 바꾼다.
+
+    :param schedule: places와 각 장소의 place가 로드된 일정
+
+    정렬 기준을 GET /schedules/{id}/places와 똑같이 (sort_order, id)로 맞춘다.
+    관계 정의는 sort_order까지만 정렬하므로, 같은 순서 값이 겹치면 두 API가 서로
+    다른 차례로 장소를 보여줄 수 있다. 화면에는 순서가 숫자로 찍히기 때문에 이런
+    불일치는 사용자 눈에 바로 띈다.
+    """
+    ordered = sorted(schedule.places, key=lambda item: (item.sort_order, item.id))
+    return [places_service.to_response(item) for item in ordered]
 
 
 def load_response(db: Session, schedule: Schedule) -> ScheduleResponse:

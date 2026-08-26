@@ -17,6 +17,7 @@ export default function TabLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <DynamicTabBar {...props} />}>
       <Tabs.Screen name="index" options={{ href: null }} />
+      <Tabs.Screen name="home" />
       <Tabs.Screen name="calendar" />
       <Tabs.Screen name="schedules" />
       <Tabs.Screen name="more" />

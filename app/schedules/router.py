@@ -36,6 +36,18 @@ schedules_router = APIRouter(prefix="/schedules", tags=["schedules"])
 # 감사 로그의 resource_type 값
 RESOURCE_SCHEDULE = "schedule"
 
+IncludeQuery = Annotated[
+    str | None,
+    Query(
+        alias="include",
+        pattern="^places$",
+        description=(
+            "`places`를 주면 각 일정에 장소 목록이 함께 담긴다. "
+            "생략하면 응답의 places는 null이다."
+        ),
+    ),
+]
+
 StatusQuery = Annotated[
     str | None,
     Query(
@@ -56,7 +68,8 @@ StatusQuery = Annotated[
         "스페이스의 일정을 start_at 오름차순으로 돌려준다. "
         "`from`/`to`는 `YYYY-MM-DD`이며 **한국 시간(Asia/Seoul) 기준 하루**로 해석한다. "
         "생략하면 이번 달 1일부터 말일까지다. "
-        "기간에 걸치기만 하면 포함되므로, 여러 날에 걸친 일정은 시작·종료가 범위 밖이어도 나온다."
+        "기간에 걸치기만 하면 포함되므로, 여러 날에 걸친 일정은 시작·종료가 범위 밖이어도 나온다. "
+        "`include=places`를 주면 각 일정의 장소가 방문 순서대로 함께 담긴다."
     ),
 )
 def list_schedules(
@@ -65,9 +78,21 @@ def list_schedules(
     from_date: Annotated[date | None, Query(alias="from", description="조회 시작일 (그날 포함)")] = None,
     to_date: Annotated[date | None, Query(alias="to", description="조회 종료일 (그날 포함)")] = None,
     status_filter: StatusQuery = None,
+    include: IncludeQuery = None,
 ) -> ScheduleListResponse:
-    """기간별 일정 목록 조회. 캘린더와 일정 목록 화면이 사용한다."""
-    items = service.list_schedules(db, context.space, from_date, to_date, status_filter)
+    """기간별 일정 목록 조회. 캘린더와 일정 목록 화면이 사용한다.
+
+    홈 화면은 하루의 장소를 지도에 찍어야 해서 `include=places`로 부른다. 캘린더는
+    장소가 필요 없으므로 생략해 응답을 가볍게 유지한다.
+    """
+    items = service.list_schedules(
+        db,
+        context.space,
+        from_date,
+        to_date,
+        status_filter,
+        include_places=include == "places",
+    )
     return ScheduleListResponse(items=items)
 
 
