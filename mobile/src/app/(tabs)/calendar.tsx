@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { Calendar, LocaleConfig, type DateData } from 'react-native-calendars';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { listMockSchedules } from '@/features/schedules/schedule-repository';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
+import { ScheduleFab } from '@/shared/components/schedule-fab';
 import { colors, spacing } from '@/shared/theme';
 
 LocaleConfig.locales.ko = {
@@ -26,6 +28,7 @@ function localDateKey(date = new Date()) {
 }
 
 export default function CalendarScreen() {
+  const router = useRouter();
   const schedules = useQuery({ queryKey: ['mock-schedules'], queryFn: listMockSchedules });
   const [selectedDate, setSelectedDate] = useState(() => localDateKey());
 
@@ -109,6 +112,9 @@ export default function CalendarScreen() {
           </View>
         )}
       </ScrollView>
+      <ScheduleFab
+        onPress={() => router.push({ pathname: '/schedules/new', params: { date: selectedDate } })}
+      />
     </SafeAreaView>
   );
 }

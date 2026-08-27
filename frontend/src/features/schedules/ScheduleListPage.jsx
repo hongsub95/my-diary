@@ -44,7 +44,7 @@ function ScheduleCard({ schedule: s }) {
 
 export default function ScheduleListPage() {
   const navigate = useNavigate()
-  const { data: schedules = [] } = useSchedules()
+  const { data: schedules = [] } = useSchedules({ includePlaces: true })
 
   const upcoming = schedules
     .filter((s) => s.status === 'planned')

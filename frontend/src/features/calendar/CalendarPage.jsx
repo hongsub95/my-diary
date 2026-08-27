@@ -24,8 +24,8 @@ function formatDateKey(date) {
   ].join('-')
 }
 
-function scheduleDateKey(schedule) {
-  return schedule.start_at.slice(0, 10)
+function lastDayOfMonth(monthStart) {
+  return new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
 }
 
 function formatTime(dateStr) {
@@ -40,18 +40,23 @@ export default function CalendarPage() {
   const today = useMemo(() => new Date(), [])
   const calendarRef = useRef(null)
   const navigate = useNavigate()
-  const { data: schedules = [] } = useSchedules()
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(today))
   const [viewDate, setViewDate] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   )
 
+  // 보고 있는 달만 받아온다. 달을 넘기면 그 달을 다시 조회한다.
+  const { data: schedules = [] } = useSchedules({
+    from: formatDateKey(viewDate),
+    to: formatDateKey(lastDayOfMonth(viewDate)),
+  })
+
   const scheduleDateKeys = useMemo(
-    () => new Set(schedules.map(scheduleDateKey)),
+    () => new Set(schedules.map((schedule) => schedule.date_key)),
     [schedules],
   )
   const selectedSchedules = useMemo(
-    () => schedules.filter((schedule) => scheduleDateKey(schedule) === selectedDate),
+    () => schedules.filter((schedule) => schedule.date_key === selectedDate),
     [schedules, selectedDate],
   )
 
@@ -195,7 +200,7 @@ export default function CalendarPage() {
                   </span>
                   <p className="schedule-card__title">{schedule.title}</p>
                   <p className="schedule-card__meta">
-                    {formatTime(schedule.start_at)} · {schedule.places.length}개 장소
+                    {formatTime(schedule.start_at)} · {schedule.place_count}개 장소
                   </p>
                 </div>
                 <Icon raw={chevronRightRaw} size={16} className="schedule-card__arrow" />

@@ -1,12 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import { listMockSchedules } from '@/features/schedules/schedule-repository';
+import { ScheduleFab } from '@/shared/components/schedule-fab';
 import { colors, spacing } from '@/shared/theme';
+import { seoulDateKey } from '@/shared/utils/date';
 
 export default function SchedulesScreen() {
+  const router = useRouter();
   const schedules = useQuery({ queryKey: ['mock-schedules'], queryFn: listMockSchedules });
 
   return (
@@ -20,6 +24,9 @@ export default function SchedulesScreen() {
           {schedules.data?.map((schedule) => <ScheduleCard key={schedule.id} schedule={schedule} />)}
         </View>
       </ScrollView>
+      <ScheduleFab
+        onPress={() => router.push({ pathname: '/schedules/new', params: { date: seoulDateKey(new Date().toISOString()) } })}
+      />
     </SafeAreaView>
   );
 }

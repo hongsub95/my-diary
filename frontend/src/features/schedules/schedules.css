@@ -453,3 +453,13 @@
 .snew-form__submit:hover {
   background: var(--color-primary-hover);
 }
+
+.snew-form__error {
+  color: var(--color-danger, #d64545);
+  font-size: 13px;
+}
+
+.snew-form__submit:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
