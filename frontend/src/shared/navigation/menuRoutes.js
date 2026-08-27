@@ -19,6 +19,9 @@ export const MENU_PATHS = {
   home: '/home',
   calendar: '/calendar',
   schedules: '/schedules',
+  // TODO(임시): 기록 화면이 아직 없다. 하단 메뉴 디자인을 확인하려고 잠시 열어둔 것이라
+  // 누르면 매칭되는 Route가 없어 빈 화면이 된다. 기록 화면을 만들 때 이 주석을 지운다.
+  records: '/records',
   more: '/more',
 }
 

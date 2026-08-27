@@ -53,15 +53,21 @@ function formatTime(dateStr) {
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { data: schedules = [] } = useSchedules()
   const todayKey = useMemo(() => formatDateKey(new Date()), [])
   const [selectedDate, setSelectedDate] = useState(todayKey)
   const [activePlaceId, setActivePlaceId] = useState(null)
   const selectedDateObject = useMemo(() => fromDateKey(selectedDate), [selectedDate])
   const dates = useMemo(() => weekDates(selectedDateObject), [selectedDateObject])
+  // 7일 스트립에 점을 찍으려면 그 주가 전부 필요하고, 목록과 지도에는 선택한 하루만
+  // 쓴다. 한 번에 주 단위로 받아 날짜를 옮길 때마다 다시 부르지 않게 한다.
+  const { data: schedules = [] } = useSchedules({
+    from: formatDateKey(dates[0]),
+    to: formatDateKey(dates[dates.length - 1]),
+    includePlaces: true,
+  })
   const daySchedules = useMemo(
     () => schedules
-      .filter((schedule) => schedule.start_at.slice(0, 10) === selectedDate)
+      .filter((schedule) => schedule.date_key === selectedDate)
       .sort((a, b) => new Date(a.start_at) - new Date(b.start_at)),
     [schedules, selectedDate],
   )
@@ -101,7 +107,7 @@ export default function HomePage() {
       <section className="week-strip" aria-label="주간 날짜 선택">
         {dates.map((date) => {
           const dateKey = formatDateKey(date)
-          const hasSchedule = schedules.some((schedule) => schedule.start_at.slice(0, 10) === dateKey)
+          const hasSchedule = schedules.some((schedule) => schedule.date_key === dateKey)
           return (
             <button
               type="button"

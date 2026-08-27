@@ -24,6 +24,9 @@ export const MENU_SCREENS: Record<string, string> = {
   home: 'home',
   calendar: 'calendar',
   schedules: 'schedules',
+  // TODO(임시): (tabs)/records.tsx가 아직 없다. 하단 탭 디자인을 확인하려고 잠시
+  // 열어둔 것이라 누르면 not-found로 떨어진다. 화면을 만들 때 이 주석을 지운다.
+  records: 'records',
   more: 'more',
 };
 
