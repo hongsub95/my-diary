@@ -20,6 +20,7 @@ export default function TabLayout() {
       <Tabs.Screen name="home" />
       <Tabs.Screen name="calendar" />
       <Tabs.Screen name="schedules" />
+      <Tabs.Screen name="records" />
       <Tabs.Screen name="more" />
     </Tabs>
   );

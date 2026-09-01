@@ -83,3 +83,27 @@ export async function createSchedule(input: CreateScheduleInput): Promise<Schedu
   });
   return response.data;
 }
+
+export type AddSchedulePlaceInput = {
+  name: string;
+  plannedTime?: string | null;
+  memo?: string | null;
+};
+
+/** 장소 검색 연동 전에도 사용할 수 있는 수동 장소 추가 경계. */
+export async function addSchedulePlace(
+  scheduleId: number,
+  input: AddSchedulePlaceInput,
+): Promise<SchedulePlace> {
+  const response = await apiClient.post<SchedulePlace>(`/schedules/${scheduleId}/places`, {
+    name: input.name,
+    address: null,
+    latitude: null,
+    longitude: null,
+    provider: 'manual',
+    provider_place_id: null,
+    planned_time: input.plannedTime ? `${input.plannedTime}:00` : null,
+    memo: input.memo || null,
+  });
+  return response.data;
+}
