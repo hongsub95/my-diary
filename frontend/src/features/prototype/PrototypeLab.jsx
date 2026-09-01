@@ -33,7 +33,7 @@ export default function PrototypeLab() {
     <main className="daybook-lab">
       <header className="lab-heading">
         <div><span>UX REDESIGN 02</span><h1>장소 기반 데이북</h1><p>하루가 계획에서 기억으로 바뀌는 흐름을 검토합니다.</p></div>
-        <a href="/home">현재 서비스 화면</a>
+        <a href="/legacy-home">기존 서비스 화면</a>
       </header>
       <div className="lab-layout">
         <aside className="review-panel">

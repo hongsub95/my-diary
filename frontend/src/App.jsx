@@ -42,8 +42,9 @@ export default function App() {
           </PrivateRoute>
         }
       >
-        <Route index element={<Navigate to="/home" replace />} />
-        <Route path="home" element={<HomePage />} />
+        <Route index element={<Navigate to="/prototype" replace />} />
+        <Route path="home" element={<Navigate to="/prototype" replace />} />
+        <Route path="legacy-home" element={<HomePage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="schedules" element={<ScheduleListPage />} />
         <Route path="schedules/new" element={<ScheduleNewPage />} />
