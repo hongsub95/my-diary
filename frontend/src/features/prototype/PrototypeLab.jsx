@@ -1,99 +1,180 @@
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import {
-  AdjustmentsHorizontalIcon, CalendarDaysIcon, CameraIcon, CheckIcon,
-  ChevronLeftIcon, ChevronRightIcon, ClockIcon, ListBulletIcon, MapIcon,
-  MapPinIcon, PencilSquareIcon, PlusIcon, UserCircleIcon,
+  AdjustmentsHorizontalIcon, ArrowLeftIcon, ArrowRightIcon, BookOpenIcon,
+  CalendarDaysIcon, CameraIcon, CheckIcon, ChevronRightIcon,
+  EllipsisHorizontalIcon, HomeIcon, ListBulletIcon, MapPinIcon,
+  MapIcon, PlusIcon, SparklesIcon,
 } from '@heroicons/react/24/outline'
 import './PrototypeLab.css'
 
-const screens = [
-  ['calendar', '캘린더', CalendarDaysIcon], ['schedule', '일정 목록', ListBulletIcon],
-  ['detail', '일정 상세', MapIcon], ['diary', '일기 기록', PencilSquareIcon],
+const views = [
+  ['home', '홈', HomeIcon, '지금 해야 할 일'],
+  ['plan', '하루 만들기', PlusIcon, '계획이 시작되는 순간'],
+  ['today', '오늘의 하루', MapIcon, '다음 장소에 집중'],
+  ['records', '기록', BookOpenIcon, '지난 하루 다시 보기'],
 ]
-const themes = [
-  ['로즈', '#F43F5E', '#BE123C', '#FFF1F2'], ['오렌지', '#F97316', '#C2410C', '#FFF7ED'],
-  ['에메랄드', '#059669', '#047857', '#ECFDF5'], ['인디고', '#4F46E5', '#4338CA', '#EEF2FF'],
+
+const places = [
+  ['14:00', '그라운드시소 성수', '전시 관람'],
+  ['17:10', '서울숲 산책길', '천천히 걷고 사진 남기기'],
+  ['19:00', '작은식당 성수점', '창가 자리 예약'],
 ]
-const schedules = [
-  ['31', '금', '성수 전시와 저녁', '14:00 – 20:30', '그라운드시소 → 서울숲 → 작은식당', '오늘'],
-  ['02', '일', '북촌 기록 산책', '11:00 – 16:00', '안국역 → 북촌한옥마을 → 카페', '예정'],
-  ['27', '월', '한강 피크닉', '17:30 – 21:00', '여의나루 → 한강공원', '완료'],
-]
-const days = Array.from({ length: 35 }, (_, index) => index - 2)
 
 export default function PrototypeLab() {
-  const [platform, setPlatform] = useState('app')
-  const [screen, setScreen] = useState('calendar')
-  const [theme, setTheme] = useState(themes[0])
-  const [radius, setRadius] = useState(16)
-  const [spacing, setSpacing] = useState(16)
-  const [map, setMap] = useState(true)
-  const style = useMemo(() => ({
-    '--p': theme[1], '--pd': theme[2], '--ps': theme[3],
-    '--r': `${radius}px`, '--s': `${spacing}px`,
-  }), [theme, radius, spacing])
+  const [platform, setPlatform] = useState('web')
+  const [screen, setScreen] = useState('home')
+  const [planStep, setPlanStep] = useState(1)
+  const move = (next) => {
+    setScreen(next)
+    if (next !== 'plan') setPlanStep(1)
+  }
 
-  return <main className="prototype-lab" style={style}>
-    <header className="lab-top">
-      <div><b>나의 일기 · 내일</b><h1>웹·앱 디자인 플레이그라운드</h1><p>화면과 스타일을 바꾸며 실제 구현 방향을 비교해 보세요.</p></div>
-      <a href="/calendar">서비스 화면으로</a>
-    </header>
-    <div className="lab-grid">
-      <aside className="lab-panel">
-        <h2><AdjustmentsHorizontalIcon />디자인 조절</h2>
-        <Field label="플랫폼"><Segment value={platform} set={setPlatform} items={[['app', '모바일 앱'], ['web', '웹']]} /></Field>
-        <Field label="화면"><div className="screen-picker">{screens.map(([id, label, Icon]) => <button className={screen === id ? 'on' : ''} key={id} onClick={() => setScreen(id)} type="button"><Icon />{label}</button>)}</div></Field>
-        <Field label="주요 색상"><div className="color-picker">{themes.map((item) => <button aria-label={item[0]} className={theme[0] === item[0] ? 'on' : ''} key={item[0]} onClick={() => setTheme(item)} style={{ background: item[1] }} type="button">{theme[0] === item[0] && <CheckIcon />}</button>)}</div></Field>
-        <Range label="카드 곡률" value={radius} set={setRadius} min={4} max={28} />
-        <Range label="화면 여백" value={spacing} set={setSpacing} min={10} max={24} />
-        <label className="switch"><span>지도 영역 표시</span><input checked={map} onChange={(event) => setMap(event.target.checked)} type="checkbox" /></label>
-        <div className="help"><b>조절 방법</b><p>선택값은 미리보기에 즉시 반영됩니다. 마음에 드는 조합을 알려주면 운영 화면에 적용할 수 있어요.</p></div>
-      </aside>
-      <section className={`stage ${platform}`}>
-        <div className="stage-meta"><span>{platform === 'app' ? '390 × 844 모바일 기준' : '1440px 웹 기준'}</span><span>{screens.find(([id]) => id === screen)?.[1]}</span></div>
-        {platform === 'app' ? <Phone screen={screen} map={map} /> : <Desktop screen={screen} map={map} />}
+  return (
+    <main className="daybook-lab">
+      <header className="lab-heading">
+        <div><span>UX REDESIGN 02</span><h1>장소 기반 데이북</h1><p>하루가 계획에서 기억으로 바뀌는 흐름을 검토합니다.</p></div>
+        <a href="/home">현재 서비스 화면</a>
+      </header>
+      <div className="lab-layout">
+        <aside className="review-panel">
+          <div className="review-title"><AdjustmentsHorizontalIcon /><p><b>경험 구조 검토</b><small>색상보다 흐름을 먼저 봅니다</small></p></div>
+          <label>플랫폼</label>
+          <div className="segment">
+            <button className={platform === 'app' ? 'on' : ''} onClick={() => setPlatform('app')} type="button">모바일</button>
+            <button className={platform === 'web' ? 'on' : ''} onClick={() => setPlatform('web')} type="button">웹</button>
+          </div>
+          <label>핵심 순간</label>
+          <div className="view-picker">
+            {views.map(([id, title, Icon, note], index) => (
+              <button className={screen === id ? 'on' : ''} key={id} onClick={() => move(id)} type="button">
+                <i>{index + 1}</i><Icon /><p><b>{title}</b><small>{note}</small></p>
+              </button>
+            ))}
+          </div>
+          <div className="principle"><SparklesIcon /><p><b>핵심 기준</b><span>예정 화면은 장소와 행동을, 완료 화면은 사진과 기억을 먼저 보여줍니다.</span></p></div>
+        </aside>
+        <section className={`preview preview--${platform}`}>
+          <div className="preview-meta"><span>{platform === 'app' ? '모바일 메인 경험 · 390px' : '웹 보조 경험 · 1280px'}</span><b>{views.find(([id]) => id === screen)?.[1]}</b></div>
+          <Device platform={platform} screen={screen} move={move} planStep={planStep} setPlanStep={setPlanStep} />
+        </section>
+      </div>
+    </main>
+  )
+}
+
+function Device({ platform, screen, move, planStep, setPlanStep }) {
+  return (
+    <div className={`device device--${platform}`}>
+      {platform === 'app' && <div className="sensor" />}
+      {platform === 'web' && <SideNav screen={screen} move={move} />}
+      <section className={`product ${screen === 'plan' ? 'focus' : ''}`}>
+        <ProductHeader screen={screen} move={move} compact={platform === 'app'} />
+        <div className="product-body">
+          {screen === 'home' && <Home move={move} />}
+          {screen === 'plan' && <Plan step={planStep} setStep={setPlanStep} move={move} />}
+          {screen === 'today' && <Today move={move} />}
+          {screen === 'records' && <Records />}
+        </div>
+        {platform === 'app' && screen !== 'plan' && <BottomNav screen={screen} move={move} />}
       </section>
     </div>
-  </main>
+  )
 }
 
-function Field({ label, children }) { return <div className="field"><label>{label}</label>{children}</div> }
-function Segment({ value, set, items }) { return <div className="segment">{items.map(([id, label]) => <button className={value === id ? 'on' : ''} key={id} onClick={() => set(id)} type="button">{label}</button>)}</div> }
-function Range({ label, value, set, min, max }) { return <label className="range"><span><b>{label}</b><em>{value}px</em></span><input min={min} max={max} onChange={(event) => set(Number(event.target.value))} type="range" value={value} /></label> }
-
-function Phone({ screen, map }) {
-  return <div className="phone"><i /><div className="phone-inner"><PreviewHeader compact /><div className="phone-body"><View screen={screen} map={map} mobile /></div><BottomNav screen={screen} /></div></div>
-}
-function Desktop({ screen, map }) {
-  return <div className="desktop"><aside className="side"><div className="brand"><b>내</b><strong>나의 일기</strong></div><nav>{screens.map(([id, label, Icon]) => <div className={screen === id ? 'on' : ''} key={id}><Icon />{label}</div>)}</nav><div className="profile"><UserCircleIcon /><p><b>홍섭님</b><span>오늘도 기록해요</span></p></div></aside><div className="workspace"><PreviewHeader /><div className="work-body"><View screen={screen} map={map} /></div></div></div>
-}
-function PreviewHeader({ compact = false }) {
-  return <header className={`preview-head ${compact ? 'compact' : ''}`}><div><span>2026년 7월 31일</span><b>좋은 오후예요, 홍섭님</b></div><button type="button"><PlusIcon />{!compact && '새 일정'}</button></header>
-}
-function View({ screen, map, mobile = false }) {
-  if (screen === 'schedule') return <ScheduleList mobile={mobile} />
-  if (screen === 'detail') return <Detail mobile={mobile} map={map} />
-  if (screen === 'diary') return <Diary mobile={mobile} />
-  return <Calendar mobile={mobile} />
+function ProductHeader({ screen, move, compact }) {
+  if (screen === 'plan') return <header className="product-head focus-head"><button aria-label="닫기" onClick={() => move('home')} type="button"><ArrowLeftIcon /></button><b>새로운 하루</b><i /></header>
+  return (
+    <header className="product-head">
+      <button className="space-switch" type="button"><Avatars /><p><b>우리 둘의 하루</b>{!compact && <small>함께 만드는 데이북</small>}</p><ChevronRightIcon /></button>
+      <button className="new-day" onClick={() => move('plan')} type="button"><PlusIcon />{!compact && '하루 만들기'}</button>
+    </header>
+  )
 }
 
-function Calendar({ mobile }) {
-  return <div className={`calendar-view ${mobile ? 'mobile-view' : ''}`}><section className="card calendar-card"><Title eyebrow="나의 일정" title="2026년 7월"><div className="month-buttons"><button type="button"><ChevronLeftIcon /></button><button type="button">오늘</button><button type="button"><ChevronRightIcon /></button></div></Title><div className="week">{['일','월','화','수','목','금','토'].map((d) => <span key={d}>{d}</span>)}</div><div className="month">{days.map((day, index) => <button className={`${day === 31 ? 'selected' : ''} ${day < 1 || day > 31 ? 'muted' : ''}`} key={`${day}-${index}`} type="button"><span>{day > 0 && day <= 31 ? day : ''}</span>{[7,12,18,21,27,31].includes(day) && <i />}</button>)}</div></section><aside className="card agenda"><Title eyebrow="선택한 날짜" title="7월 31일 금요일" /><Schedule item={schedules[0]} /><div className="empty"><CalendarDaysIcon /><p>이날의 다음 일정은 없어요.</p><button type="button">일정 추가하기</button></div></aside></div>
+function SideNav({ screen, move }) {
+  const nav = [['home','홈',HomeIcon],['calendar','캘린더',CalendarDaysIcon],['plan','일정',ListBulletIcon],['records','기록',BookOpenIcon],['more','더보기',EllipsisHorizontalIcon]]
+  return (
+    <aside className="side-nav">
+      <div className="brand"><i>내</i><p><b>나의 일기</b><small>장소 기반 데이북</small></p></div>
+      <div className="side-space"><Avatars /><p><b>우리 둘의 하루</b><small>홍섭님 · 민지님</small></p></div>
+      <nav>{nav.map(([id,label,Icon]) => <button className={screen === id ? 'on' : ''} key={id} onClick={() => ['home','plan','records'].includes(id) && move(id)} type="button"><Icon />{label}</button>)}</nav>
+      <blockquote>앞으로의 하루와<br />지나간 기억이 한곳에.</blockquote>
+    </aside>
+  )
 }
-function ScheduleList({ mobile }) {
-  return <section><div className="page-title"><div><b>나의 시간</b><h2>일정 목록</h2><p>앞으로의 계획과 지나간 기록을 한눈에 확인하세요.</p></div>{!mobile && <button className="primary" type="button"><PlusIcon />새 일정</button>}</div><div className="filters"><button className="on" type="button">전체</button><button type="button">예정</button><button type="button">완료</button></div><div className="schedule-list">{schedules.map((item) => <Schedule item={item} key={item[2]} />)}</div></section>
+
+function Home({ move }) {
+  return (
+    <div className="home-view">
+      <section className="day-hero">
+        <div><span className="eyebrow">오늘 · 9월 1일 화요일</span><h2>오늘은 성수에서<br />천천히 보내요.</h2><p className="together"><Avatars />민지님과 함께 · 오후 2시 시작</p><button onClick={() => move('today')} type="button">오늘의 하루 보기<ArrowRightIcon /></button></div>
+        <Photo className="photo-hero" label="성수의 오늘" />
+      </section>
+      <section className="route-card">
+        <Title eyebrow="TODAY ROUTE" title="세 곳을 함께 가요"><b>1 / 3 방문</b></Title>
+        <div className="route-line">{places.map((place,index) => <div className={index === 0 ? 'done' : index === 1 ? 'active' : ''} key={place[1]}><i>{index === 0 ? <CheckIcon /> : index + 1}</i><p><b>{place[1]}</b><small>{place[0]}</small></p></div>)}</div>
+      </section>
+      <section className="record-prompt"><Photo className="photo-prompt" /><div><span className="eyebrow">기록 대기</span><h3>한강의 노을을 남겨볼까요?</h3><p>사진 한 장이나 한 문장으로 시작해도 충분해요.</p></div><button onClick={() => move('records')} type="button">남기기</button></section>
+    </div>
+  )
 }
-function Schedule({ item }) {
-  return <article className={`schedule ${item[5] === '완료' ? 'done' : ''}`}><div className="date"><b>{item[0]}</b><span>{item[1]}</span></div><div className="schedule-text"><div><i>{item[5]}</i><h3>{item[2]}</h3></div><p><ClockIcon />{item[3]}</p><p><MapPinIcon />{item[4]}</p></div><ChevronRightIcon /></article>
+
+function Plan({ step, setStep, move }) {
+  if (step === 2) return (
+    <div className="plan-view">
+      <Progress step={2} />
+      <Heading eyebrow="STEP 2 · 갈 곳 정하기" title={<>이 하루에<br />어디를 담아볼까요?</>} text="장소를 고른 순서가 그날의 흐름이 됩니다." />
+      <button className="search-place" type="button"><MapPinIcon />카페, 전시, 식당을 검색해 보세요</button>
+      <div className="plan-grid"><div className="selected-places">{places.map((place,index) => <article key={place[1]}><i>{index + 1}</i><p><b>{place[1]}</b><small>{place[2]}</small></p><EllipsisHorizontalIcon /></article>)}<button type="button"><PlusIcon />장소 추가</button></div><MapPreview /></div>
+      <div className="form-actions"><button onClick={() => setStep(1)} type="button">이전</button><button className="primary" onClick={() => move('home')} type="button">하루 완성하기<CheckIcon /></button></div>
+    </div>
+  )
+  return (
+    <div className="plan-view">
+      <Progress step={1} />
+      <Heading eyebrow="STEP 1 · 하루 만들기" title={<>어떤 하루를<br />보내고 싶나요?</>} text="세부 일정표보다 그날의 모습을 먼저 떠올려 보세요." />
+      <div className="day-form">
+        <Field label="하루의 이름">성수 전시와 저녁</Field>
+        <div className="form-row"><Field label="날짜">2026. 09. 01</Field><Field label="시간">14:00 – 20:30</Field></div>
+        <Field label="함께하는 공간"><span className="space-value"><Avatars /><span><b>우리 둘의 하루</b><small>홍섭님 · 민지님</small></span><ChevronRightIcon /></span></Field>
+        <Field label="한 줄 메모 · 선택">전시 보고 저녁 먹기. 서두르지 않기.</Field>
+      </div>
+      <div className="form-actions"><button className="primary" onClick={() => setStep(2)} type="button">갈 곳 정하기<ArrowRightIcon /></button></div>
+    </div>
+  )
 }
-function Detail({ mobile, map }) {
-  const places = ['그라운드시소 성수', '서울숲 산책길', '작은식당 성수점']
-  return <div className={`detail ${mobile ? 'mobile-view' : ''}`}><section><div className="hero"><i>오늘</i><h2>성수 전시와 저녁</h2><p><ClockIcon />7월 31일 금요일 · 14:00 – 20:30</p></div>{map && <MapBox places={places} />}<section className="card places"><Title eyebrow="이동 순서" title="오늘 갈 장소"><button type="button">순서 편집</button></Title>{places.map((place, index) => <div className="place" key={place}><i>{index ? index + 1 : <CheckIcon />}</i><p><b>{place}</b><span>{['14:00 · 전시 관람','17:00 · 산책과 사진','19:00 · 저녁 예약'][index]}</span></p></div>)}</section></section><aside className="card memory"><b>하루의 기록</b><h2>오늘을 남겨보세요</h2><p>사진과 글은 일정이 끝난 뒤에도 장소와 함께 기억됩니다.</p><Photos /><button className="primary" type="button"><PencilSquareIcon />일기 작성하기</button></aside></div>
+
+function Today({ move }) {
+  return (
+    <div className="today-view">
+      <Heading eyebrow="● 오늘 진행 중" title="다음은 서울숲이에요." text="오후 5시 10분 · 걸어서 약 12분" />
+      <div className="today-grid"><section className="next-place"><Photo className="photo-forest" label="다음 장소 · 2" /><div><span className="eyebrow">NEXT PLACE</span><h3>서울숲 산책길</h3><p><MapPinIcon />서울 성동구 뚝섬로 273</p><footer><button type="button"><MapIcon />길 찾기</button><button className="primary" type="button"><CheckIcon />도착했어요</button></footer></div></section><MapPreview live /></div>
+      <section className="flow-card"><Title eyebrow="TODAY FLOW" title="오늘의 흐름"><b>1 / 3</b></Title>{places.map((place,index) => <article className={index === 0 ? 'done' : index === 1 ? 'active' : ''} key={place[1]}><i>{index === 0 ? <CheckIcon /> : index + 1}</i><time>{place[0]}</time><p><b>{place[1]}</b><small>{place[2]}</small></p>{index === 1 && <em>다음</em>}</article>)}</section>
+      <button className="quick-photo" onClick={() => move('records')} type="button"><CameraIcon /><p><b>지금의 장면 남기기</b><small>사진은 오늘의 기록에 바로 담겨요</small></p><ChevronRightIcon /></button>
+    </div>
+  )
 }
-function MapBox({ places }) { return <div className="mapbox"><div className="route" />{places.map((place, index) => <i className={`pin p${index + 1}`} key={place}>{index + 1}</i>)}<p><b>3개 장소</b><span>예상 이동 5.4km</span></p></div> }
-function Diary({ mobile }) {
-  return <div className={`diary ${mobile ? 'mobile-view' : ''}`}><section className="card editor"><div className="page-title"><div><b>7월 27일 월요일</b><h2>한강 피크닉의 기록</h2><p>그날의 감정과 기억을 편안하게 남겨보세요.</p></div></div><label>오늘의 기분<div className="moods"><button type="button">😊</button><button className="on" type="button">🥰</button><button type="button">😌</button><button type="button">😴</button></div></label><label>일기<textarea defaultValue="노을이 생각보다 오래 남아 있어서 천천히 걸었다. 다음에는 돗자리와 따뜻한 차도 챙겨오고 싶다." /></label><div className="actions"><button type="button">임시 저장</button><button className="primary" type="button">기록 저장</button></div></section><aside className="card photo-side"><Title eyebrow="사진" title="오늘의 장면" /><div className="big-photo" /><Photos /></aside></div>
+
+function Records() {
+  return (
+    <div className="records-view">
+      <Heading eyebrow="MY DAYBOOK" title="우리가 보낸 하루들" text="날짜보다 장면으로 먼저 기억해 보세요." />
+      <article className="featured-record"><div className="photo-grid"><Photo className="photo-sunset" /><Photo className="photo-picnic" /><Photo className="photo-river" /></div><div className="record-copy"><span>2026. 8. 27 · 우리 둘의 하루</span><h3>한강 피크닉</h3><p>“노을이 생각보다 오래 남아 있어서 천천히 걸었다.”</p><footer><span><MapPinIcon />여의나루 · 한강공원</span><span><CameraIcon />8</span></footer></div></article>
+      <div className="record-list"><RecordCard photo="photo-alley" date="8월 16일 · 나의 하루" title="북촌 기록 산책" text="골목을 따라 걷다가 작은 전시를 만났다." /><RecordCard photo="photo-cafe" date="8월 2일 · 여름 여행" title="친구들과 강릉" text="바다보다 오래 기억날 커피 한 잔." /></div>
+    </div>
+  )
 }
-function Title({ eyebrow, title, children }) { return <div className="title"><div><b>{eyebrow}</b><h2>{title}</h2></div>{children}</div> }
-function Photos() { return <div className="photos"><div /><div /><button type="button"><CameraIcon /><span>추가</span></button></div> }
-function BottomNav({ screen }) { return <nav className="bottom">{screens.map(([id, label, Icon]) => <button className={screen === id ? 'on' : ''} key={id} type="button"><Icon /><span>{label.replace(' 목록','').replace(' 상세','').replace(' 기록','')}</span></button>)}</nav> }
+
+function BottomNav({ screen, move }) {
+  const items = [['home','홈',HomeIcon],['calendar','캘린더',CalendarDaysIcon],['plan','일정',ListBulletIcon],['records','기록',BookOpenIcon],['more','더보기',EllipsisHorizontalIcon]]
+  return <nav className="bottom-nav">{items.map(([id,label,Icon]) => <button className={screen === id || (screen === 'today' && id === 'home') ? 'on' : ''} key={id} onClick={() => ['home','plan','records'].includes(id) && move(id)} type="button"><Icon /><span>{label}</span></button>)}</nav>
+}
+
+function Avatars() { return <span className="avatars"><i>홍</i><i>민</i></span> }
+function Progress({ step }) { return <div className="progress"><i className="on" /><i className={step === 2 ? 'on' : ''} /><b>{step} / 2</b></div> }
+function Heading({ eyebrow, title, text }) { return <div className="screen-heading"><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{text}</p></div> }
+function Title({ eyebrow, title, children }) { return <div className="section-title"><div><span className="eyebrow">{eyebrow}</span><h3>{title}</h3></div>{children}</div> }
+function Field({ label, children }) { return <label className="field"><span>{label}</span><div>{children}</div></label> }
+function Photo({ className = '', label }) { return <div className={`memory-photo ${className}`}>{label && <span>{label}</span>}</div> }
+function RecordCard({ photo, date, title, text }) { return <article><Photo className={photo} /><div><span>{date}</span><h3>{title}</h3><p>{text}</p><small>3개 장소</small></div></article> }
+function MapPreview({ live = false }) { return <div className="map-preview"><i className="road one" /><i className="road two" />{places.map((place,index) => <b className={`pin pin-${index + 1}`} key={place[1]}>{index + 1}</b>)}{live && <i className="current" />}<p><b>{live ? '서울숲까지 12분' : '3개 장소 · 약 5.4km'}</b><span>{live ? '도보 경로 미리보기' : '선택한 순서대로 표시'}</span></p></div> }
