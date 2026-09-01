@@ -8,7 +8,7 @@ from app.core.database import Base
 
 class Schedule(Base):
     """약속/일정 하나. 캘린더·리스트·지도 화면의 중심 엔티티이며, 장소(SchedulePlace)와
-    일기(DiaryEntry)가 여기에 매달린다.
+    일기(본문·사진·타임라인)가 여기에 매달린다.
 
     일정은 반드시 하나의 스페이스에 속한다. 조회·수정 권한은 created_by가 아니라
     space_id에 대한 활성 SpaceMember 여부로 판단한다 (docs/SPACE_MODEL_SPEC.md 11절)."""
@@ -24,6 +24,11 @@ class Schedule(Base):
     start_at: Mapped[datetime] = mapped_column(nullable=False)
     end_at: Mapped[datetime] = mapped_column(nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, server_default="planned")
+    # 실제로 완료 처리된 시각. status와 따로 두는 이유: 기록 목록을 "다녀온 순서"로
+    # 정렬해야 하는데 status는 언제 바뀌었는지를 알려주지 않는다. end_at으로 대신하면
+    # 지난 일정을 뒤늦게 완료한 경우 목록 맨 앞에 와야 할 하루가 아래로 묻힌다.
+    # 종료 시각이 지났다는 이유만으로는 채우지 않는다 (docs/UX_BACKEND_HANDOFF.md 4절).
+    completed_at: Mapped[datetime | None] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
@@ -45,7 +50,16 @@ class Schedule(Base):
         back_populates="schedule", order_by="SchedulePlace.sort_order", passive_deletes=True
     )
     participants: Mapped[list["ScheduleParticipant"]] = relationship(back_populates="schedule", passive_deletes=True)
-    diary_entry: Mapped["DiaryEntry | None"] = relationship(back_populates="schedule", uselist=False, passive_deletes=True)
+    # 하루의 일기는 세 갈래로 나뉜다. 본문만 작성자별이고 사진·타임라인은 공용이다.
+    diary_entries: Mapped[list["DiaryEntry"]] = relationship(back_populates="schedule", passive_deletes=True)
+    diary_photos: Mapped[list["DiaryPhoto"]] = relationship(
+        back_populates="schedule", order_by="DiaryPhoto.sort_order", passive_deletes=True
+    )
+    diary_timeline: Mapped[list["DiaryTimelineItem"]] = relationship(
+        back_populates="schedule",
+        order_by="DiaryTimelineItem.occurred_at, DiaryTimelineItem.sort_order",
+        passive_deletes=True,
+    )
     share_links: Mapped[list["ShareLink"]] = relationship(back_populates="schedule", passive_deletes=True)
 
 
