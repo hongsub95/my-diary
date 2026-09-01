@@ -1,10 +1,10 @@
 import { StyleSheet, Text, View } from 'react-native';
 
-import type { Schedule } from '@/shared/api/types';
+import type { ScheduleView } from './schedule-adapter';
 import { formatKoreanDateTime } from '@/shared/utils/date';
 import { colors, spacing } from '@/shared/theme';
 
-export function ScheduleCard({ schedule }: { schedule: Schedule }) {
+export function ScheduleCard({ schedule }: { schedule: ScheduleView }) {
   return (
     <View style={styles.card}>
       <View style={styles.topRow}>

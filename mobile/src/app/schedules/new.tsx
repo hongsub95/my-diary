@@ -14,7 +14,8 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
-import { createMockSchedule } from '@/features/schedules/schedule-repository';
+import { createSchedule } from '@/features/schedules/schedule-api';
+import { getApiError } from '@/shared/api/api-error';
 import { colors, spacing } from '@/shared/theme';
 import { seoulDateKey } from '@/shared/utils/date';
 
@@ -54,18 +55,20 @@ export default function NewScheduleScreen() {
     setError(null);
     setSubmitting(true);
     try {
-      await createMockSchedule({
-        space_id: user.default_space_id,
-        space_name: '기본 스페이스',
+      await createSchedule({
+        spaceId: user.default_space_id,
         title: trimmedTitle,
         description: description.trim(),
         date,
-        start_time: startTime,
-        end_time: endTime,
-        created_by: { id: user.id, nickname: user.nickname },
+        startTime,
+        endTime,
       });
-      await queryClient.invalidateQueries({ queryKey: ['mock-schedules'] });
+      // 기간·include 조합마다 키가 달라서 접두사로 한 번에 무효화한다. 홈·캘린더·일정
+      // 목록이 새 일정을 바로 반영한다.
+      await queryClient.invalidateQueries({ queryKey: ['schedules'] });
       router.back();
+    } catch (caught) {
+      setError(getApiError(caught).message);
     } finally {
       setSubmitting(false);
     }

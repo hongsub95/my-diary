@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
-import { listMockSchedules } from '@/features/schedules/schedule-repository';
+import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { colors, spacing } from '@/shared/theme';
@@ -15,14 +14,16 @@ import { seoulDateKey } from '@/shared/utils/date';
 export default function HomeScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const schedules = useQuery({ queryKey: ['mock-schedules'], queryFn: listMockSchedules });
+  // 홈은 오늘을 중심으로 보여주므로 이번 달을 받아 화면에서 추린다. 지도 프리뷰와
+  // 장소 순서에 장소가 필요해 include를 켠다.
+  const schedules = useSchedules({ includePlaces: true });
 
   const summary = useMemo(() => {
     const items = schedules.data ?? [];
     const now = new Date();
     const todayKey = seoulDateKey(now.toISOString());
     const today = items
-      .filter((schedule) => seoulDateKey(schedule.start_at) === todayKey)
+      .filter((schedule) => schedule.dateKey === todayKey)
       .sort((left, right) => Date.parse(left.start_at) - Date.parse(right.start_at));
     const next = items
       .filter((schedule) => schedule.status === 'planned' && Date.parse(schedule.start_at) > now.getTime())

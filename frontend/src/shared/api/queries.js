@@ -9,6 +9,7 @@ import {
   listSchedules,
 } from './schedules'
 import { toScheduleDetailView, toScheduleView } from './scheduleAdapter'
+import { addSchedulePlace, removeSchedulePlace, searchPlaces } from './places'
 
 async function fetchMenus() {
   const { data } = await apiClient.get('/menus', {
@@ -107,4 +108,46 @@ export function useCreateSchedule() {
       queryClient.invalidateQueries({ queryKey: ['schedules'] })
     },
   })
+}
+
+/**
+ * 장소 검색.
+ *
+ * @param {string} query 검색어. 비어 있으면 조회하지 않는다
+ */
+export function usePlaceSearch(query) {
+  return useQuery({
+    queryKey: ['places', 'search', query],
+    queryFn: () => searchPlaces(query),
+    // 글자를 지웠을 때 이전 결과가 남지 않도록 빈 검색어에서는 아예 끈다.
+    enabled: query.trim().length > 0,
+  })
+}
+
+/**
+ * 일정에 장소를 추가하거나 뺀다.
+ *
+ * 성공하면 상세와 목록 캐시를 모두 무효화한다. 장소가 바뀌면 상세의 장소 목록뿐
+ * 아니라 홈 지도와 일정 목록의 장소 요약도 함께 달라지기 때문이다.
+ *
+ * @param {number|string} scheduleId 대상 일정 id
+ */
+export function useSchedulePlaceMutations(scheduleId) {
+  const queryClient = useQueryClient()
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['schedules'] })
+  }
+
+  const add = useMutation({
+    mutationFn: ({ place, memo }) => addSchedulePlace({ scheduleId, place, memo }),
+    onSuccess: invalidate,
+  })
+
+  const remove = useMutation({
+    mutationFn: (schedulePlaceId) => removeSchedulePlace({ scheduleId, schedulePlaceId }),
+    onSuccess: invalidate,
+  })
+
+  return { add, remove }
 }

@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
 import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
 import pencilRaw from '../../assets/icons/pencil.svg?raw'
-import { useSchedule } from '../../shared/api/queries'
+import plusRaw from '../../assets/icons/plus.svg?raw'
+import { useSchedule, useSchedulePlaceMutations } from '../../shared/api/queries'
+import PlacePicker from './PlacePicker'
 import './schedules.css'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -24,6 +27,8 @@ export default function ScheduleDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data: schedule, isLoading } = useSchedule(id)
+  const { add, remove } = useSchedulePlaceMutations(id)
+  const [picking, setPicking] = useState(false)
 
   if (isLoading) return <div className="sdetail-loading">로딩 중...</div>
   if (!schedule) return <div className="sdetail-loading">일정을 찾을 수 없어요</div>
@@ -50,11 +55,30 @@ export default function ScheduleDetailPage() {
         <section className="sdetail-section">
           <div className="sdetail-section__header">
             <h2 className="sdetail-section__title">장소</h2>
+            {!picking && (
+              <button
+                type="button"
+                className="sdetail-section__edit"
+                onClick={() => setPicking(true)}
+              >
+                <Icon raw={plusRaw} size={14} />
+                추가
+              </button>
+            )}
           </div>
+
+          {picking && <PlacePicker mutation={add} onClose={() => setPicking(false)} />}
+
+          {schedule.places.length === 0 && !picking && (
+            <p className="sdetail-places-empty">아직 담은 장소가 없어요.</p>
+          )}
+
           <div className="sdetail-places">
-            {schedule.places.map((p) => (
+            {schedule.places.map((p, index) => (
               <div key={p.id} className="sdetail-place">
-                <div className="sdetail-place__order">{p.sort_order}</div>
+                {/* 화면에는 방문 차례를 1부터 보여준다. sort_order는 0부터 시작하는
+                    내부 값이라 그대로 찍으면 첫 장소가 0번이 된다. */}
+                <div className="sdetail-place__order">{index + 1}</div>
                 <div className="sdetail-place__info">
                   <div className="sdetail-place__name-row">
                     <p className={`sdetail-place__name${p.visited ? ' sdetail-place__name--visited' : ''}`}>
@@ -65,6 +89,15 @@ export default function ScheduleDetailPage() {
                   <p className="sdetail-place__address">{p.address}</p>
                   {p.memo && <p className="sdetail-place__memo">{p.memo}</p>}
                 </div>
+                <button
+                  type="button"
+                  className="sdetail-place__remove"
+                  onClick={() => remove.mutate(p.id)}
+                  disabled={remove.isPending}
+                  aria-label={`${p.name} 빼기`}
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>

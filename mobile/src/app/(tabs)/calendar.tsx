@@ -1,11 +1,10 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { Calendar, LocaleConfig, type DateData } from 'react-native-calendars';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { listMockSchedules } from '@/features/schedules/schedule-repository';
+import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import { ScheduleFab } from '@/shared/components/schedule-fab';
 import { colors, spacing } from '@/shared/theme';
@@ -19,6 +18,14 @@ LocaleConfig.locales.ko = {
 };
 LocaleConfig.defaultLocale = 'ko';
 
+/** 'YYYY-MM'이 가리키는 달의 말일을 'YYYY-MM-DD'로 돌려준다. */
+function lastDayOfMonth(yearMonth: string) {
+  const [year, month] = yearMonth.split('-').map(Number);
+  // 다음 달 0일 = 이번 달 말일. 달마다 다른 일수와 윤년을 직접 다루지 않아도 된다.
+  const day = new Date(year, month, 0).getDate();
+  return `${yearMonth}-${String(day).padStart(2, '0')}`;
+}
+
 function localDateKey(date = new Date()) {
   return [
     date.getFullYear(),
@@ -29,14 +36,21 @@ function localDateKey(date = new Date()) {
 
 export default function CalendarScreen() {
   const router = useRouter();
-  const schedules = useQuery({ queryKey: ['mock-schedules'], queryFn: listMockSchedules });
   const [selectedDate, setSelectedDate] = useState(() => localDateKey());
+
+  // 달을 넘기면 handleMonthChange가 selectedDate를 그 달 1일로 옮기므로, 선택 날짜의
+  // 달이 곧 보고 있는 달이다. 장소는 쓰지 않으므로 include를 켜지 않는다.
+  const visibleMonth = selectedDate.slice(0, 7);
+  const schedules = useSchedules({
+    from: `${visibleMonth}-01`,
+    to: lastDayOfMonth(visibleMonth),
+  });
 
   const markedDates = useMemo(() => {
     const marks: Record<string, { marked?: boolean; dotColor?: string; selected?: boolean; selectedColor?: string }> = {};
 
     for (const schedule of schedules.data ?? []) {
-      const dateKey = schedule.start_at.slice(0, 10);
+      const dateKey = schedule.dateKey;
       marks[dateKey] = {
         ...marks[dateKey],
         marked: true,
@@ -53,7 +67,7 @@ export default function CalendarScreen() {
   }, [schedules.data, selectedDate]);
 
   const selectedSchedules = useMemo(
-    () => (schedules.data ?? []).filter((schedule) => schedule.start_at.slice(0, 10) === selectedDate),
+    () => (schedules.data ?? []).filter((schedule) => schedule.dateKey === selectedDate),
     [schedules.data, selectedDate],
   );
 
