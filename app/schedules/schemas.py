@@ -96,6 +96,9 @@ class ScheduleResponse(BaseModel):
     start_at: datetime
     end_at: datetime
     status: str
+    # 실제로 완료 처리된 시각. 아직 완료하지 않았으면 null이다.
+    # 기록 목록은 이 값을 기준으로 최신순 정렬한다(docs/API_SPEC.md 7장).
+    completed_at: datetime | None
     created_by: ScheduleAuthorResponse
     # 상세 화면에 들어가기 전에 목록에서 "장소 3곳" 같은 요약을 보여주기 위한 값.
     place_count: int

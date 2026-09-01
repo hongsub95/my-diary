@@ -123,6 +123,7 @@ def to_response(
         start_at=schedule.start_at,
         end_at=schedule.end_at,
         status=schedule.status,
+        completed_at=schedule.completed_at,
         created_by=ScheduleAuthorResponse.model_validate(schedule.created_by_user),
         place_count=place_count,
         has_diary=has_diary,
@@ -268,11 +269,16 @@ def update_schedule(db: Session, schedule: Schedule, changes: dict) -> Schedule:
 
 
 def complete_schedule(db: Session, schedule: Schedule) -> Schedule:
-    """일정을 완료 상태로 바꾼다. 이미 완료여도 오류로 보지 않는다.
+    """일정을 완료 상태로 바꾸고 완료 시각을 남긴다. 이미 완료여도 오류로 보지 않는다.
 
     같은 요청을 두 번 보내도 결과가 같아야 한다. 네트워크가 끊겨 재시도했을 때
     409를 받으면 클라이언트가 처리하기 번거롭기 때문이다.
+
+    다만 completed_at은 이미 값이 있으면 덮어쓰지 않는다. 재시도할 때마다 시각이
+    밀리면 "언제 다녀온 하루인가"가 요청 횟수에 따라 달라진다.
     """
+    if schedule.completed_at is None:
+        schedule.completed_at = datetime.now(timezone.utc)
     schedule.status = SCHEDULE_STATUS_COMPLETED
     db.commit()
     db.refresh(schedule)
