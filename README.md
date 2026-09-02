@@ -6,6 +6,7 @@
 
 ## 문서
 
+- **[백엔드 컨텍스트 및 인수인계](./docs/BACKEND_OVERVIEW.md)**
 - [제품 기획서](./docs/PRODUCT_SPEC.md)
 - [개발 인수인계 문서](./docs/DEVELOPMENT_BRIEF.md)
 - [데이트 코스 추천·일정 최적화 명세](./docs/COURSE_RECOMMENDATION_SPEC.md)
