@@ -8,6 +8,10 @@ from app.diaries.photo_router import (
     schedule_photos_router,
 )
 from app.diaries.router import router as diaries_router
+from app.diaries.timeline_router import (
+    schedule_timeline_router,
+    timeline_router as diary_timeline_router,
+)
 from app.menus.router import router as menus_router
 from app.places.router import (
     places_router,
@@ -40,4 +44,6 @@ api_router.include_router(places_router)
 api_router.include_router(diaries_router)
 api_router.include_router(schedule_photos_router)
 api_router.include_router(diary_photos_router)
+api_router.include_router(schedule_timeline_router)
+api_router.include_router(diary_timeline_router)
 api_router.include_router(users_router)

@@ -105,3 +105,44 @@ class InvalidPhotoReorderError(AppError):
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             field="photo_ids",
         )
+
+
+class DiaryTimelineItemNotFoundError(AppError):
+    """없는 타임라인 항목이거나 볼 수 없는 일정의 항목을 가리킨 경우."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="DIARY_TIMELINE_ITEM_NOT_FOUND",
+            message="타임라인 항목을 찾을 수 없습니다.",
+            status_code=status.HTTP_404_NOT_FOUND,
+        )
+
+
+class TimelineEditForbiddenError(AppError):
+    """남이 남긴 타임라인 항목을 일반 멤버가 고치거나 지우려 한 경우.
+
+    사진 삭제와 같은 이유로 404가 아니라 403이다. 목록에서 이미 본 항목이라 숨길 것이 없다.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="TIMELINE_EDIT_FORBIDDEN",
+            message="다른 사람이 남긴 기록은 수정하거나 삭제할 수 없습니다.",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+
+class InvalidTimelinePlaceError(AppError):
+    """이 일정에 담기지 않은 장소를 타임라인에 연결하려 한 경우.
+
+    다른 일정의 schedule_place_id를 넣어도 같은 오류다. 허용하면 남의 일정에 담긴
+    장소의 존재 여부를 알아낼 수 있다.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="INVALID_TIMELINE_PLACE",
+            message="이 일정에 담긴 장소만 연결할 수 있습니다.",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            field="schedule_place_id",
+        )

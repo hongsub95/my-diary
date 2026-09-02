@@ -5,7 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.storage import build_media_url
-from app.diaries.models import DiaryPhoto
+from app.diaries.models import DiaryPhoto, DiaryTimelineItem
 
 # 기분은 짧은 라벨이나 이모지를 상정한다. 모델의 String(20)과 같은 값이어야 한다.
 MAX_MOOD_LENGTH = 20
@@ -135,3 +135,92 @@ class DiaryPhotoReorderRequest(BaseModel):
     photo_ids: list[int] = Field(min_length=1)
     # 대표 사진. null이면 지정을 없애고 맨 앞 사진이 대표가 된다.
     cover_photo_id: int | None = None
+
+
+class DiaryTimelineCreateRequest(BaseModel):
+    """타임라인 항목 추가 요청.
+
+    장소 연결은 선택이다. 계획에 없던 곳이나 장소가 아닌 활동("점심 먹기")도 남길 수
+    있어야 하기 때문이다 (docs/DEVELOPMENT_BRIEF.md 9절).
+    """
+
+    occurred_at: datetime
+    title: str = Field(min_length=1, max_length=200)
+    memo: str | None = None
+    # 일정에 담아둔 장소와 연결할 때만 준다. 다른 일정의 장소를 가리키면 422다.
+    schedule_place_id: int | None = None
+
+    @field_validator("title")
+    @classmethod
+    def validate_title_not_blank(cls, value: str) -> str:
+        """공백만 있는 제목을 거르고 앞뒤 공백을 제거한다."""
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("무엇을 했는지 입력해 주세요.")
+        return stripped
+
+
+class DiaryTimelineUpdateRequest(BaseModel):
+    """타임라인 항목 수정. 보낸 필드만 변경된다.
+
+    memo와 schedule_place_id는 null을 보내 지울 수 있어야 하므로 "안 보냄"과
+    "null로 보냄"을 구분한다. 서비스가 `model_fields_set`으로 판단한다.
+    """
+
+    occurred_at: datetime | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    memo: str | None = None
+    schedule_place_id: int | None = None
+
+    @field_validator("title")
+    @classmethod
+    def validate_title_not_blank(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        stripped = value.strip()
+        if not stripped:
+            raise ValueError("무엇을 했는지 입력해 주세요.")
+        return stripped
+
+
+class DiaryTimelineItemResponse(BaseModel):
+    """타임라인 항목 하나."""
+
+    id: int
+    schedule_id: int
+    occurred_at: datetime
+    title: str
+    memo: str | None
+    # 연결된 장소가 있으면 그 항목의 id. 나중에 일정에서 그 장소를 빼면 null이 되고
+    # title은 남는다. "그날 거기 갔다"는 사실은 계획이 바뀌어도 유지돼야 한다.
+    schedule_place_id: int | None
+    # 화면이 장소 목록을 따로 받지 않고도 이름을 보여줄 수 있게 함께 담는다.
+    place_name: str | None
+    created_by: DiaryAuthorResponse
+    created_at: datetime
+    updated_at: datetime
+
+    @classmethod
+    def from_item(cls, item: DiaryTimelineItem) -> "DiaryTimelineItemResponse":
+        """모델을 응답으로 바꾼다.
+
+        :param item: schedule_place.place와 created_by_user가 로드된 항목
+        """
+        return cls(
+            id=item.id,
+            schedule_id=item.schedule_id,
+            occurred_at=item.occurred_at,
+            title=item.title,
+            memo=item.memo,
+            schedule_place_id=item.schedule_place_id,
+            place_name=item.schedule_place.place.name if item.schedule_place else None,
+            created_by=DiaryAuthorResponse.model_validate(item.created_by_user),
+            created_at=item.created_at,
+            updated_at=item.updated_at,
+        )
+
+
+class DiaryTimelineListResponse(BaseModel):
+    """하루의 타임라인. 시간순이다."""
+
+    items: list[DiaryTimelineItemResponse]
