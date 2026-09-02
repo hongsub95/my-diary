@@ -3,6 +3,10 @@ from fastapi import APIRouter
 from app.api.v1.health import router as health_router
 from app.auth.router import router as auth_router
 from app.auth.web_router import router as auth_web_router
+from app.diaries.photo_router import (
+    photos_router as diary_photos_router,
+    schedule_photos_router,
+)
 from app.diaries.router import router as diaries_router
 from app.menus.router import router as menus_router
 from app.places.router import (
@@ -34,4 +38,6 @@ api_router.include_router(places_router)
 # 일기도 /schedules/{id} 아래에 붙는다. 장소와 마찬가지로 경로가 겹치지 않아 순서에
 # 민감하지 않지만, 일정 상세(/schedules/{schedule_id})보다 뒤에 둔다.
 api_router.include_router(diaries_router)
+api_router.include_router(schedule_photos_router)
+api_router.include_router(diary_photos_router)
 api_router.include_router(users_router)

@@ -9,6 +9,8 @@ SQLite를 쓰지 않는 이유: 스키마가 PostgreSQL 전용 기능(UUID 타�
 """
 
 import os
+import shutil
+from pathlib import Path
 
 # app.core.config 를 import 하기 전에 APP_ENV를 설정해야 한다.
 # config 모듈이 import 시점에 APP_ENV를 읽어 어느 .env 파일을 쓸지 정하기 때문에,
@@ -142,3 +144,26 @@ def client(db_session: Session, redis_client: redis_lib.Redis) -> Generator[Test
         yield test_client
 
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def clean_uploads() -> Generator[None, None, None]:
+    """테스트가 올린 파일을 매번 지운다.
+
+    사진 업로드 테스트는 실제 디스크에 파일을 쓴다. 치우지 않으면 uploads_test/에
+    계속 쌓이고, "이 파일이 방금 테스트가 만든 것인지" 알 수 없게 된다.
+
+    개발용 uploads/를 실수로 지우지 않도록 디렉터리 이름을 한 번 더 확인한다.
+    .env.test 가 UPLOAD_DIR=uploads_test 로 두기 때문에 평소에는 통과한다.
+    """
+    upload_dir = Path(get_settings().upload_dir)
+    if not upload_dir.name.endswith("_test"):
+        raise RuntimeError(
+            f"테스트 업로드 디렉터리 이름이 '_test'로 끝나지 않습니다: {upload_dir}. "
+            ".env.test 의 UPLOAD_DIR을 확인하세요. 개발용 파일을 지우는 사고를 막기 위한 검사입니다."
+        )
+
+    yield
+
+    if upload_dir.exists():
+        shutil.rmtree(upload_dir, ignore_errors=True)

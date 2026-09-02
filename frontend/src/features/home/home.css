@@ -2,7 +2,7 @@
   min-height: 100%;
   padding: 42px 16px 24px;
   background:
-    radial-gradient(circle at 100% 0, rgba(244, 63, 94, 0.1), transparent 28%),
+    radial-gradient(circle at 100% 0, rgba(207, 82, 107, 0.1), transparent 28%),
     var(--color-bg);
 }
 
@@ -47,7 +47,7 @@
   height: 42px;
   place-items: center;
   overflow: hidden;
-  border: 1px solid #fecdd3;
+  border: 1px solid #e4a8b5;
   border-radius: 14px;
   background: var(--color-primary-light);
   color: var(--color-primary);
@@ -88,7 +88,7 @@
 .week-day__number { margin-top: 2px; font-size: 15px; font-weight: 700; }
 .week-day__dot { width: 4px; height: 4px; margin-top: 4px; border-radius: 50%; }
 .week-day__dot--visible { background: var(--color-primary); }
-.week-day--selected { background: var(--color-primary); color: #fff; box-shadow: 0 6px 16px rgba(244, 63, 94, 0.25); }
+.week-day--selected { background: var(--color-primary); color: #fff; box-shadow: 0 6px 16px rgba(207, 82, 107, 0.22); }
 .week-day--selected .week-day__dot--visible { background: #fff; }
 
 .home-summary {
@@ -99,12 +99,12 @@
   margin: 14px 0;
   padding: 14px 16px;
   border-radius: 18px;
-  background: #1c1917;
+  background: var(--color-ink);
   color: #fff;
 }
 
 .home-summary div { display: flex; align-items: baseline; gap: 3px; }
-.home-summary strong { color: #fda4af; font-size: 20px; }
+.home-summary strong { color: #e9b8c3; font-size: 20px; }
 .home-summary span { color: #d6d3d1; font-size: 11px; }
 .home-summary p { overflow: hidden; color: #e7e5e4; font-size: 12px; text-align: right; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -123,12 +123,12 @@
     linear-gradient(125deg, transparent 42%, rgba(255,255,255,.82) 43% 47%, transparent 48%),
     repeating-linear-gradient(0deg, transparent 0 42px, rgba(120,113,108,.08) 43px 44px),
     repeating-linear-gradient(90deg, transparent 0 54px, rgba(120,113,108,.08) 55px 56px),
-    #e7eadf;
+    #dfe5da;
 }
 
-.home-map__road { position: absolute; display: block; border: 3px solid rgba(244,63,94,.36); border-radius: 50%; }
+.home-map__road { position: absolute; display: block; border: 3px solid rgba(207,82,107,.34); border-radius: 50%; }
 .home-map__road--one { inset: 24% 18% 20% 12%; transform: rotate(-12deg); }
-.home-map__road--two { inset: 12% 48% 42% 7%; border-color: rgba(251,146,60,.45); transform: rotate(18deg); }
+.home-map__road--two { inset: 12% 48% 42% 7%; border-color: rgba(108,128,105,.48); transform: rotate(18deg); }
 
 .home-marker {
   position: absolute;
@@ -148,7 +148,7 @@
 }
 
 .home-marker span { transform: rotate(45deg); }
-.home-marker--active { z-index: 3; width: 38px; height: 38px; background: #1c1917; }
+.home-marker--active { z-index: 3; width: 38px; height: 38px; background: var(--color-ink); }
 .home-marker { text-indent: 1px; }
 
 .home-map__legend {

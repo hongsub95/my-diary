@@ -1,27 +1,33 @@
 :root {
-  /* Colors */
-  --color-primary: #F43F5E;
-  --color-primary-hover: #E11D48;
-  --color-primary-light: #FFF1F2;
-  --color-primary-text: #BE123C;
+  /* Daybook palette: warm paper, muted rose, and sage */
+  --color-primary: #CF526B;
+  --color-primary-hover: #B8425A;
+  --color-primary-light: #FBECEF;
+  --color-primary-text: #9F3149;
 
-  --color-orange: #FB923C;
-  --color-orange-light: #FFF7ED;
-  --color-orange-text: #C2410C;
+  --color-orange: #B7773F;
+  --color-orange-light: #F6EBDD;
+  --color-orange-text: #7C4A24;
 
-  --color-bg: #FAFAF9;
-  --color-surface: #FFFFFF;
-  --color-surface-hover: #F5F5F4;
+  --color-bg: #F4F0EB;
+  --color-surface: #FFFDF9;
+  --color-surface-hover: #F8F3ED;
 
-  --color-text-primary: #1C1917;
-  --color-text-secondary: #78716C;
-  --color-text-disabled: #A8A29E;
+  --color-text-primary: #282321;
+  --color-text-secondary: #756D68;
+  --color-text-disabled: #A69D96;
 
-  --color-border: #E7E5E4;
-  --color-border-light: #F5F5F4;
+  --color-border: #E9E2DC;
+  --color-border-light: #F1EBE5;
 
-  --color-sunday: #FB7185;
-  --color-saturday: #60A5FA;
+  --color-ink: #302927;
+  --color-sage: #6C8069;
+  --color-sand: #E9E1D6;
+  --color-danger: #B84B4B;
+  --color-current-location: #4F7594;
+
+  --color-sunday: #CF526B;
+  --color-saturday: #5F7892;
 
   /* Radius */
   --radius-sm: 8px;

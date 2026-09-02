@@ -1,8 +1,10 @@
 import logging
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 # 모든 모델을 SQLAlchemy 레지스트리에 등록한다. 직접 쓰지 않지만 relationship 문자열
@@ -72,6 +74,15 @@ app.add_middleware(
 register_error_handlers(app)
 
 app.include_router(api_router)
+
+# 로컬 저장소를 쓸 때만 업로드 파일을 직접 서빙한다. 사진 응답의 file_url이
+# MEDIA_BASE_URL(기본 http://127.0.0.1:8000/uploads)을 가리키므로, 이 마운트가 없으면
+# 주소는 나오는데 열리지 않는다. 실서버(S3)에서는 저장소가 직접 서빙하므로 필요 없다.
+if settings.is_local_storage:
+    upload_path = Path(settings.upload_dir)
+    # 서버가 먼저 뜨고 업로드가 나중에 일어나므로 디렉터리를 미리 만들어 둔다.
+    upload_path.mkdir(parents=True, exist_ok=True)
+    app.mount("/uploads", StaticFiles(directory=upload_path), name="uploads")
 
 
 @app.get("/")
