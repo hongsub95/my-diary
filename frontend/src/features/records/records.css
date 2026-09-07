@@ -1,0 +1,215 @@
+.records-page {
+  min-height: 100%;
+  padding: 24px 16px 32px;
+  background: var(--color-bg);
+}
+
+.records-page__eyebrow {
+  color: var(--color-primary-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+}
+
+.records-page__title {
+  margin-top: 6px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 28px;
+  letter-spacing: -0.03em;
+}
+
+.records-page__subtitle {
+  margin-top: 6px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.records-page__status {
+  margin-top: 24px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.records-page__status--error {
+  color: var(--color-danger);
+}
+
+/* ── 목록 ── */
+.records-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.record-card {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 12px;
+  padding: 10px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.record-card:hover {
+  background: var(--color-surface-hover);
+}
+
+/* 맨 위 카드는 사진을 위로 크게 깔아 그날의 장면을 먼저 보여준다. */
+.record-card--featured {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 0;
+  overflow: hidden;
+}
+
+.record-card__photo {
+  width: 100%;
+  height: 92px;
+  border-radius: var(--radius-lg);
+  object-fit: cover;
+  background: var(--color-sand);
+}
+
+.record-card--featured .record-card__photo {
+  height: 220px;
+  border-radius: 0;
+}
+
+.record-card__photo--empty {
+  display: grid;
+  place-items: center;
+  color: var(--color-text-disabled);
+}
+
+.record-card__body {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  gap: 3px;
+}
+
+.record-card--featured .record-card__body {
+  padding: 16px;
+  gap: 5px;
+}
+
+.record-card__meta {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.record-card__title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.record-card--featured .record-card__title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 21px;
+  font-weight: 400;
+}
+
+.record-card__excerpt {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  /* 발췌는 서버가 이미 80자로 잘라 보내지만, 좁은 화면에서 두 줄이 넘지 않게 한 번 더 자른다. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.record-card--featured .record-card__excerpt {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: normal;
+}
+
+.record-card__footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+  color: var(--color-text-disabled);
+  font-size: 11px;
+}
+
+.record-card__footer span {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.record-card__footer svg {
+  stroke: currentColor;
+}
+
+/* ── 빈 상태 ── */
+.records-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-top: 40px;
+  padding: 32px 20px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.records-empty__icon {
+  color: var(--color-text-disabled);
+}
+
+.records-empty__title {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.records-empty__text {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.records-empty__button {
+  margin-top: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ── 더 보기 ── */
+.records-page__more {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 16px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.records-page__more:disabled {
+  opacity: 0.6;
+}
+
+/* 넓은 화면에서는 카드를 2열로 편다. 웹은 지난 기록을 넓게 훑는 용도다
+   (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 6절). */
+@media (min-width: 768px) {
+  .records-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .record-card--featured {
+    grid-column: 1 / -1;
+  }
+}

@@ -10,6 +10,7 @@ import ScheduleListPage from './features/schedules/ScheduleListPage'
 import ScheduleDetailPage from './features/schedules/ScheduleDetailPage'
 import ScheduleNewPage from './features/schedules/ScheduleNewPage'
 import MorePage from './features/more/MorePage'
+import RecordsPage from './features/records/RecordsPage'
 import PrototypeLab from './features/prototype/PrototypeLab'
 
 /** 로그인해야 볼 수 있는 화면을 감싼다. 확인이 끝나기 전에는 판단을 미룬다. */
@@ -49,6 +50,7 @@ export default function App() {
         <Route path="schedules" element={<ScheduleListPage />} />
         <Route path="schedules/new" element={<ScheduleNewPage />} />
         <Route path="schedules/:id" element={<ScheduleDetailPage />} />
+        <Route path="records" element={<RecordsPage />} />
         <Route path="more" element={<MorePage />} />
         {/* 설정은 더보기로 흡수됐다. 예전 주소나 북마크로 들어와도 끊기지 않도록
             당분간 리다이렉트로 남겨둔다 (docs/BOTTOM_NAVIGATION_SPEC.md 5.1절). */}

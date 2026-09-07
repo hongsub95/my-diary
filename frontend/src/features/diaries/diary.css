@@ -1,0 +1,176 @@
+.diary-section__empty,
+.diary-section__prompt p {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.diary-section__prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.diary-section__write {
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* ── 사진 ── */
+.diary-photos__input {
+  display: none;
+}
+
+.diary-photos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.diary-photo {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  background: var(--color-sand);
+}
+
+.diary-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.diary-photo__cover {
+  position: absolute;
+  left: 6px;
+  bottom: 6px;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.diary-photo__remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  /* 사진 위에 얹히므로 밝은 사진에서도 보이도록 어두운 판을 깐다. */
+  background: #2823218c;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1;
+}
+
+/* ── 본문 ── */
+.diary-entry {
+  padding: 14px;
+  margin-top: 8px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+/* 내 글은 남의 글과 구분되게 살짝 다른 바탕을 쓴다. */
+.diary-entry--mine {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+.diary-entry__author {
+  color: var(--color-primary-text);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.diary-entry__mood {
+  margin-bottom: 4px;
+  font-size: 15px;
+}
+
+.diary-entry__content {
+  color: var(--color-text-primary);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  line-height: 1.7;
+  /* 사용자가 넣은 줄바꿈을 그대로 살린다. 일기는 문단이 의미를 갖는다. */
+  white-space: pre-wrap;
+}
+
+.diary-entry__remove {
+  margin-top: 10px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-decoration: underline;
+}
+
+/* ── 편집기 ── */
+.diary-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.diary-editor__content,
+.diary-editor__mood {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.diary-editor__content {
+  font-family: Georgia, 'Times New Roman', serif;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+.diary-editor__error {
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+.diary-editor__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.diary-editor__cancel,
+.diary-editor__submit {
+  min-height: 42px;
+  padding: 0 18px;
+  border-radius: var(--radius-lg);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.diary-editor__cancel {
+  border: 1px solid var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+.diary-editor__submit {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.diary-editor__submit:disabled {
+  opacity: 0.6;
+}

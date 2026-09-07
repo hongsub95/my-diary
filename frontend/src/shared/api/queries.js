@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from './client'
 import { toNavigableMenus } from '../navigation/menuRoutes'
 import { useAuth } from '../contexts/AuthContext'
@@ -10,6 +10,16 @@ import {
 } from './schedules'
 import { toScheduleDetailView, toScheduleView } from './scheduleAdapter'
 import { addSchedulePlace, removeSchedulePlace, searchPlaces } from './places'
+import {
+  deleteDiaryEntry,
+  deleteDiaryPhoto,
+  listDiaryEntries,
+  listDiaryPhotos,
+  listSpaceDiaries,
+  uploadDiaryPhotos,
+  upsertDiaryEntry,
+} from './diaries'
+import { toRecordPage } from './diaryAdapter'
 
 async function fetchMenus() {
   const { data } = await apiClient.get('/menus', {
@@ -150,4 +160,84 @@ export function useSchedulePlaceMutations(scheduleId) {
   })
 
   return { add, remove }
+}
+
+/**
+ * 기록 탭 목록. 아래로 내려가며 이어 받는다.
+ *
+ * @param {object} [options]
+ * @param {boolean} [options.includePending] 아직 기록이 없는 지난 하루도 포함할지
+ *
+ * 기간으로 자르는 일정 목록과 달리 개수가 계속 늘어나므로 커서 방식을 쓴다. 커서 값은
+ * 서버가 준 것을 그대로 돌려주며, 화면은 내용을 해석하지 않는다.
+ */
+export function useDiaryFeed({ includePending = false } = {}) {
+  const spaceId = useDefaultSpaceId()
+
+  return useInfiniteQuery({
+    queryKey: ['diaries', spaceId, includePending],
+    queryFn: async ({ pageParam }) => {
+      const page = await listSpaceDiaries({ spaceId, cursor: pageParam, includePending })
+      return toRecordPage(page)
+    },
+    // 첫 페이지는 커서 없이 부른다.
+    initialPageParam: undefined,
+    // null이면 마지막 페이지다. undefined를 돌려줘야 react-query가 더 안 부른다.
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+    enabled: Boolean(spaceId),
+  })
+}
+
+/**
+ * 한 하루의 일기(작성자별 본문 + 공용 사진)를 읽고 쓴다.
+ *
+ * @param {number|string} scheduleId 일정 id
+ *
+ * 본문과 사진을 한 훅에서 다루는 이유: 화면에서 둘은 "오늘을 남기기"라는 하나의 행동이고,
+ * 어느 쪽이 바뀌어도 기록 목록의 카드(대표 사진·발췌·기록 여부)가 함께 달라진다.
+ */
+export function useDiary(scheduleId) {
+  const queryClient = useQueryClient()
+
+  const entries = useQuery({
+    queryKey: ['diary', scheduleId, 'entries'],
+    queryFn: () => listDiaryEntries(scheduleId),
+    enabled: Boolean(scheduleId),
+  })
+
+  const photos = useQuery({
+    queryKey: ['diary', scheduleId, 'photos'],
+    queryFn: () => listDiaryPhotos(scheduleId),
+    enabled: Boolean(scheduleId),
+  })
+
+  // 일기가 바뀌면 이 하루의 상세뿐 아니라 일정 목록의 요약과 기록 탭 카드도 달라진다.
+  // 세 갈래를 모두 무효화해야 화면 사이에서 값이 어긋나지 않는다.
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['diary', scheduleId] })
+    queryClient.invalidateQueries({ queryKey: ['schedules'] })
+    queryClient.invalidateQueries({ queryKey: ['diaries'] })
+  }
+
+  const saveEntry = useMutation({
+    mutationFn: ({ content, mood }) => upsertDiaryEntry({ scheduleId, content, mood }),
+    onSuccess: invalidate,
+  })
+
+  const removeEntry = useMutation({
+    mutationFn: () => deleteDiaryEntry(scheduleId),
+    onSuccess: invalidate,
+  })
+
+  const addPhotos = useMutation({
+    mutationFn: (files) => uploadDiaryPhotos({ scheduleId, files }),
+    onSuccess: invalidate,
+  })
+
+  const removePhoto = useMutation({
+    mutationFn: (photoId) => deleteDiaryPhoto(photoId),
+    onSuccess: invalidate,
+  })
+
+  return { entries, photos, saveEntry, removeEntry, addPhotos, removePhoto }
 }
