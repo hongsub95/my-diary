@@ -81,6 +81,27 @@ class ScheduleAuthorResponse(BaseModel):
     nickname: str
 
 
+class DiaryRecordSummaryResponse(BaseModel):
+    """이 하루에 기록이 얼마나 남았는지 요약.
+
+    목록에서 카드를 그리는 데 필요한 만큼만 담는다. 사진 원본이나 본문 전체는 싣지
+    않는다. 기록 카드 수십 개에 안 쓰는 데이터가 통째로 따라오기 때문이다
+    (docs/UX_BACKEND_HANDOFF.md 6.1절).
+    """
+
+    # 본문·사진·타임라인 중 하나라도 있는가. 기록된 하루인지 판단하는 값이다.
+    has_content: bool
+    # 그중 글이 있는가. 사진만 있는 하루와 구분해야 카드 문구가 달라진다.
+    has_diary_text: bool
+    photo_count: int
+    timeline_count: int
+    # 대표 사진의 썸네일 URL. 썸네일을 아직 만들지 않으므로 당분간 원본 URL이 온다.
+    # 화면은 이 값을 그대로 쓰면 되고, 나중에 썸네일이 생겨도 코드를 고칠 필요가 없다.
+    cover_thumbnail_url: str | None
+    # 가장 먼저 쓰인 본문의 앞부분. 카드 한 줄용이며 전체는 상세에서 받는다.
+    diary_excerpt: str | None
+
+
 class ScheduleResponse(BaseModel):
     """일정 응답.
 
@@ -102,8 +123,13 @@ class ScheduleResponse(BaseModel):
     created_by: ScheduleAuthorResponse
     # 상세 화면에 들어가기 전에 목록에서 "장소 3곳" 같은 요약을 보여주기 위한 값.
     place_count: int
-    # 일기를 이미 썼는지. 목록에서 "기록 남기기" 버튼을 띄울지 판단하는 데 쓴다.
+    # 이 하루에 기록이 있는지. 본문뿐 아니라 사진·타임라인까지 합산한 값이다.
+    # 사진만 남긴 하루도 기록이 있는 하루다.
     has_diary: bool
+    # 지금 이 하루가 어느 단계인지. 서버가 계산해 내려주므로 웹과 앱이 같은 값을 본다.
+    # upcoming / today / record_pending / recorded / canceled
+    experience_phase: str
+    record_summary: DiaryRecordSummaryResponse
     # 이 일정에 담긴 장소. 목록 조회에서 `include=places`를 줬을 때만 채워진다.
     #
     # null과 []를 구분한다. null은 "장소를 요청하지 않았다"이고 []는 "요청했는데

@@ -8,11 +8,11 @@
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import exists, func, or_, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.config import get_settings
-from app.diaries.models import DiaryEntry
+from app.diaries.models import DiaryEntry, DiaryPhoto, DiaryTimelineItem
 from app.places import service as places_service
 from app.places.models import SchedulePlace
 from app.places.schemas import SchedulePlaceResponse
@@ -21,8 +21,11 @@ from app.schedules.errors import (
     InvalidTimeRangeError,
     ScheduleForbiddenError,
 )
+from app.core.storage import build_media_url
+from app.schedules.experience import DiaryContent, build_excerpt, resolve_phase
 from app.schedules.schemas import (
     SCHEDULE_STATUS_COMPLETED,
+    DiaryRecordSummaryResponse,
     ScheduleAuthorResponse,
     ScheduleResponse,
 )
@@ -95,25 +98,102 @@ def _place_count_column():
     )
 
 
-def _has_diary_column():
-    """일기가 있는지 여부. 개수는 필요 없으므로 EXISTS로 처리한다."""
-    return exists().where(DiaryEntry.schedule_id == Schedule.id).correlate(Schedule)
+def _count_column(model):
+    """일정에 달린 어떤 표의 행 수를 세는 상관 서브쿼리.
+
+    본문·사진·타임라인이 서로 다른 표에 있어 같은 모양의 서브쿼리가 세 번 필요하다.
+    목록에서 일정마다 따로 세면 N+1 질의가 되므로 select 절에 함께 넣는다.
+    """
+    return (
+        select(func.count(model.id))
+        .where(model.schedule_id == Schedule.id)
+        .correlate(Schedule)
+        .scalar_subquery()
+    )
+
+
+def _cover_photo_column(key_column):
+    """대표 사진의 저장 키를 가져오는 상관 서브쿼리.
+
+    :param key_column: DiaryPhoto.storage_key 또는 DiaryPhoto.thumbnail_key
+
+    대표는 is_cover가 켜진 사진이고, 지정이 없으면 맨 앞 사진이다. 그 규칙을
+    "is_cover 내림차순 → sort_order → id"로 한 번에 표현해 첫 행만 꺼낸다.
+    화면마다 이 규칙을 다시 구현하면 목록과 상세의 대표 사진이 달라질 수 있다.
+    """
+    return (
+        select(key_column)
+        .where(DiaryPhoto.schedule_id == Schedule.id)
+        .correlate(Schedule)
+        .order_by(DiaryPhoto.is_cover.desc(), DiaryPhoto.sort_order, DiaryPhoto.id)
+        .limit(1)
+        .scalar_subquery()
+    )
+
+
+def _diary_excerpt_column():
+    """가장 먼저 쓰인 본문을 가져오는 상관 서브쿼리. 자르는 일은 파이썬이 한다."""
+    return (
+        select(DiaryEntry.content)
+        .where(DiaryEntry.schedule_id == Schedule.id)
+        .correlate(Schedule)
+        .order_by(DiaryEntry.created_at, DiaryEntry.id)
+        .limit(1)
+        .scalar_subquery()
+    )
+
+
+# 기록 요약을 만드는 데 필요한 값들. select 절에 이 순서대로 들어가고 같은 순서로 풀린다.
+_SUMMARY_COLUMNS = (
+    _count_column(DiaryEntry),
+    _count_column(DiaryPhoto),
+    _count_column(DiaryTimelineItem),
+    _cover_photo_column(DiaryPhoto.storage_key),
+    _cover_photo_column(DiaryPhoto.thumbnail_key),
+    _diary_excerpt_column(),
+)
+
+
+def build_summary(row) -> tuple[DiaryContent, DiaryRecordSummaryResponse]:
+    """질의 결과 조각을 기록 요약으로 바꾼다.
+
+    :param row: _SUMMARY_COLUMNS와 같은 순서의 값 6개
+    :return: (개수 묶음, 응답용 요약) — 개수 묶음은 phase 판정에 쓰인다
+    """
+    text_count, photo_count, timeline_count, cover_key, cover_thumb_key, excerpt = row
+    content = DiaryContent(
+        diary_text_count=text_count,
+        photo_count=photo_count,
+        timeline_count=timeline_count,
+    )
+    summary = DiaryRecordSummaryResponse(
+        has_content=content.has_any,
+        has_diary_text=bool(text_count),
+        photo_count=photo_count,
+        timeline_count=timeline_count,
+        # 썸네일이 아직 없으므로 원본으로 대신한다. 화면은 이 값 하나만 보면 되고,
+        # 나중에 썸네일 생성이 붙으면 자동으로 가벼운 쪽이 담긴다.
+        cover_thumbnail_url=build_media_url(cover_thumb_key or cover_key),
+        diary_excerpt=build_excerpt(excerpt),
+    )
+    return content, summary
 
 
 def to_response(
     schedule: Schedule,
     place_count: int,
-    has_diary: bool,
+    summary_row,
     places: list[SchedulePlaceResponse] | None = None,
 ) -> ScheduleResponse:
     """Schedule 모델을 API 응답 형태로 바꾼다.
 
     :param schedule: space와 created_by_user가 이미 로드된 일정
     :param place_count: 이 일정에 담긴 장소 수
-    :param has_diary: 이 일정에 일기가 있는지
+    :param summary_row: _SUMMARY_COLUMNS와 같은 순서의 값 6개
     :param places: 장소 목록. None이면 응답에서도 null이 되어 "요청하지 않았다"는
         뜻이 된다. 빈 리스트는 "요청했는데 장소가 없다"로 다르게 읽힌다.
     """
+    content, summary = build_summary(summary_row)
     return ScheduleResponse(
         id=schedule.id,
         space_id=schedule.space.uuid,
@@ -126,7 +206,12 @@ def to_response(
         completed_at=schedule.completed_at,
         created_by=ScheduleAuthorResponse.model_validate(schedule.created_by_user),
         place_count=place_count,
-        has_diary=has_diary,
+        # 본문뿐 아니라 사진·타임라인까지 합산한다. 사진만 남긴 하루도 기록이 있는 하루다.
+        has_diary=content.has_any,
+        experience_phase=resolve_phase(
+            schedule.status, schedule.start_at, schedule.end_at, content
+        ),
+        record_summary=summary,
         places=places,
     )
 
@@ -176,7 +261,7 @@ def list_schedules(
         options.append(selectinload(Schedule.places).joinedload(SchedulePlace.place))
 
     rows = db.execute(
-        select(Schedule, _place_count_column(), _has_diary_column())
+        select(Schedule, _place_count_column(), *_SUMMARY_COLUMNS)
         .options(*options)
         .where(*conditions)
         .order_by(Schedule.start_at, Schedule.id)
@@ -185,12 +270,12 @@ def list_schedules(
     # 같은 start_at이 여럿일 때 순서가 뒤집히지 않도록 id를 2차 정렬 기준으로 뒀다.
     return [
         to_response(
-            schedule,
-            place_count,
-            has_diary,
-            _places_response(schedule) if include_places else None,
+            row[0],
+            row[1],
+            row[2:],
+            _places_response(row[0]) if include_places else None,
         )
-        for schedule, place_count, has_diary in rows
+        for row in rows
     ]
 
 
@@ -209,11 +294,11 @@ def _places_response(schedule: Schedule) -> list[SchedulePlaceResponse]:
 
 
 def load_response(db: Session, schedule: Schedule) -> ScheduleResponse:
-    """일정 하나의 응답을 만든다. 장소 수와 일기 유무를 한 번의 질의로 가져온다."""
-    place_count, has_diary = db.execute(
-        select(_place_count_column(), _has_diary_column()).where(Schedule.id == schedule.id)
+    """일정 하나의 응답을 만든다. 장소 수와 기록 요약을 한 번의 질의로 가져온다."""
+    row = db.execute(
+        select(_place_count_column(), *_SUMMARY_COLUMNS).where(Schedule.id == schedule.id)
     ).one()
-    return to_response(schedule, place_count, has_diary)
+    return to_response(schedule, row[0], row[1:])
 
 
 def create_schedule(
