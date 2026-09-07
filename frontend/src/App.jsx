@@ -43,9 +43,9 @@ export default function App() {
           </PrivateRoute>
         }
       >
-        <Route index element={<Navigate to="/prototype" replace />} />
-        <Route path="home" element={<Navigate to="/prototype" replace />} />
-        <Route path="legacy-home" element={<HomePage />} />
+        {/* 로그인 후 첫 화면은 홈이다. 프로토타입(/prototype)은 디자인 검증용으로만 남긴다. */}
+        <Route index element={<Navigate to="/home" replace />} />
+        <Route path="home" element={<HomePage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="schedules" element={<ScheduleListPage />} />
         <Route path="schedules/new" element={<ScheduleNewPage />} />
