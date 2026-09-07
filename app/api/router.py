@@ -7,7 +7,7 @@ from app.diaries.photo_router import (
     photos_router as diary_photos_router,
     schedule_photos_router,
 )
-from app.diaries.router import router as diaries_router
+from app.diaries.router import router as diaries_router, space_diaries_router
 from app.diaries.timeline_router import (
     schedule_timeline_router,
     timeline_router as diary_timeline_router,
@@ -46,4 +46,7 @@ api_router.include_router(schedule_photos_router)
 api_router.include_router(diary_photos_router)
 api_router.include_router(schedule_timeline_router)
 api_router.include_router(diary_timeline_router)
+# 기록 탭 목록은 /spaces/{space_id}/diaries 다. spaces_router 뒤에 등록해야
+# /spaces/join 같은 고정 경로가 {space_id}로 먼저 잡히지 않는다.
+api_router.include_router(space_diaries_router)
 api_router.include_router(users_router)

@@ -8,18 +8,29 @@
 한다. 남의 본문은 아예 지목할 수 없게 두는 편이 안전하다.
 """
 
-from fastapi import APIRouter, Response, status
+from typing import Annotated
+
+from fastapi import APIRouter, Query, Response, status
 
 from app.auth.dependencies import CurrentUser, DbSession
-from app.diaries import service
+from app.diaries import feed_service, service
 from app.diaries.schemas import (
+    DiaryAuthorResponse,
     DiaryEntryListResponse,
     DiaryEntryResponse,
     DiaryEntryUpsertRequest,
+    DiaryFeedItemResponse,
+    DiaryFeedResponse,
 )
 from app.schedules.dependencies import ScheduleMemberContext
+from app.schedules.experience import resolve_phase
+from app.schedules.service import build_summary
+from app.spaces.dependencies import MemberContext
 
 router = APIRouter(prefix="/schedules/{schedule_id}", tags=["diaries"])
+# 기록 탭 목록은 일정이 아니라 스페이스 단위다. 경로 파라미터 이름이 spaces 라우터와
+# 같아야 MemberContext가 {space_id}를 읽을 수 있다.
+space_diaries_router = APIRouter(prefix="/spaces/{space_id}/diaries", tags=["diaries"])
 
 
 @router.put(
@@ -98,3 +109,63 @@ def list_diaries(context: ScheduleMemberContext, db: DbSession) -> DiaryEntryLis
     return DiaryEntryListResponse(
         items=[DiaryEntryResponse.model_validate(entry) for entry in entries]
     )
+
+
+@space_diaries_router.get(
+    "",
+    response_model=DiaryFeedResponse,
+    summary="기록 목록 (기록 탭)",
+    description=(
+        "완료했거나 지나간 하루를 최신순으로 돌려준다. 정렬 기준은 완료 시각이며, "
+        "완료를 누르지 않았으면 종료 시각으로 대신한다. "
+        "`next_cursor`를 다음 요청의 `cursor`에 그대로 넣어 이어 받는다. "
+        "기본은 기록이 있는 하루만 담고, `include_pending=true`면 기록 대기도 포함한다."
+    ),
+)
+def list_space_diaries(
+    context: MemberContext,
+    db: DbSession,
+    cursor: Annotated[str | None, Query(description="이전 응답의 next_cursor")] = None,
+    limit: Annotated[int, Query(ge=1, le=feed_service.MAX_LIMIT, description="한 페이지 개수")] = feed_service.DEFAULT_LIMIT,
+    year: Annotated[int | None, Query(ge=2000, le=2100, description="연도 필터. month와 함께 준다")] = None,
+    month: Annotated[int | None, Query(ge=1, le=12, description="월 필터")] = None,
+    include_pending: Annotated[bool, Query(description="기록이 없는 지난 하루도 포함할지")] = False,
+) -> DiaryFeedResponse:
+    """기록 탭 목록 조회."""
+    page = feed_service.list_space_diaries(
+        db=db,
+        space=context.space,
+        cursor=cursor,
+        limit=limit,
+        year=year,
+        month=month,
+        include_pending=include_pending,
+    )
+
+    # 작성자는 페이지에 담긴 일정만 한 번에 모아 온다. 카드마다 조회하면 질의가 는다.
+    authors_by_schedule = feed_service.load_authors(db, [row[0].id for row in page.rows])
+
+    items = []
+    for schedule, sorted_at, place_count, *summary_row in page.rows:
+        content, summary = build_summary(summary_row)
+        items.append(
+            DiaryFeedItemResponse(
+                schedule_id=schedule.id,
+                title=schedule.title,
+                start_at=schedule.start_at,
+                end_at=schedule.end_at,
+                sorted_at=sorted_at,
+                completed_at=schedule.completed_at,
+                experience_phase=resolve_phase(
+                    schedule.status, schedule.start_at, schedule.end_at, content
+                ),
+                place_count=place_count,
+                authors=[
+                    DiaryAuthorResponse.model_validate(author)
+                    for author in authors_by_schedule.get(schedule.id, [])
+                ],
+                record_summary=summary,
+            )
+        )
+
+    return DiaryFeedResponse(items=items, next_cursor=page.next_cursor)

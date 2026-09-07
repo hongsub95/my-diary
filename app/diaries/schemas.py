@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.core.storage import build_media_url
 from app.diaries.models import DiaryPhoto, DiaryTimelineItem
+from app.schedules.schemas import DiaryRecordSummaryResponse
 
 # 기분은 짧은 라벨이나 이모지를 상정한다. 모델의 String(20)과 같은 값이어야 한다.
 MAX_MOOD_LENGTH = 20
@@ -224,3 +225,35 @@ class DiaryTimelineListResponse(BaseModel):
     """하루의 타임라인. 시간순이다."""
 
     items: list[DiaryTimelineItemResponse]
+
+
+class DiaryFeedItemResponse(BaseModel):
+    """기록 탭 카드 하나.
+
+    카드를 그리는 데 필요한 값만 담는다. 사진 원본과 본문 전체는 상세에서 받는다
+    (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 3.6절).
+    """
+
+    schedule_id: int
+    title: str
+    start_at: datetime
+    end_at: datetime
+    # 목록을 늘어놓은 기준 시각. 완료 시각이 있으면 그 값, 없으면 종료 시각이다.
+    sorted_at: datetime
+    completed_at: datetime | None
+    experience_phase: str
+    place_count: int
+    # 이 하루에 본문을 쓴 사람들. 먼저 쓴 순서다. 사진만 있는 하루는 빈 배열이다.
+    authors: list[DiaryAuthorResponse]
+    record_summary: DiaryRecordSummaryResponse
+
+
+class DiaryFeedResponse(BaseModel):
+    """기록 탭 한 페이지.
+
+    next_cursor가 null이면 마지막 페이지다. 값이 있으면 그대로 다음 요청의 cursor에
+    넣으면 된다. 클라이언트가 내용을 해석할 필요는 없다.
+    """
+
+    items: list[DiaryFeedItemResponse]
+    next_cursor: str | None

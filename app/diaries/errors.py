@@ -146,3 +146,20 @@ class InvalidTimelinePlaceError(AppError):
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             field="schedule_place_id",
         )
+
+
+class InvalidDiaryCursorError(AppError):
+    """기록 목록의 커서가 우리가 만든 값이 아닌 경우.
+
+    커서는 서버가 준 값을 그대로 돌려주는 불투명한 토큰이다. 클라이언트가 직접 만들어
+    보내면 정렬 기준을 바꿀 때 그쪽이 함께 깨지므로, 형식이 어긋나면 조용히 처음부터
+    보여주지 않고 오류로 알린다.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="INVALID_DIARY_CURSOR",
+            message="목록을 이어 볼 수 없습니다. 처음부터 다시 불러와 주세요.",
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            field="cursor",
+        )
