@@ -493,11 +493,6 @@
   gap: 12px;
 }
 
-.snew-form__row--range {
-  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
-  align-items: end;
-}
-
 .snew-form__label {
   font-size: 12px;
   font-weight: 700;
@@ -513,6 +508,7 @@
 
 .snew-form__input {
   width: 100%;
+  min-width: 0;
   padding: 13px 16px;
   border-radius: var(--radius-lg);
   border: 1.5px solid var(--color-border);
@@ -531,7 +527,8 @@
 }
 
 .snew-form__duration {
-  align-self: center;
+  display: inline-flex;
+  align-items: center;
   padding: 5px 10px;
   border-radius: var(--radius-full);
   background: var(--color-primary-light);
@@ -541,36 +538,54 @@
   white-space: nowrap;
 }
 
-.snew-range-group {
-  padding: 15px;
+.snew-timing-grid {
+  overflow: hidden;
   border: 1px solid var(--color-border-light);
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--color-bg);
 }
 
-.snew-range-group + .snew-range-group {
-  margin-top: 10px;
+.snew-timing-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(104px, 0.42fr);
+  gap: 12px;
+  padding: 15px;
 }
 
-.snew-range-group__title {
-  display: block;
-  margin-bottom: 10px;
-  color: var(--color-text-secondary);
-  font-size: 11px;
-  font-weight: 800;
+.snew-timing-row + .snew-timing-row {
+  border-top: 1px solid var(--color-border-light);
 }
 
-.snew-range-group__arrow {
+.snew-timing-row::before {
+  position: absolute;
+  top: 18px;
+  bottom: 18px;
+  left: 0;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--color-primary);
+  content: '';
+  opacity: 0.55;
+}
+
+.snew-timing-row--end::before {
+  opacity: 1;
+}
+
+.snew-timing-row__time {
+  min-width: 104px;
+}
+
+.snew-timing-meta {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 48px;
-  color: var(--color-text-disabled);
-  font-size: 15px;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .snew-form__timezone {
-  margin-top: 10px;
   color: var(--color-text-disabled);
   font-size: 10px;
   text-align: right;
@@ -616,8 +631,14 @@
     display: none;
   }
 
-  .snew-form__row--range {
-    gap: 6px;
+  .snew-timing-row {
+    grid-template-columns: minmax(0, 1fr) minmax(92px, 0.38fr);
+    gap: 8px;
+    padding: 13px 12px;
+  }
+
+  .snew-timing-row__time {
+    min-width: 92px;
   }
 
   .snew-form__input {

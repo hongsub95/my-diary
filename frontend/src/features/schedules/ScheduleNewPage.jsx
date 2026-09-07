@@ -129,14 +129,10 @@ export default function ScheduleNewPage() {
               <h3>일정 구간</h3>
               <p>당일부터 여러 날의 여행까지 하나의 일정으로 이어집니다.</p>
             </div>
-            <span className="snew-form__duration" aria-live="polite">
-              {getDurationLabel(form.start_date, form.end_date)}
-            </span>
           </div>
 
-          <div className="snew-range-group">
-            <span className="snew-range-group__title">날짜</span>
-            <div className="snew-form__row snew-form__row--range">
+          <div className="snew-timing-grid">
+            <div className="snew-timing-row">
               <div className="snew-form__field">
                 <label className="snew-form__label" htmlFor="schedule-start-date">시작일</label>
                 <input
@@ -155,7 +151,20 @@ export default function ScheduleNewPage() {
                   required
                 />
               </div>
-              <span className="snew-range-group__arrow" aria-hidden="true">→</span>
+              <div className="snew-form__field snew-timing-row__time">
+                <label className="snew-form__label" htmlFor="schedule-start-time">시작 시간</label>
+                <select
+                  id="schedule-start-time"
+                  value={form.start_time}
+                  onChange={(e) => set('start_time', e.target.value)}
+                  className="snew-form__input snew-form__select"
+                >
+                  {TIME_OPTIONS.map((time) => <option key={time} value={time}>{time}</option>)}
+                </select>
+              </div>
+            </div>
+
+            <div className="snew-timing-row snew-timing-row--end">
               <div className="snew-form__field">
                 <label className="snew-form__label" htmlFor="schedule-end-date">종료일</label>
                 <input
@@ -168,25 +177,7 @@ export default function ScheduleNewPage() {
                   required
                 />
               </div>
-            </div>
-          </div>
-
-          <div className="snew-range-group">
-            <span className="snew-range-group__title">시간</span>
-            <div className="snew-form__row snew-form__row--range">
-              <div className="snew-form__field">
-                <label className="snew-form__label" htmlFor="schedule-start-time">시작 시간</label>
-                <select
-                  id="schedule-start-time"
-                  value={form.start_time}
-                  onChange={(e) => set('start_time', e.target.value)}
-                  className="snew-form__input snew-form__select"
-                >
-                  {TIME_OPTIONS.map((time) => <option key={time} value={time}>{time}</option>)}
-                </select>
-              </div>
-              <span className="snew-range-group__arrow" aria-hidden="true">→</span>
-              <div className="snew-form__field">
+              <div className="snew-form__field snew-timing-row__time">
                 <label className="snew-form__label" htmlFor="schedule-end-time">종료 시간</label>
                 <select
                   id="schedule-end-time"
@@ -200,7 +191,12 @@ export default function ScheduleNewPage() {
             </div>
           </div>
 
-          <p className="snew-form__timezone">한국 시간 기준 · 30분 단위</p>
+          <div className="snew-timing-meta">
+            <span className="snew-form__duration" aria-live="polite">
+              {getDurationLabel(form.start_date, form.end_date)}
+            </span>
+            <span className="snew-form__timezone">한국 시간 기준 · 30분 단위</span>
+          </div>
         </section>
 
         <section className="snew-form__section snew-form__section--compact">

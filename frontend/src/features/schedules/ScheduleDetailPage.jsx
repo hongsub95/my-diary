@@ -2,10 +2,10 @@ import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
 import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
-import pencilRaw from '../../assets/icons/pencil.svg?raw'
 import plusRaw from '../../assets/icons/plus.svg?raw'
 import { useSchedule, useSchedulePlaceMutations } from '../../shared/api/queries'
 import PlacePicker from './PlacePicker'
+import DiarySection from '../diaries/DiarySection'
 import './schedules.css'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -103,31 +103,8 @@ export default function ScheduleDetailPage() {
           </div>
         </section>
 
-        {/* Diary */}
-        <section className="sdetail-section">
-          <div className="sdetail-section__header">
-            <h2 className="sdetail-section__title">일기</h2>
-            {schedule.diary && (
-              <button className="sdetail-section__edit">
-                <Icon raw={pencilRaw} size={14} />
-                수정
-              </button>
-            )}
-          </div>
-          {schedule.diary ? (
-            <div className="sdetail-diary">
-              {schedule.diary.mood && (
-                <p className="sdetail-diary__mood">{schedule.diary.mood}</p>
-              )}
-              <p className="sdetail-diary__content">{schedule.diary.content}</p>
-            </div>
-          ) : (
-            <div className="sdetail-diary-empty">
-              <p>아직 일기가 없어요</p>
-              <button className="sdetail-diary-empty__btn">일기 쓰기</button>
-            </div>
-          )}
-        </section>
+        {/* 사진과 작성자별 일기. 하루의 기록은 이 영역이 통째로 맡는다. */}
+        <DiarySection scheduleId={id} dateKey={schedule.date_key} places={schedule.places} />
       </div>
     </div>
   )

@@ -135,7 +135,16 @@ function Plan({ step, setStep, move }) {
       <Heading eyebrow="STEP 1 · 하루 만들기" title={<>어떤 하루를<br />보내고 싶나요?</>} text="세부 일정표보다 그날의 모습을 먼저 떠올려 보세요." />
       <div className="day-form">
         <Field label="하루의 이름">성수 전시와 저녁</Field>
-        <div className="form-row"><Field label="날짜">2026. 09. 01</Field><Field label="시간">14:00 – 20:30</Field></div>
+        <div className="form-row" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(100px, .45fr)' }}>
+          <Field label="시작일">2026. 09. 01</Field><Field label="시작 시간">14:00</Field>
+        </div>
+        <div className="form-row" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(100px, .45fr)' }}>
+          <Field label="종료일">2026. 09. 01</Field><Field label="종료 시간">20:30</Field>
+        </div>
+        <div style={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between' }}>
+          <b style={{ background: 'var(--accent-soft)', borderRadius: 99, color: 'var(--accent-dark)', fontSize: 9, padding: '5px 9px' }}>당일 일정</b>
+          <span style={{ color: 'var(--muted)', fontSize: 9 }}>한국 시간 · 30분 단위</span>
+        </div>
         <Field label="함께하는 공간"><span className="space-value"><Avatars /><span><b>우리 둘의 하루</b><small>홍섭님 · 민지님</small></span><ChevronRightIcon /></span></Field>
         <Field label="한 줄 메모 · 선택">전시 보고 저녁 먹기. 서두르지 않기.</Field>
       </div>
