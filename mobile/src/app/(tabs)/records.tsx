@@ -1,96 +1,143 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useDiaryFeed } from '@/features/diaries/diary-queries';
+import type { RecordView } from '@/features/diaries/diary-adapter';
+import { ErrorState } from '@/shared/components/error-state';
+import { LoadingScreen } from '@/shared/components/loading-screen';
+import { getApiError } from '@/shared/api/api-error';
 import { colors, spacing } from '@/shared/theme';
 
-const memories = [
-  { date: '8월 27일 · 우리 둘의 하루', title: '한강 피크닉', note: '노을이 생각보다 오래 남아 있어서 천천히 걸었다.', tone: '#A86965', places: '여의나루 · 한강공원' },
-  { date: '8월 16일 · 나의 하루', title: '북촌 기록 산책', note: '골목을 따라 걷다가 작은 전시를 만났다.', tone: '#7A6C61', places: '북촌 · 안국' },
-  { date: '8월 2일 · 여름 여행', title: '친구들과 강릉', note: '바다보다 오래 기억날 커피 한 잔.', tone: '#66808B', places: '안목해변 · 초당' },
-];
+/**
+ * 기록 카드 하나.
+ *
+ * @param record 화면용 기록 모델
+ * @param featured 목록 맨 위 큰 카드인지. 가장 최근 하루를 장면으로 먼저 보게 한다
+ *
+ * 아직 누를 수 없다. 앱에 일정 상세 화면이 없어서 갈 곳이 없기 때문이다. 상세 화면이
+ * 생기면 이 카드에 이동을 붙인다. 눌리는데 아무 일도 없는 편보다 낫다.
+ */
+function RecordCard({ record, featured }: { record: RecordView; featured: boolean }) {
+  // 함께한 사람을 날짜 옆에 붙인다. 제품 정체성상 "언제, 누구와"가 제목보다 먼저다
+  // (docs/UX_IDENTITY_REDIRECTION_SPEC.md 8절).
+  const people = record.authorNames.length > 0 ? record.authorNames.join(' · ') : null;
 
-export default function RecordsScreen() {
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <Text style={styles.eyebrow}>MY DAYBOOK</Text>
-        <Text style={styles.title}>우리가 보낸{"\n"}하루들</Text>
-        <Text style={styles.description}>날짜보다 장면으로 먼저 기억해 보세요.</Text>
-
-        <Pressable style={styles.featured}>
-          <View style={styles.photoGrid}>
-            <MemoryPhoto color={memories[0].tone} style={styles.bigPhoto} />
-            <MemoryPhoto color="#78886A" />
-            <MemoryPhoto color="#748994" />
-          </View>
-          <View style={styles.featuredCopy}>
-            <Text style={styles.date}>{memories[0].date}</Text>
-            <Text style={styles.featuredTitle}>{memories[0].title}</Text>
-            <Text style={styles.quote}>“{memories[0].note}”</Text>
-            <View style={styles.metaRow}>
-              <Text style={styles.meta}>⌖ {memories[0].places}</Text>
-              <Text style={styles.meta}>▣ 8</Text>
-            </View>
-          </View>
-        </Pressable>
-
-        <View style={styles.list}>
-          {memories.slice(1).map((memory) => (
-            <Pressable key={memory.title} style={styles.card}>
-              <MemoryPhoto color={memory.tone} style={styles.thumbnail} />
-              <View style={styles.cardCopy}>
-                <Text style={styles.date}>{memory.date}</Text>
-                <Text style={styles.cardTitle}>{memory.title}</Text>
-                <Text numberOfLines={1} style={styles.cardNote}>{memory.note}</Text>
-                <Text style={styles.meta}>⌖ {memory.places}</Text>
-              </View>
-            </Pressable>
-          ))}
+    <View style={[styles.card, featured && styles.cardFeatured]}>
+      {record.coverUrl ? (
+        <Image
+          source={{ uri: record.coverUrl }}
+          style={featured ? styles.featuredPhoto : styles.thumbnail}
+        />
+      ) : (
+        // 사진 없이 글이나 타임라인만 남긴 하루도 기록이다. 자리를 비우지 않는다.
+        <View style={[featured ? styles.featuredPhoto : styles.thumbnail, styles.emptyPhoto]}>
+          <Text style={styles.emptyPhotoMark}>❏</Text>
         </View>
+      )}
 
-        <View style={styles.apiNotice}>
-          <Text style={styles.apiNoticeTitle}>기록 API 연결 예정</Text>
-          <Text style={styles.apiNoticeText}>현재 화면은 정보 구조 확인용 데이터입니다. 백엔드의 기록 목록 API가 준비되면 사진과 장소 기록으로 교체됩니다.</Text>
+      <View style={featured ? styles.featuredCopy : styles.cardCopy}>
+        <Text style={styles.date}>
+          {record.dateLabel}
+          {people ? ` · ${people}` : ''}
+        </Text>
+        <Text style={featured ? styles.featuredTitle : styles.cardTitle}>{record.title}</Text>
+        {record.excerpt ? (
+          <Text numberOfLines={featured ? 3 : 1} style={featured ? styles.quote : styles.cardNote}>
+            {record.excerpt}
+          </Text>
+        ) : null}
+        <View style={styles.metaRow}>
+          {record.placeCount > 0 ? <Text style={styles.meta}>⌖ {record.placeCount}곳</Text> : null}
+          {record.photoCount > 0 ? <Text style={styles.meta}>▣ {record.photoCount}</Text> : null}
+          {record.timelineCount > 0 ? <Text style={styles.meta}>⏱ {record.timelineCount}</Text> : null}
         </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function MemoryPhoto({ color, style }: { color: string; style?: object }) {
-  return (
-    <View style={[styles.photo, { backgroundColor: color }, style]}>
-      <View style={styles.sun} />
-      <View style={styles.land} />
+      </View>
     </View>
   );
 }
 
+/**
+ * 기록 탭. 완료한 하루를 최신순으로 훑는 화면이다.
+ *
+ * 예정된 하루는 여기 오지 않는다. 계획은 일정 탭, 기억은 기록 탭으로 역할을 나눈다
+ * (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 2절).
+ */
+export default function RecordsScreen() {
+  const feed = useDiaryFeed();
+
+  if (feed.isLoading) return <LoadingScreen message="기록을 불러오고 있어요." />;
+  if (feed.isError) {
+    return <ErrorState message={getApiError(feed.error).message} onRetry={() => feed.refetch()} />;
+  }
+
+  // 커서로 이어 받은 페이지들을 한 줄로 편다. 화면은 페이지 경계를 알 필요가 없다.
+  const records = feed.data?.pages.flatMap((page) => page.records) ?? [];
+
+  return (
+    <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <FlatList
+        data={records}
+        keyExtractor={(record) => String(record.scheduleId)}
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        ListHeaderComponent={
+          <View style={styles.heading}>
+            <Text style={styles.eyebrow}>MY DAYBOOK</Text>
+            <Text style={styles.title}>우리가 보낸{'\n'}하루들</Text>
+            <Text style={styles.description}>날짜보다 장면으로 먼저 기억해 보세요.</Text>
+          </View>
+        }
+        renderItem={({ item, index }) => <RecordCard record={item} featured={index === 0} />}
+        ListEmptyComponent={
+          <View style={styles.empty}>
+            <Text style={styles.emptyTitle}>아직 남긴 하루가 없어요.</Text>
+            <Text style={styles.emptyText}>
+              다녀온 하루에 사진 한 장만 올려도 기록이 됩니다.
+            </Text>
+          </View>
+        }
+        // 끝에 다다르면 다음 페이지를 이어 받는다. 무한 스크롤이라 "더 보기" 버튼이 없다.
+        onEndReached={() => {
+          if (feed.hasNextPage && !feed.isFetchingNextPage) feed.fetchNextPage();
+        }}
+        onEndReachedThreshold={0.4}
+        ListFooterComponent={
+          feed.isFetchingNextPage ? <Text style={styles.footer}>불러오는 중…</Text> : null
+        }
+      />
+    </SafeAreaView>
+  );
+}
+
 const styles = StyleSheet.create({
-  safeArea: { backgroundColor: colors.background, flex: 1 },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: 120 },
-  eyebrow: { color: colors.primaryDark, fontSize: 10, fontWeight: '800', letterSpacing: 1.3 },
-  title: { color: colors.text, fontFamily: 'serif', fontSize: 34, fontWeight: '800', lineHeight: 42, marginTop: 8 },
-  description: { color: colors.muted, fontSize: 13, marginBottom: 22, marginTop: 7 },
-  featured: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 25, borderWidth: 1, overflow: 'hidden' },
-  photoGrid: { display: 'flex', flexDirection: 'row', flexWrap: 'wrap', height: 255, gap: 3 },
-  photo: { height: 126, overflow: 'hidden', position: 'relative', width: '39%' },
-  bigPhoto: { height: 255, width: '60%' },
-  sun: { backgroundColor: '#F3D6AA', borderRadius: 18, height: 36, opacity: 0.8, position: 'absolute', right: 18, top: 20, width: 36 },
-  land: { backgroundColor: '#3D5042', borderRadius: 100, bottom: -50, height: 130, opacity: 0.55, position: 'absolute', right: -25, transform: [{ rotate: '-8deg' }], width: 180 },
-  featuredCopy: { padding: 18 },
+  heading: { marginBottom: spacing.lg },
+  eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  title: { color: colors.text, fontSize: 27, fontWeight: '800', lineHeight: 34, marginTop: 6 },
+  description: { color: colors.muted, fontSize: 12, marginTop: 7 },
+
+  card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 17, borderWidth: 1, flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md, padding: 10 },
+  cardFeatured: { flexDirection: 'column', gap: 0, overflow: 'hidden', padding: 0 },
+
+  thumbnail: { backgroundColor: colors.sand, borderRadius: 12, height: 88, width: 88 },
+  featuredPhoto: { backgroundColor: colors.sand, height: 200, width: '100%' },
+  emptyPhoto: { alignItems: 'center', justifyContent: 'center' },
+  emptyPhotoMark: { color: colors.muted, fontSize: 22 },
+
+  cardCopy: { flex: 1, justifyContent: 'center', gap: 3 },
+  featuredCopy: { gap: 5, padding: spacing.lg },
   date: { color: colors.muted, fontSize: 10 },
-  featuredTitle: { color: colors.text, fontFamily: 'serif', fontSize: 24, fontWeight: '800', marginTop: 5 },
-  quote: { color: '#504945', fontFamily: 'serif', fontSize: 14, lineHeight: 22, marginVertical: 13 },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  meta: { color: colors.muted, fontSize: 10, marginTop: 8 },
-  list: { gap: 12, marginTop: 14 },
-  card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 19, borderWidth: 1, flexDirection: 'row', padding: 10 },
-  thumbnail: { borderRadius: 13, height: 96, width: 92 },
-  cardCopy: { flex: 1, justifyContent: 'center', marginLeft: 13 },
-  cardTitle: { color: colors.text, fontSize: 15, fontWeight: '800', marginTop: 4 },
-  cardNote: { color: colors.muted, fontSize: 11, marginTop: 5 },
-  apiNotice: { backgroundColor: colors.sand, borderRadius: 17, marginTop: 18, padding: 15 },
-  apiNoticeTitle: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  apiNoticeText: { color: colors.muted, fontSize: 10, lineHeight: 16, marginTop: 5 },
+  cardTitle: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  featuredTitle: { color: colors.text, fontSize: 21, fontWeight: '800' },
+  cardNote: { color: colors.muted, fontSize: 11 },
+  quote: { color: colors.text, fontSize: 13, lineHeight: 21 },
+  metaRow: { flexDirection: 'row', gap: spacing.md, marginTop: 4 },
+  meta: { color: colors.muted, fontSize: 10 },
+
+  empty: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 17, borderWidth: 1, gap: 6, marginTop: spacing.lg, padding: spacing.xl },
+  emptyTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  emptyText: { color: colors.muted, fontSize: 12, textAlign: 'center' },
+  footer: { color: colors.muted, fontSize: 12, paddingVertical: spacing.md, textAlign: 'center' },
 });
