@@ -113,3 +113,34 @@ export async function uploadDiaryPhotos({ scheduleId, files }) {
 export async function deleteDiaryPhoto(photoId) {
   await apiClient.delete(`/diary-photos/${photoId}`)
 }
+
+/**
+ * 타임라인 항목을 추가한다.
+ *
+ * @param {object} params
+ * @param {number|string} params.scheduleId 일정 id
+ * @param {string} params.occurredAt 실제 시각 (UTC ISO)
+ * @param {string} params.title 무엇을 했는지
+ * @param {string|null} [params.memo] 메모
+ * @param {number|null} [params.schedulePlaceId] 일정에 담아둔 장소와 연결할 때만
+ *
+ * 장소 연결은 선택이다. 계획에 없던 곳이나 장소가 아닌 활동("점심 먹기")도 남길 수 있다.
+ */
+export async function addTimelineItem({ scheduleId, occurredAt, title, memo, schedulePlaceId }) {
+  const { data } = await apiClient.post(`/schedules/${scheduleId}/diary/timeline`, {
+    occurred_at: occurredAt,
+    title,
+    memo: memo || null,
+    schedule_place_id: schedulePlaceId ?? null,
+  })
+  return data
+}
+
+/**
+ * 타임라인 항목을 지운다. 작성자와 스페이스 owner만 지울 수 있다.
+ *
+ * @param {number} itemId 항목 id
+ */
+export async function deleteTimelineItem(itemId) {
+  await apiClient.delete(`/diary-timeline/${itemId}`)
+}

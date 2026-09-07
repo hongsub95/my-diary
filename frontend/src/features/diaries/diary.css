@@ -174,3 +174,97 @@
 .diary-editor__submit:disabled {
   opacity: 0.6;
 }
+
+/* ── 방문 타임라인 ── */
+.timeline-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.timeline-form__row {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: 8px;
+}
+
+.timeline-form__time,
+.timeline-form__title,
+.timeline-form__memo,
+.timeline-form__place {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  font-size: 14px;
+  font-family: inherit;
+}
+
+.timeline-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 32px;
+  align-items: start;
+  gap: 10px;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-border-light);
+}
+
+.timeline-item:first-child {
+  border-top: none;
+}
+
+.timeline-item__time {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  padding-top: 1px;
+}
+
+.timeline-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.timeline-item__title {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.timeline-item__place {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  color: var(--color-primary-text);
+  font-size: 12px;
+}
+
+.timeline-item__place svg {
+  stroke: currentColor;
+}
+
+.timeline-item__memo {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.timeline-item__remove {
+  color: var(--color-text-disabled);
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+
+.timeline-item__remove:hover:not(:disabled) {
+  color: var(--color-primary);
+}

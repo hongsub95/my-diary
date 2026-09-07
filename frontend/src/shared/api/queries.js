@@ -11,10 +11,13 @@ import {
 import { toScheduleDetailView, toScheduleView } from './scheduleAdapter'
 import { addSchedulePlace, removeSchedulePlace, searchPlaces } from './places'
 import {
+  addTimelineItem,
   deleteDiaryEntry,
   deleteDiaryPhoto,
   listDiaryEntries,
+  deleteTimelineItem,
   listDiaryPhotos,
+  listDiaryTimeline,
   listSpaceDiaries,
   uploadDiaryPhotos,
   upsertDiaryEntry,
@@ -211,6 +214,12 @@ export function useDiary(scheduleId) {
     enabled: Boolean(scheduleId),
   })
 
+  const timeline = useQuery({
+    queryKey: ['diary', scheduleId, 'timeline'],
+    queryFn: () => listDiaryTimeline(scheduleId),
+    enabled: Boolean(scheduleId),
+  })
+
   // 일기가 바뀌면 이 하루의 상세뿐 아니라 일정 목록의 요약과 기록 탭 카드도 달라진다.
   // 세 갈래를 모두 무효화해야 화면 사이에서 값이 어긋나지 않는다.
   const invalidate = () => {
@@ -239,5 +248,25 @@ export function useDiary(scheduleId) {
     onSuccess: invalidate,
   })
 
-  return { entries, photos, saveEntry, removeEntry, addPhotos, removePhoto }
+  const addTimeline = useMutation({
+    mutationFn: (item) => addTimelineItem({ scheduleId, ...item }),
+    onSuccess: invalidate,
+  })
+
+  const removeTimeline = useMutation({
+    mutationFn: (itemId) => deleteTimelineItem(itemId),
+    onSuccess: invalidate,
+  })
+
+  return {
+    entries,
+    photos,
+    timeline,
+    saveEntry,
+    removeEntry,
+    addPhotos,
+    removePhoto,
+    addTimeline,
+    removeTimeline,
+  }
 }

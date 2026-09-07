@@ -115,14 +115,22 @@ export default function NewScheduleScreen() {
                 <Field label="하루의 이름">
                   <TextInput onChangeText={setTitle} placeholder="예: 성수 전시와 저녁" placeholderTextColor={colors.muted} style={styles.input} value={title} />
                 </Field>
-                <View style={styles.row}>
-                  <View style={styles.flex}><Field label="시작일"><SelectButton label={startDate} onPress={() => setCalendarTarget('start')} /></Field></View>
-                  <View style={styles.flex}><Field label="종료일"><SelectButton label={endDate} onPress={() => setCalendarTarget('end')} /></Field></View>
+                <View style={styles.timingCard}>
+                  <View style={styles.timingRow}>
+                    <View style={[styles.timingAccent, styles.timingAccentStart]} />
+                    <View style={styles.dateColumn}><Field label="시작일"><SelectButton label={startDate} onPress={() => setCalendarTarget('start')} /></Field></View>
+                    <View style={styles.timeColumn}><Field label="시작 시간"><TimeSelect value={startTime} onChange={setStartTime} /></Field></View>
+                  </View>
+                  <View style={styles.timingDivider} />
+                  <View style={styles.timingRow}>
+                    <View style={[styles.timingAccent, styles.timingAccentEnd]} />
+                    <View style={styles.dateColumn}><Field label="종료일"><SelectButton label={endDate} onPress={() => setCalendarTarget('end')} /></Field></View>
+                    <View style={styles.timeColumn}><Field label="종료 시간"><TimeSelect value={endTime} onChange={setEndTime} /></Field></View>
+                  </View>
                 </View>
-                <Text style={styles.duration}>{getDurationLabel(startDate, endDate)} 일정</Text>
-                <View style={styles.row}>
-                  <View style={styles.flex}><Field label="시작 시간"><TimeSelect value={startTime} onChange={setStartTime} /></Field></View>
-                  <View style={styles.flex}><Field label="종료 시간"><TimeSelect value={endTime} onChange={setEndTime} /></Field></View>
+                <View style={styles.timingMeta}>
+                  <Text accessibilityLiveRegion="polite" style={styles.duration}>{getDurationLabel(startDate, endDate)} 일정</Text>
+                  <Text style={styles.timezone}>한국 시간 · 30분 단위</Text>
                 </View>
                 <Field label="한 줄 메모 · 선택">
                   <TextInput multiline onChangeText={setDescription} placeholder="전시 보고 저녁 먹기. 서두르지 않기." placeholderTextColor={colors.muted} style={[styles.input, styles.textarea]} textAlignVertical="top" value={description} />
@@ -307,9 +315,19 @@ const styles = StyleSheet.create({
   selectButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', minHeight: 52, paddingHorizontal: 14 },
   selectValue: { color: colors.text, flex: 1, fontSize: 14, fontWeight: '700' },
   selectArrow: { color: colors.muted, fontSize: 18 },
-  duration: { alignSelf: 'flex-start', backgroundColor: colors.primarySoft, borderRadius: 12, color: colors.primaryDark, fontSize: 11, fontWeight: '800', overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 6 },
+  duration: { backgroundColor: colors.primarySoft, borderRadius: 12, color: colors.primaryDark, fontSize: 11, fontWeight: '800', overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 6 },
   textarea: { minHeight: 92 },
   row: { flexDirection: 'row', gap: 10 },
+  timingCard: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
+  timingRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 13, paddingVertical: 14, position: 'relative' },
+  timingAccent: { borderBottomRightRadius: 3, borderTopRightRadius: 3, bottom: 18, left: 0, position: 'absolute', top: 18, width: 3 },
+  timingAccentStart: { backgroundColor: colors.primary, opacity: 0.55 },
+  timingAccentEnd: { backgroundColor: colors.primary },
+  timingDivider: { backgroundColor: colors.border, height: 1 },
+  dateColumn: { flex: 1, minWidth: 0 },
+  timeColumn: { flexBasis: 104, flexGrow: 0, flexShrink: 0 },
+  timingMeta: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  timezone: { color: colors.muted, fontSize: 10, fontWeight: '600' },
   error: { color: colors.danger, fontSize: 12, marginTop: 14 },
   primaryButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', marginTop: 22, minHeight: 52, paddingHorizontal: 18 },
   primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },

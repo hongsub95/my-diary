@@ -5,6 +5,7 @@ import plusRaw from '../../assets/icons/plus.svg?raw'
 import { useAuth } from '../../shared/contexts/AuthContext'
 import { useDiary } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
+import TimelineSection from './TimelineSection'
 import './diary.css'
 
 /**
@@ -70,15 +71,28 @@ function DiaryEditor({ entry, mutation, onClose }) {
  *
  * @param {object} props
  * @param {number|string} props.scheduleId 일정 id
+ * @param {string} props.dateKey 일정 날짜 `YYYY-MM-DD`. 타임라인이 시각만 받을 때 쓴다
+ * @param {Array} props.places 일정에 담아둔 장소들. 타임라인에서 연결할 후보다
  *
  * 사진을 본문보다 위에 두는 이유: 완료한 하루는 사진과 기록이 먼저 보여야 한다는
  * 요구사항(docs/UX_IDENTITY_REDIRECTION_SPEC.md 7절)을 따른 것이다.
  */
-export default function DiarySection({ scheduleId }) {
+export default function DiarySection({ scheduleId, dateKey, places = [] }) {
   const { user } = useAuth()
-  const { entries, photos, saveEntry, removeEntry, addPhotos, removePhoto } = useDiary(scheduleId)
+  const {
+    entries,
+    photos,
+    timeline,
+    saveEntry,
+    removeEntry,
+    addPhotos,
+    removePhoto,
+    addTimeline,
+    removeTimeline,
+  } = useDiary(scheduleId)
   const [editing, setEditing] = useState(false)
   const [uploadError, setUploadError] = useState('')
+  const [photoError, setPhotoError] = useState('')
   const fileInput = useRef(null)
 
   const allEntries = entries.data ?? []
@@ -97,6 +111,16 @@ export default function DiarySection({ scheduleId }) {
       await addPhotos.mutateAsync(files)
     } catch (caught) {
       setUploadError(getApiErrorMessage(caught))
+    }
+  }
+
+  const handleRemovePhoto = async (photoId) => {
+    setPhotoError('')
+    try {
+      await removePhoto.mutateAsync(photoId)
+    } catch (caught) {
+      // 남이 올린 사진은 서버가 막는다. 조용히 넘어가면 사용자는 왜 안 지워지는지 모른다.
+      setPhotoError(getApiErrorMessage(caught))
     }
   }
 
@@ -127,6 +151,7 @@ export default function DiarySection({ scheduleId }) {
         />
 
         {uploadError && <p className="diary-editor__error" role="alert">{uploadError}</p>}
+        {photoError && <p className="diary-editor__error" role="alert">{photoError}</p>}
 
         {photos.data?.length > 0 ? (
           <div className="diary-photos">
@@ -138,7 +163,7 @@ export default function DiarySection({ scheduleId }) {
                 <button
                   type="button"
                   className="diary-photo__remove"
-                  onClick={() => removePhoto.mutate(photo.id)}
+                  onClick={() => handleRemovePhoto(photo.id)}
                   aria-label="사진 빼기"
                 >
                   ×
@@ -202,6 +227,15 @@ export default function DiarySection({ scheduleId }) {
           </article>
         ))}
       </section>
+
+      {/* 실제 방문 타임라인. 계획한 장소 순서가 아니라 그날 실제 동선이다. */}
+      <TimelineSection
+        dateKey={dateKey}
+        places={places}
+        timeline={timeline}
+        addTimeline={addTimeline}
+        removeTimeline={removeTimeline}
+      />
     </div>
   )
 }
