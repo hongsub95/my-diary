@@ -58,7 +58,9 @@ export type CreateScheduleInput = {
   title: string;
   description: string;
   /** YYYY-MM-DD */
-  date: string;
+  startDate: string;
+  /** YYYY-MM-DD */
+  endDate: string;
   /** HH:mm */
   startTime: string;
   /** HH:mm */
@@ -73,13 +75,13 @@ export type CreateScheduleInput = {
  * 어긋난 사용자도 의도한 시각에 일정이 잡힌다.
  */
 export async function createSchedule(input: CreateScheduleInput): Promise<Schedule> {
-  const toUtcIso = (time: string) => new Date(`${input.date}T${time}:00+09:00`).toISOString();
+  const toUtcIso = (date: string, time: string) => new Date(`${date}T${time}:00+09:00`).toISOString();
 
   const response = await apiClient.post<Schedule>(`/spaces/${input.spaceId}/schedules`, {
     title: input.title,
     description: input.description || null,
-    start_at: toUtcIso(input.startTime),
-    end_at: toUtcIso(input.endTime),
+    start_at: toUtcIso(input.startDate, input.startTime),
+    end_at: toUtcIso(input.endDate, input.endTime),
   });
   return response.data;
 }

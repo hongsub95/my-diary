@@ -6,6 +6,19 @@ import { useCreateSchedule } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import './schedules.css'
 
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+  const hours = String(Math.floor(index / 2)).padStart(2, '0')
+  const minutes = index % 2 === 0 ? '00' : '30'
+  return `${hours}:${minutes}`
+})
+
+const serviceDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Asia/Seoul',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
 /**
  * 화면에서 고른 날짜와 시각을 서버가 받는 UTC ISO 문자열로 바꾼다.
  *
@@ -17,16 +30,26 @@ import './schedules.css'
  * 서버는 UTC로 저장하므로(API_SPEC 2.4절) 여기서 변환해 보낸다.
  */
 function toUtcIso(date, timeText) {
-  return new Date(date + 'T' + timeText + ':00').toISOString()
+  return new Date(`${date}T${timeText}:00+09:00`).toISOString()
+}
+
+function getDurationLabel(startDate, endDate) {
+  const start = Date.parse(`${startDate}T00:00:00Z`)
+  const end = Date.parse(`${endDate}T00:00:00Z`)
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return '날짜를 선택해 주세요'
+  const nights = Math.round((end - start) / 86_400_000)
+  return nights === 0 ? '당일' : `${nights}박 ${nights + 1}일`
 }
 
 export default function ScheduleNewPage() {
   const navigate = useNavigate()
   const createSchedule = useCreateSchedule()
   const [error, setError] = useState('')
+  const today = serviceDateFormatter.format(new Date())
   const [form, setForm] = useState({
     title: '',
-    date: new Date().toISOString().slice(0, 10),
+    start_date: today,
+    end_date: today,
     start_time: '12:00',
     end_time: '15:00',
     memo: '',
@@ -37,11 +60,11 @@ export default function ScheduleNewPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
 
-    const startAt = toUtcIso(form.date, form.start_time)
-    const endAt = toUtcIso(form.date, form.end_time)
+    const startAt = toUtcIso(form.start_date, form.start_time)
+    const endAt = toUtcIso(form.end_date, form.end_time)
     // 서버도 같은 규칙으로 막지만(422), 화면에서 먼저 걸러 왕복을 줄인다.
-    if (endAt < startAt) {
-      setError('종료 시간이 시작 시간보다 빠릅니다.')
+    if (endAt <= startAt) {
+      setError('종료 날짜와 시간은 시작보다 뒤여야 합니다.')
       return
     }
 
@@ -70,64 +93,133 @@ export default function ScheduleNewPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="snew-form">
-        <div className="snew-form__field">
-          <label className="snew-form__label">제목 *</label>
-          <input
-            type="text"
-            value={form.title}
-            onChange={(e) => set('title', e.target.value)}
-            className="snew-form__input"
-            placeholder="일정 이름을 입력하세요"
-            required
-          />
+        <div className="snew-form__intro">
+          <span className="snew-form__eyebrow">NEW PLAN</span>
+          <h2>어떤 하루를 보내고 싶나요?</h2>
+          <p>날짜와 시간을 먼저 정하고, 다음 화면에서 갈 곳을 채워보세요.</p>
         </div>
 
-        <div className="snew-form__field">
-          <label className="snew-form__label">날짜 *</label>
-          <input
-            type="date"
-            value={form.date}
-            onChange={(e) => set('date', e.target.value)}
-            className="snew-form__input"
-            required
-          />
-        </div>
+        <section className="snew-form__section">
+          <div className="snew-form__section-heading">
+            <span className="snew-form__step">1</span>
+            <div>
+              <h3>기본 정보</h3>
+              <p>나중에 한눈에 알아볼 수 있는 이름을 붙여주세요.</p>
+            </div>
+          </div>
 
-        <div className="snew-form__row">
           <div className="snew-form__field">
-            <label className="snew-form__label">시작 시간</label>
+            <label className="snew-form__label" htmlFor="schedule-title">하루의 이름 *</label>
             <input
-              type="time"
-              value={form.start_time}
-              onChange={(e) => set('start_time', e.target.value)}
+              id="schedule-title"
+              type="text"
+              value={form.title}
+              onChange={(e) => set('title', e.target.value)}
               className="snew-form__input"
+              placeholder="예: 부산 바다와 맛있는 저녁"
+              required
             />
           </div>
+        </section>
+
+        <section className="snew-form__section snew-form__section--timing">
+          <div className="snew-form__section-heading">
+            <span className="snew-form__step">2</span>
+            <div>
+              <h3>일정 구간</h3>
+              <p>당일부터 여러 날의 여행까지 하나의 일정으로 이어집니다.</p>
+            </div>
+            <span className="snew-form__duration" aria-live="polite">
+              {getDurationLabel(form.start_date, form.end_date)}
+            </span>
+          </div>
+
+          <div className="snew-range-group">
+            <span className="snew-range-group__title">날짜</span>
+            <div className="snew-form__row snew-form__row--range">
+              <div className="snew-form__field">
+                <label className="snew-form__label" htmlFor="schedule-start-date">시작일</label>
+                <input
+                  id="schedule-start-date"
+                  type="date"
+                  value={form.start_date}
+                  onChange={(e) => {
+                    const startDate = e.target.value
+                    setForm((current) => ({
+                      ...current,
+                      start_date: startDate,
+                      end_date: current.end_date < startDate ? startDate : current.end_date,
+                    }))
+                  }}
+                  className="snew-form__input"
+                  required
+                />
+              </div>
+              <span className="snew-range-group__arrow" aria-hidden="true">→</span>
+              <div className="snew-form__field">
+                <label className="snew-form__label" htmlFor="schedule-end-date">종료일</label>
+                <input
+                  id="schedule-end-date"
+                  type="date"
+                  min={form.start_date}
+                  value={form.end_date}
+                  onChange={(e) => set('end_date', e.target.value)}
+                  className="snew-form__input"
+                  required
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="snew-range-group">
+            <span className="snew-range-group__title">시간</span>
+            <div className="snew-form__row snew-form__row--range">
+              <div className="snew-form__field">
+                <label className="snew-form__label" htmlFor="schedule-start-time">시작 시간</label>
+                <select
+                  id="schedule-start-time"
+                  value={form.start_time}
+                  onChange={(e) => set('start_time', e.target.value)}
+                  className="snew-form__input snew-form__select"
+                >
+                  {TIME_OPTIONS.map((time) => <option key={time} value={time}>{time}</option>)}
+                </select>
+              </div>
+              <span className="snew-range-group__arrow" aria-hidden="true">→</span>
+              <div className="snew-form__field">
+                <label className="snew-form__label" htmlFor="schedule-end-time">종료 시간</label>
+                <select
+                  id="schedule-end-time"
+                  value={form.end_time}
+                  onChange={(e) => set('end_time', e.target.value)}
+                  className="snew-form__input snew-form__select"
+                >
+                  {TIME_OPTIONS.map((time) => <option key={time} value={time}>{time}</option>)}
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <p className="snew-form__timezone">한국 시간 기준 · 30분 단위</p>
+        </section>
+
+        <section className="snew-form__section snew-form__section--compact">
           <div className="snew-form__field">
-            <label className="snew-form__label">종료 시간</label>
-            <input
-              type="time"
-              value={form.end_time}
-              onChange={(e) => set('end_time', e.target.value)}
-              className="snew-form__input"
+            <label className="snew-form__label" htmlFor="schedule-memo">한 줄 메모 <span>선택</span></label>
+            <textarea
+              id="schedule-memo"
+              value={form.memo}
+              onChange={(e) => set('memo', e.target.value)}
+              className="snew-form__input snew-form__textarea"
+              placeholder="준비할 것, 꼭 하고 싶은 일을 남겨보세요."
+              rows={3}
             />
           </div>
-        </div>
-
-        <div className="snew-form__field">
-          <label className="snew-form__label">메모</label>
-          <textarea
-            value={form.memo}
-            onChange={(e) => set('memo', e.target.value)}
-            className="snew-form__input snew-form__textarea"
-            placeholder="메모를 입력하세요 (선택)"
-            rows={4}
-          />
-        </div>
+        </section>
 
         {error && <p className="snew-form__error" role="alert">{error}</p>}
         <button type="submit" className="snew-form__submit" disabled={createSchedule.isPending}>
-          {createSchedule.isPending ? '저장 중…' : '일정 추가하기'}
+          {createSchedule.isPending ? '저장 중…' : '갈 곳 정하기 →'}
         </button>
       </form>
     </div>

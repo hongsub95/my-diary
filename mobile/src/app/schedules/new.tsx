@@ -1,7 +1,8 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Calendar, DateData } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
@@ -12,6 +13,11 @@ import { seoulDateKey } from '@/shared/utils/date';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
+const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
+  const hours = String(Math.floor(index / 2)).padStart(2, '0');
+  const minutes = index % 2 === 0 ? '00' : '30';
+  return `${hours}:${minutes}`;
+});
 
 type DraftPlace = { id: number; name: string };
 
@@ -27,9 +33,11 @@ export default function NewScheduleScreen() {
 
   const [step, setStep] = useState<1 | 2>(1);
   const [title, setTitle] = useState('');
-  const [date, setDate] = useState(initialDate);
-  const [startTime, setStartTime] = useState('14:00');
-  const [endTime, setEndTime] = useState('20:30');
+  const [startDate, setStartDate] = useState(initialDate);
+  const [endDate, setEndDate] = useState(initialDate);
+  const [calendarTarget, setCalendarTarget] = useState<'start' | 'end' | null>(null);
+  const [startTime, setStartTime] = useState('12:00');
+  const [endTime, setEndTime] = useState('15:00');
   const [description, setDescription] = useState('');
   const [placeName, setPlaceName] = useState('');
   const [places, setPlaces] = useState<DraftPlace[]>([]);
@@ -38,9 +46,10 @@ export default function NewScheduleScreen() {
 
   function validateBasics() {
     if (!title.trim()) return '하루의 이름을 입력해 주세요.';
-    if (!DATE_PATTERN.test(date)) return '날짜를 YYYY-MM-DD 형식으로 입력해 주세요.';
+    if (!DATE_PATTERN.test(startDate) || !DATE_PATTERN.test(endDate)) return '시작일과 종료일을 선택해 주세요.';
+    if (endDate < startDate) return '종료일은 시작일보다 빠를 수 없어요.';
     if (!TIME_PATTERN.test(startTime) || !TIME_PATTERN.test(endTime)) return '시간을 HH:mm 형식으로 입력해 주세요.';
-    if (endTime <= startTime) return '종료 시간은 시작 시간보다 늦어야 해요.';
+    if (startDate === endDate && endTime <= startTime) return '당일 일정의 종료 시간은 시작 시간보다 늦어야 해요.';
     if (!user?.default_space_id) return '하루를 저장할 기본 스페이스가 없어요.';
     return null;
   }
@@ -69,7 +78,8 @@ export default function NewScheduleScreen() {
         spaceId: user?.default_space_id as string,
         title: title.trim(),
         description: description.trim(),
-        date,
+        startDate,
+        endDate,
         startTime,
         endTime,
       });
@@ -106,11 +116,13 @@ export default function NewScheduleScreen() {
                   <TextInput onChangeText={setTitle} placeholder="예: 성수 전시와 저녁" placeholderTextColor={colors.muted} style={styles.input} value={title} />
                 </Field>
                 <View style={styles.row}>
-                  <View style={styles.flex}><Field label="날짜"><TextInput onChangeText={setDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={date} /></Field></View>
+                  <View style={styles.flex}><Field label="시작일"><SelectButton label={startDate} onPress={() => setCalendarTarget('start')} /></Field></View>
+                  <View style={styles.flex}><Field label="종료일"><SelectButton label={endDate} onPress={() => setCalendarTarget('end')} /></Field></View>
                 </View>
+                <Text style={styles.duration}>{getDurationLabel(startDate, endDate)} 일정</Text>
                 <View style={styles.row}>
-                  <View style={styles.flex}><Field label="시작"><TextInput onChangeText={setStartTime} placeholder="14:00" placeholderTextColor={colors.muted} style={styles.input} value={startTime} /></Field></View>
-                  <View style={styles.flex}><Field label="종료"><TextInput onChangeText={setEndTime} placeholder="20:30" placeholderTextColor={colors.muted} style={styles.input} value={endTime} /></Field></View>
+                  <View style={styles.flex}><Field label="시작 시간"><TimeSelect value={startTime} onChange={setStartTime} /></Field></View>
+                  <View style={styles.flex}><Field label="종료 시간"><TimeSelect value={endTime} onChange={setEndTime} /></Field></View>
                 </View>
                 <Field label="한 줄 메모 · 선택">
                   <TextInput multiline onChangeText={setDescription} placeholder="전시 보고 저녁 먹기. 서두르지 않기." placeholderTextColor={colors.muted} style={[styles.input, styles.textarea]} textAlignVertical="top" value={description} />
@@ -149,6 +161,21 @@ export default function NewScheduleScreen() {
             </>
           )}
         </ScrollView>
+        <DatePickerModal
+          endDate={endDate}
+          onClose={() => setCalendarTarget(null)}
+          onSelect={(date) => {
+            if (calendarTarget === 'start') {
+              setStartDate(date);
+              if (endDate < date) setEndDate(date);
+            } else {
+              setEndDate(date);
+            }
+            setCalendarTarget(null);
+          }}
+          startDate={startDate}
+          target={calendarTarget}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -156,6 +183,105 @@ export default function NewScheduleScreen() {
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <View style={styles.field}><Text style={styles.label}>{label}</Text>{children}</View>;
+}
+
+function SelectButton({ label, onPress }: { label: string; onPress: () => void }) {
+  return (
+    <Pressable accessibilityRole="button" onPress={onPress} style={styles.selectButton}>
+      <Text style={styles.selectValue}>{label}</Text>
+      <Text style={styles.selectArrow}>⌄</Text>
+    </Pressable>
+  );
+}
+
+function TimeSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const [visible, setVisible] = useState(false);
+  return (
+    <>
+      <SelectButton label={value} onPress={() => setVisible(true)} />
+      <Modal animationType="slide" onRequestClose={() => setVisible(false)} transparent visible={visible}>
+        <Pressable onPress={() => setVisible(false)} style={styles.modalBackdrop}>
+          <Pressable onPress={(event) => event.stopPropagation()} style={styles.timeSheet}>
+            <View style={styles.sheetHeader}>
+              <Text style={styles.sheetTitle}>시간 선택</Text>
+              <Pressable accessibilityLabel="시간 선택 닫기" onPress={() => setVisible(false)}><Text style={styles.sheetClose}>×</Text></Pressable>
+            </View>
+            <ScrollView contentContainerStyle={styles.timeGrid} showsVerticalScrollIndicator={false}>
+              {TIME_OPTIONS.map((time) => (
+                <Pressable
+                  accessibilityRole="button"
+                  key={time}
+                  onPress={() => { onChange(time); setVisible(false); }}
+                  style={[styles.timeOption, value === time && styles.timeOptionSelected]}
+                >
+                  <Text style={[styles.timeOptionText, value === time && styles.timeOptionTextSelected]}>{time}</Text>
+                  {value === time ? <Text style={styles.timeOptionCheck}>✓</Text> : null}
+                </Pressable>
+              ))}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
+function DatePickerModal({ target, startDate, endDate, onSelect, onClose }: {
+  target: 'start' | 'end' | null;
+  startDate: string;
+  endDate: string;
+  onSelect: (date: string) => void;
+  onClose: () => void;
+}) {
+  return (
+    <Modal animationType="fade" onRequestClose={onClose} transparent visible={target !== null}>
+      <Pressable onPress={onClose} style={styles.modalBackdrop}>
+        <Pressable onPress={(event) => event.stopPropagation()} style={styles.calendarSheet}>
+          <View style={styles.sheetHeader}>
+            <View><Text style={styles.sheetTitle}>{target === 'start' ? '시작일 선택' : '종료일 선택'}</Text><Text style={styles.sheetDescription}>{getDurationLabel(startDate, endDate)}</Text></View>
+            <Pressable accessibilityLabel="날짜 선택 닫기" onPress={onClose}><Text style={styles.sheetClose}>×</Text></Pressable>
+          </View>
+          <Calendar
+            current={target === 'end' ? endDate : startDate}
+            markingType="period"
+            markedDates={getMarkedDates(startDate, endDate)}
+            minDate={target === 'end' ? startDate : undefined}
+            onDayPress={(day: DateData) => onSelect(day.dateString)}
+            theme={{
+              arrowColor: colors.primary,
+              selectedDayBackgroundColor: colors.primary,
+              selectedDayTextColor: '#FFFFFF',
+              todayTextColor: colors.primaryDark,
+              calendarBackground: colors.surface,
+              textDayFontWeight: '600',
+              textMonthFontWeight: '800',
+            }}
+          />
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+
+function getDurationLabel(startDate: string, endDate: string) {
+  const nights = Math.round((Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`)) / 86_400_000);
+  return nights === 0 ? '당일' : `${nights}박 ${nights + 1}일`;
+}
+
+function getMarkedDates(startDate: string, endDate: string) {
+  const marks: Record<string, { color: string; startingDay?: boolean; endingDay?: boolean; textColor: string }> = {};
+  const start = Date.parse(`${startDate}T00:00:00Z`);
+  const end = Date.parse(`${endDate}T00:00:00Z`);
+  for (let value = start; value <= end; value += 86_400_000) {
+    const key = new Date(value).toISOString().slice(0, 10);
+    marks[key] = {
+      color: colors.primarySoft,
+      startingDay: key === startDate,
+      endingDay: key === endDate,
+      textColor: key === startDate || key === endDate ? colors.primaryDark : colors.text,
+    };
+  }
+  return marks;
 }
 
 const styles = StyleSheet.create({
@@ -178,6 +304,10 @@ const styles = StyleSheet.create({
   field: { gap: 7 },
   label: { color: colors.text, fontSize: 11, fontWeight: '800' },
   input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 14, minHeight: 52, paddingHorizontal: 14, paddingVertical: 13 },
+  selectButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', minHeight: 52, paddingHorizontal: 14 },
+  selectValue: { color: colors.text, flex: 1, fontSize: 14, fontWeight: '700' },
+  selectArrow: { color: colors.muted, fontSize: 18 },
+  duration: { alignSelf: 'flex-start', backgroundColor: colors.primarySoft, borderRadius: 12, color: colors.primaryDark, fontSize: 11, fontWeight: '800', overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 6 },
   textarea: { minHeight: 92 },
   row: { flexDirection: 'row', gap: 10 },
   error: { color: colors.danger, fontSize: 12, marginTop: 14 },
@@ -204,4 +334,17 @@ const styles = StyleSheet.create({
   secondaryText: { color: colors.text, fontSize: 13, fontWeight: '800' },
   submit: { flex: 1 },
   disabled: { opacity: 0.5 },
+  modalBackdrop: { backgroundColor: 'rgba(40, 35, 33, 0.38)', flex: 1, justifyContent: 'flex-end' },
+  calendarSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 28, paddingHorizontal: 14, paddingTop: 10 },
+  timeSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '72%', paddingBottom: 24, paddingHorizontal: spacing.lg, paddingTop: 10 },
+  sheetHeader: { alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 56, paddingHorizontal: 4 },
+  sheetTitle: { color: colors.text, fontSize: 16, fontWeight: '800' },
+  sheetDescription: { color: colors.primaryDark, fontSize: 11, fontWeight: '700', marginTop: 3 },
+  sheetClose: { color: colors.muted, fontSize: 28, padding: 8 },
+  timeGrid: { gap: 6, paddingTop: 12 },
+  timeOption: { alignItems: 'center', borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 48, paddingHorizontal: 16 },
+  timeOptionSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  timeOptionText: { color: colors.text, flex: 1, fontSize: 14, fontWeight: '700' },
+  timeOptionTextSelected: { color: '#FFFFFF' },
+  timeOptionCheck: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
 });

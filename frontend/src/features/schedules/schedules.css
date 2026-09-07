@@ -377,7 +377,9 @@
 /* ── Schedule New ── */
 .snew-page {
   min-height: 100%;
-  background: var(--color-bg);
+  background:
+    radial-gradient(circle at 100% 0, rgba(207, 82, 107, 0.08), transparent 32%),
+    var(--color-bg);
 }
 
 .snew-header {
@@ -395,10 +397,88 @@
 }
 
 .snew-form {
-  padding: 20px 16px;
+  width: min(100%, 720px);
+  margin: 0 auto;
+  padding: 28px 16px 48px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+}
+
+.snew-form__intro {
+  padding: 4px 2px 12px;
+}
+
+.snew-form__eyebrow {
+  color: var(--color-primary);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.snew-form__intro h2 {
+  margin-top: 8px;
+  color: var(--color-text-primary);
+  font-size: clamp(24px, 5vw, 32px);
+  line-height: 1.25;
+  letter-spacing: -0.035em;
+}
+
+.snew-form__intro p {
+  margin-top: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.snew-form__section {
+  padding: 20px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 22px;
+  background: rgba(255, 253, 249, 0.94);
+  box-shadow: 0 10px 30px rgba(59, 42, 38, 0.055);
+}
+
+.snew-form__section--compact {
+  padding: 18px 20px;
+}
+
+.snew-form__section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  margin-bottom: 18px;
+}
+
+.snew-form__section-heading > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.snew-form__section-heading h3 {
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.snew-form__section-heading p {
+  margin-top: 3px;
+  color: var(--color-text-disabled);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.snew-form__step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-text);
+  font-size: 11px;
+  font-weight: 800;
 }
 
 .snew-form__field {
@@ -413,10 +493,22 @@
   gap: 12px;
 }
 
+.snew-form__row--range {
+  grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+  align-items: end;
+}
+
 .snew-form__label {
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--color-text-primary);
+}
+
+.snew-form__label span {
+  margin-left: 4px;
+  color: var(--color-text-disabled);
+  font-size: 10px;
+  font-weight: 500;
 }
 
 .snew-form__input {
@@ -434,6 +526,56 @@
   border-color: var(--color-primary);
 }
 
+.snew-form__select {
+  cursor: pointer;
+}
+
+.snew-form__duration {
+  align-self: center;
+  padding: 5px 10px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary-text);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.snew-range-group {
+  padding: 15px;
+  border: 1px solid var(--color-border-light);
+  border-radius: 16px;
+  background: var(--color-bg);
+}
+
+.snew-range-group + .snew-range-group {
+  margin-top: 10px;
+}
+
+.snew-range-group__title {
+  display: block;
+  margin-bottom: 10px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.snew-range-group__arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  color: var(--color-text-disabled);
+  font-size: 15px;
+}
+
+.snew-form__timezone {
+  margin-top: 10px;
+  color: var(--color-text-disabled);
+  font-size: 10px;
+  text-align: right;
+}
+
 .snew-form__textarea {
   resize: none;
 }
@@ -448,6 +590,7 @@
   font-weight: 600;
   border-radius: var(--radius-lg);
   transition: background 0.15s;
+  box-shadow: 0 10px 22px rgba(207, 82, 107, 0.22);
 }
 
 .snew-form__submit:hover {
@@ -462,6 +605,25 @@
 .snew-form__submit:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+@media (max-width: 520px) {
+  .snew-form__section {
+    padding: 17px 15px;
+  }
+
+  .snew-form__section-heading p {
+    display: none;
+  }
+
+  .snew-form__row--range {
+    gap: 6px;
+  }
+
+  .snew-form__input {
+    padding-inline: 11px;
+    font-size: 13px;
+  }
 }
 
 /* ── 장소 추가 ── */
