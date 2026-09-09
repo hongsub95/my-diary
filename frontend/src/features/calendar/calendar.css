@@ -142,8 +142,38 @@
   background: transparent;
 }
 
-.product-calendar__schedule-dot--visible {
+/* 예정·기록 대기·기록됨을 색으로 구분한다. 색만으로 구분하면 알아보기 어려우므로
+   캘린더 아래에 범례를 함께 둔다. */
+.product-calendar__schedule-dot--planned {
   background: var(--color-primary);
+}
+
+.product-calendar__schedule-dot--pending {
+  background: var(--color-orange);
+}
+
+.product-calendar__schedule-dot--recorded {
+  background: var(--color-sage);
+}
+
+.calendar-legend {
+  display: flex;
+  gap: 14px;
+  padding: 10px 16px 0;
+}
+
+.calendar-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.calendar-legend i {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
 }
 
 .calendar-body {

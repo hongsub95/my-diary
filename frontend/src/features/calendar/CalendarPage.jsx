@@ -51,10 +51,27 @@ export default function CalendarPage() {
     to: formatDateKey(lastDayOfMonth(viewDate)),
   })
 
-  const scheduleDateKeys = useMemo(
-    () => new Set(schedules.map((schedule) => schedule.date_key)),
-    [schedules],
-  )
+  // 날짜마다 어떤 점을 찍을지 정한다. 예정과 기록을 같은 점으로 표시하면 캘린더가
+  // "무엇이 있었는지"를 알려주지 못한다(docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 6절).
+  //
+  // 한 날짜에 여러 하루가 있으면 더 손이 가는 쪽을 남긴다. 기록 대기는 사용자가
+  // 아직 할 일이 있다는 뜻이라 가장 앞에 둔다.
+  const dotByDate = useMemo(() => {
+    const priority = { pending: 3, planned: 2, recorded: 1 }
+    const marks = {}
+
+    for (const schedule of schedules) {
+      const kind =
+        schedule.experience_phase === 'record_pending'
+          ? 'pending'
+          : schedule.experience_phase === 'recorded'
+            ? 'recorded'
+            : 'planned'
+      const current = marks[schedule.date_key]
+      if (!current || priority[kind] > priority[current]) marks[schedule.date_key] = kind
+    }
+    return marks
+  }, [schedules])
   const selectedSchedules = useMemo(
     () => schedules.filter((schedule) => schedule.date_key === selectedDate),
     [schedules, selectedDate],
@@ -93,7 +110,7 @@ export default function CalendarPage() {
         <span
           aria-hidden="true"
           className={`product-calendar__schedule-dot${
-            scheduleDateKeys.has(dateKey) ? ' product-calendar__schedule-dot--visible' : ''
+            dotByDate[dateKey] ? ` product-calendar__schedule-dot--${dotByDate[dateKey]}` : ''
           }`}
         />
       </span>
@@ -162,6 +179,13 @@ export default function CalendarPage() {
             }}
             dayCellContent={renderDayCell}
           />
+        </div>
+
+        {/* 색만으로는 무슨 점인지 알 수 없다. 범례를 함께 둔다. */}
+        <div className="calendar-legend">
+          <span><i className="product-calendar__schedule-dot--planned" />예정</span>
+          <span><i className="product-calendar__schedule-dot--pending" />기록 대기</span>
+          <span><i className="product-calendar__schedule-dot--recorded" />기록함</span>
         </div>
       </section>
 

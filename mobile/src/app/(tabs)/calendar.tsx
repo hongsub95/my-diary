@@ -26,6 +26,15 @@ function lastDayOfMonth(yearMonth: string) {
   return `${yearMonth}-${String(day).padStart(2, '0')}`;
 }
 
+// 예정·기록 대기·기록됨을 색으로 구분한다. 예정과 기록을 같은 점으로 표시하면
+// 캘린더가 "무엇이 있었는지"를 알려주지 못한다
+// (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 6절).
+const DOT_COLORS: Record<string, string> = {
+  planned: colors.primary,
+  pending: colors.orange,
+  recorded: colors.sage,
+};
+
 function localDateKey(date = new Date()) {
   return [
     date.getFullYear(),
@@ -49,13 +58,26 @@ export default function CalendarScreen() {
   const markedDates = useMemo(() => {
     const marks: Record<string, { marked?: boolean; dotColor?: string; selected?: boolean; selectedColor?: string }> = {};
 
+    // 한 날짜에 여러 하루가 있으면 더 손이 가는 쪽을 남긴다. 기록 대기는 사용자가
+    // 아직 할 일이 있다는 뜻이라 가장 앞에 둔다.
+    const priority: Record<string, number> = { pending: 3, planned: 2, recorded: 1 };
+    const kinds: Record<string, string> = {};
+
     for (const schedule of schedules.data ?? []) {
-      const dateKey = schedule.dateKey;
-      marks[dateKey] = {
-        ...marks[dateKey],
-        marked: true,
-        dotColor: schedule.status === 'completed' ? '#238257' : colors.primary,
-      };
+      // status가 아니라 experience_phase로 가른다. status만 보면 지난주에 다녀왔지만
+      // 완료를 안 누른 하루가 예정으로 남는다.
+      const kind =
+        schedule.experience_phase === 'record_pending'
+          ? 'pending'
+          : schedule.experience_phase === 'recorded'
+            ? 'recorded'
+            : 'planned';
+      const current = kinds[schedule.dateKey];
+      if (!current || priority[kind] > priority[current]) kinds[schedule.dateKey] = kind;
+    }
+
+    for (const [dateKey, kind] of Object.entries(kinds)) {
+      marks[dateKey] = { ...marks[dateKey], marked: true, dotColor: DOT_COLORS[kind] };
     }
 
     marks[selectedDate] = {
@@ -110,6 +132,20 @@ export default function CalendarScreen() {
           />
         </View>
 
+        {/* 색만으로는 무슨 점인지 알 수 없다. 범례를 함께 둔다. */}
+        <View style={styles.legend}>
+          {[
+            { kind: 'planned', label: '예정' },
+            { kind: 'pending', label: '기록 대기' },
+            { kind: 'recorded', label: '기록함' },
+          ].map((item) => (
+            <View key={item.kind} style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: DOT_COLORS[item.kind] }]} />
+              <Text style={styles.legendText}>{item.label}</Text>
+            </View>
+          ))}
+        </View>
+
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{month}월 {day}일 일정</Text>
           <Text style={styles.sectionCount}>{selectedSchedules.length}개</Text>
@@ -147,6 +183,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     padding: spacing.sm,
   },
+  legend: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md, paddingHorizontal: 4 },
+  legendItem: { alignItems: 'center', flexDirection: 'row', gap: 5 },
+  legendDot: { borderRadius: 3, height: 6, width: 6 },
+  legendText: { color: colors.muted, fontSize: 11 },
   sectionHeader: {
     alignItems: 'center',
     flexDirection: 'row',

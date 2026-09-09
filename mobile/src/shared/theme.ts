@@ -9,6 +9,8 @@ export const colors = {
   primarySoft: '#FBECEF',
   ink: '#302927',
   sage: '#6C8069',
+  // 기록 대기 표시용. 웹의 --color-orange와 같은 값이다.
+  orange: '#B7773F',
   sand: '#E9E1D6',
   danger: '#D64545',
 };
