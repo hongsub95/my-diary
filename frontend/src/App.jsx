@@ -9,6 +9,7 @@ import CalendarPage from './features/calendar/CalendarPage'
 import ScheduleListPage from './features/schedules/ScheduleListPage'
 import ScheduleDetailPage from './features/schedules/ScheduleDetailPage'
 import ScheduleNewPage from './features/schedules/ScheduleNewPage'
+import SchedulePlanPage from './features/schedules/SchedulePlanPage'
 import MorePage from './features/more/MorePage'
 import RecordsPage from './features/records/RecordsPage'
 import PrototypeLab from './features/prototype/PrototypeLab'
@@ -35,6 +36,11 @@ export default function App() {
       <Route path="/prototype" element={<PrototypeLab />} />
       <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
+      {/* 하루 만들기는 하단 탭 밖에 둔다. 작성 중에는 탭을 숨긴다는 요구사항
+          (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 3.2절)에 따른 것이다. 탭이 보이면
+          작성 도중 다른 화면으로 새어 나가 입력이 사라진다. */}
+      <Route path="/schedules/new" element={<PrivateRoute><ScheduleNewPage /></PrivateRoute>} />
+      <Route path="/schedules/:id/plan" element={<PrivateRoute><SchedulePlanPage /></PrivateRoute>} />
       <Route
         path="/"
         element={
@@ -48,7 +54,6 @@ export default function App() {
         <Route path="home" element={<HomePage />} />
         <Route path="calendar" element={<CalendarPage />} />
         <Route path="schedules" element={<ScheduleListPage />} />
-        <Route path="schedules/new" element={<ScheduleNewPage />} />
         <Route path="schedules/:id" element={<ScheduleDetailPage />} />
         <Route path="records" element={<RecordsPage />} />
         <Route path="more" element={<MorePage />} />

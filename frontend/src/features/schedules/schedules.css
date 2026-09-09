@@ -794,3 +794,168 @@
 .slist-page__records:hover {
   background: var(--color-surface-hover);
 }
+
+/* ── 하루 만들기 2단계 ── */
+.splan-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--color-bg);
+}
+
+.splan-page__status {
+  padding: 40px 16px;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}
+
+.splan-page__header {
+  padding: 24px 16px 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.splan-page__step {
+  color: var(--color-primary-text);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.splan-page__title {
+  margin-top: 6px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 24px;
+  letter-spacing: -0.03em;
+}
+
+.splan-page__hint {
+  margin-top: 6px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.splan-page__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.splan-page__error {
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+.splan-page__flow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.splan-page__flow svg {
+  stroke: currentColor;
+  flex-shrink: 0;
+}
+
+.splan-picked__title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.splan-picked__empty {
+  margin-top: 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.splan-picked__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.splan-picked__item {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.splan-picked__order {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-light);
+  color: var(--color-primary-text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.splan-picked__info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.splan-picked__info strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.splan-picked__info em {
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-style: normal;
+}
+
+.splan-picked__remove {
+  color: var(--color-text-disabled);
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* 주요 행동은 화면 아래에 고정한다. 장소를 여러 개 담아 목록이 길어져도
+   "하루 완성하기"가 화면 밖으로 밀리지 않는다. */
+.splan-page__footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 16px;
+  border-top: 1px solid var(--color-border-light);
+  background: var(--color-surface);
+}
+
+.splan-page__skip,
+.splan-page__submit {
+  min-height: 50px;
+  border-radius: var(--radius-lg);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* 장소 없이 끝내기는 허용하되 기본 경로로 강조하지 않는다 (IA 3.2절). */
+.splan-page__skip {
+  padding: 0 16px;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+}
+
+.splan-page__submit {
+  flex: 1;
+  background: var(--color-primary);
+  color: #fff;
+}

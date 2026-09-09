@@ -14,7 +14,8 @@ import { getApiErrorMessage } from '../../shared/api/apiError'
  *
  * @param {object} props
  * @param {object} props.mutation useSchedulePlaceMutations의 add
- * @param {() => void} props.onClose 닫기
+ * @param {() => void} [props.onClose] 닫기. 없으면 취소 버튼을 두지 않는다.
+ *   하루 만들기 2단계처럼 이 패널이 화면의 본체인 곳에서는 닫을 대상이 없다.
  */
 export default function PlacePicker({ mutation, onClose }) {
   const [query, setQuery] = useState('')
@@ -27,7 +28,7 @@ export default function PlacePicker({ mutation, onClose }) {
     setError('')
     try {
       await mutation.mutateAsync({ place })
-      onClose()
+      onClose?.()
     } catch (caught) {
       setError(getApiErrorMessage(caught))
     }
@@ -106,7 +107,9 @@ export default function PlacePicker({ mutation, onClose }) {
         />
         {error && <p className="place-picker__error" role="alert">{error}</p>}
         <div className="place-picker__actions">
-          <button type="button" onClick={onClose} className="place-picker__cancel">취소</button>
+          {onClose && (
+            <button type="button" onClick={onClose} className="place-picker__cancel">취소</button>
+          )}
           <button type="submit" className="place-picker__submit" disabled={mutation.isPending}>
             {mutation.isPending ? '추가 중…' : '추가'}
           </button>

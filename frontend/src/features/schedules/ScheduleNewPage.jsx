@@ -69,7 +69,9 @@ export default function ScheduleNewPage() {
         endAt,
       })
       // 만든 일정으로 바로 들어가야 장소를 이어서 추가할 수 있다.
-      navigate(`/schedules/${created.id}`, { replace: true })
+      // 저장하고 끝내지 않고 곧바로 갈 곳을 정하러 보낸다. 제품이 말하는 하루는
+      // 제목과 시간이 아니라 장소와 순서다(3.2절).
+      navigate(`/schedules/${created.id}/plan`, { replace: true })
     } catch (caught) {
       setError(getApiErrorMessage(caught))
     }
