@@ -142,7 +142,7 @@ function Plan({ step, setStep, move }) {
           <Field label="종료일" required>2026. 09. 01</Field><Field label="종료 시간" required>20:30</Field>
         </div>
         <Field label="함께하는 공간"><span className="space-value"><Avatars /><span><b>우리 둘의 하루</b><small>홍섭님 · 민지님</small></span><ChevronRightIcon /></span></Field>
-        <Field label="한 줄 메모">메모를 작성해주세요</Field>
+        <Field label="하루의 밑그림">어떤 하루를 보내고 싶은지 적어주세요</Field>
       </div>
       <div className="form-actions"><button className="primary" onClick={() => setStep(2)} type="button">갈 곳 정하기<ArrowRightIcon /></button></div>
     </div>

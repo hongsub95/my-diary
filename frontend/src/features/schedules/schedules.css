@@ -499,11 +499,11 @@
   color: var(--color-text-primary);
 }
 
-.snew-form__label span {
+.snew-form__label .snew-form__required {
   margin-left: 4px;
-  color: var(--color-text-disabled);
-  font-size: 10px;
-  font-weight: 500;
+  color: var(--color-primary);
+  font-size: inherit;
+  font-weight: 700;
 }
 
 .snew-form__input {
@@ -774,4 +774,23 @@
 
 .place-picker__submit:disabled {
   opacity: 0.6;
+}
+
+/* 지난 하루를 찾는 사용자를 기록 탭으로 안내한다. 일정 탭에서 완료 일정을 뺐기 때문에
+   이 길이 없으면 "내 지난 일정이 사라졌다"로 읽힌다. */
+.slist-page__records {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  margin-top: 16px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.slist-page__records:hover {
+  background: var(--color-surface-hover);
 }
