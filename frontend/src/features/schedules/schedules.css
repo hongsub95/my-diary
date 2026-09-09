@@ -50,13 +50,6 @@
   margin-bottom: 10px;
 }
 
-.slist-section__empty {
-  font-size: 13px;
-  color: var(--color-text-disabled);
-  text-align: center;
-  padding: 16px 0;
-}
-
 .slist-section__list {
   display: flex;
   flex-direction: column;

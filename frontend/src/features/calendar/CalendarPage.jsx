@@ -8,6 +8,8 @@ import '@fullcalendar/react/themes/classic/theme.css'
 import '@fullcalendar/react/themes/classic/palette.css'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
+import { EmptyState } from '../../shared/components/EmptyState'
+import calendarRaw from '../../assets/icons/calendar.svg?raw'
 import chevronLeftRaw from '../../assets/icons/chevron-left.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
 import plusRaw from '../../assets/icons/plus.svg?raw'
@@ -205,10 +207,12 @@ export default function CalendarPage() {
         </div>
 
         {selectedSchedules.length === 0 ? (
-          <div className="calendar-empty">
-            <span className="calendar-empty__icon">📅</span>
-            <p>이 날은 일정이 없어요</p>
-          </div>
+          <EmptyState
+            compact
+            icon={calendarRaw}
+            title="이날은 예정된 하루가 없어요"
+            description="새로운 하루를 계획해 보세요."
+          />
         ) : (
           <div className="schedule-list">
             {selectedSchedules.map((schedule) => (

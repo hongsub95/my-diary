@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
+import { EmptyState } from '../../shared/components/EmptyState'
+import calendarRaw from '../../assets/icons/calendar.svg?raw'
 import plusRaw from '../../assets/icons/plus.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
 import mapPinRaw from '../../assets/icons/map-pin.svg?raw'
@@ -91,7 +93,13 @@ export default function ScheduleListPage() {
       <div className="slist-page__body">
         <section className="slist-section">
           {upcoming.length === 0 ? (
-            <p className="slist-section__empty">앞으로 잡힌 하루가 없어요</p>
+            <EmptyState
+              icon={calendarRaw}
+              title="아직 예정된 하루가 없어요"
+              description="기다려지는 하루를 하나 만들어 보세요."
+              actionLabel="하루 만들기"
+              onAction={() => navigate('/schedules/new')}
+            />
           ) : (
             <div className="slist-section__list">
               {upcoming.map((s) => <ScheduleCard key={s.id} schedule={s} />)}

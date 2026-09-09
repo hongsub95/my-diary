@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import { ScheduleFab } from '@/shared/components/schedule-fab';
+import { EmptyState } from '@/shared/components/empty-state';
 import { colors, spacing } from '@/shared/theme';
 
 LocaleConfig.locales.ko = {
@@ -156,10 +157,12 @@ export default function CalendarScreen() {
             {selectedSchedules.map((schedule) => <ScheduleCard key={schedule.id} schedule={schedule} />)}
           </View>
         ) : (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyIcon}>📅</Text>
-            <Text style={styles.emptyText}>이 날은 일정이 없어요</Text>
-          </View>
+          <EmptyState
+            compact
+            icon="📅"
+            title="이날은 예정된 하루가 없어요"
+            description="새로운 하루를 계획해 보세요."
+          />
         )}
       </ScrollView>
       <ScheduleFab
@@ -197,7 +200,4 @@ const styles = StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
   sectionCount: { color: colors.primary, fontSize: 13, fontWeight: '700' },
   list: { gap: spacing.md },
-  emptyState: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xxl },
-  emptyIcon: { fontSize: 34 },
-  emptyText: { color: colors.muted, fontSize: 14 },
 });

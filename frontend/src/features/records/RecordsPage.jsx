@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
+import { EmptyState } from '../../shared/components/EmptyState'
 import bookOpenRaw from '../../assets/icons/book-open.svg?raw'
 import mapPinRaw from '../../assets/icons/map-pin.svg?raw'
 import { useDiaryFeed } from '../../shared/api/queries'
@@ -87,16 +88,13 @@ export default function RecordsPage() {
       )}
 
       {!isPending && !isError && records.length === 0 && (
-        <div className="records-empty">
-          <Icon raw={bookOpenRaw} size={32} className="records-empty__icon" />
-          <p className="records-empty__title">아직 남긴 하루가 없어요.</p>
-          <p className="records-empty__text">
-            다녀온 하루에 사진 한 장만 올려도 기록이 됩니다.
-          </p>
-          <button type="button" onClick={() => navigate('/schedules')} className="records-empty__button">
-            지난 일정 보기
-          </button>
-        </div>
+        <EmptyState
+          icon={bookOpenRaw}
+          title="아직 남긴 하루가 없어요"
+          description="사진 한 장이나 한 문장으로 하루를 남겨 보세요."
+          actionLabel="일정 보러 가기"
+          onAction={() => navigate('/schedules')}
+        />
       )}
 
       {records.length > 0 && (

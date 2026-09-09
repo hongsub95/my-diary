@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ScheduleFab } from '@/shared/components/schedule-fab';
+import { EmptyState } from '@/shared/components/empty-state';
 import { colors, spacing } from '@/shared/theme';
 import { seoulDateKey } from '@/shared/utils/date';
 
@@ -54,7 +55,13 @@ export default function SchedulesScreen() {
             ))}
           </View>
         ) : (
-          <Text style={styles.empty}>앞으로 잡힌 하루가 없어요.</Text>
+          <EmptyState
+            icon="📅"
+            title="아직 예정된 하루가 없어요"
+            description="기다려지는 하루를 하나 만들어 보세요."
+            actionLabel="하루 만들기"
+            onAction={() => router.push('/schedules/new')}
+          />
         )}
 
         {/* 지난 하루를 찾으러 온 사용자가 막다른 길에 서지 않도록 기록 탭을 가리킨다. */}
@@ -76,7 +83,6 @@ const styles = StyleSheet.create({
   title: { color: colors.text, fontSize: 28, fontWeight: '800' },
   description: { color: colors.muted, fontSize: 14 },
   list: { gap: spacing.md },
-  empty: { color: colors.muted, fontSize: 13 },
   recordsLink: { alignItems: 'center', borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', marginTop: spacing.lg, minHeight: 48 },
   recordsText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
 });

@@ -88,22 +88,33 @@ export async function createSchedule(input: CreateScheduleInput): Promise<Schedu
 
 export type AddSchedulePlaceInput = {
   name: string;
+  address?: string | null;
+  latitude?: string | null;
+  longitude?: string | null;
+  /** 검색 결과에서 왔으면 그 공급자 이름. 직접 입력한 장소는 manual이다 */
+  provider?: string;
+  provider_place_id?: string | null;
   plannedTime?: string | null;
   memo?: string | null;
 };
 
-/** 장소 검색 연동 전에도 사용할 수 있는 수동 장소 추가 경계. */
+/**
+ * 일정에 장소를 추가한다. 항상 맨 뒤에 붙는다.
+ *
+ * 검색 결과에서 온 값이면 provider와 provider_place_id를 함께 보내야 서버가 같은 장소를
+ * 재사용한다. 좌표를 빠뜨리면 나중에 지도에 찍을 수 없으므로 결과 항목을 통째로 넘긴다.
+ */
 export async function addSchedulePlace(
   scheduleId: number,
   input: AddSchedulePlaceInput,
 ): Promise<SchedulePlace> {
   const response = await apiClient.post<SchedulePlace>(`/schedules/${scheduleId}/places`, {
     name: input.name,
-    address: null,
-    latitude: null,
-    longitude: null,
-    provider: 'manual',
-    provider_place_id: null,
+    address: input.address ?? null,
+    latitude: input.latitude ?? null,
+    longitude: input.longitude ?? null,
+    provider: input.provider ?? 'manual',
+    provider_place_id: input.provider_place_id ?? null,
     planned_time: input.plannedTime ? `${input.plannedTime}:00` : null,
     memo: input.memo || null,
   });

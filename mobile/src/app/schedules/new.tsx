@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -6,7 +6,12 @@ import { Calendar, DateData } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
-import { addSchedulePlace, createSchedule } from '@/features/schedules/schedule-api';
+import { searchPlaces, type PlaceSearchResult } from '@/features/places/place-api';
+import {
+  addSchedulePlace,
+  createSchedule,
+  type AddSchedulePlaceInput,
+} from '@/features/schedules/schedule-api';
 import { getApiError } from '@/shared/api/api-error';
 import { colors, spacing } from '@/shared/theme';
 import { seoulDateKey } from '@/shared/utils/date';
@@ -19,7 +24,9 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
   return `${hours}:${minutes}`;
 });
 
-type DraftPlace = { id: number; name: string };
+// 저장 전까지 화면에 들고 있는 장소. 검색 결과에서 왔다면 좌표와 출처까지 함께
+// 담아둬야 저장할 때 잃지 않는다. 직접 입력한 장소는 이름만 있다.
+type DraftPlace = { id: number; place: AddSchedulePlaceInput };
 
 export default function NewScheduleScreen() {
   const router = useRouter();
@@ -41,6 +48,13 @@ export default function NewScheduleScreen() {
   const [description, setDescription] = useState('');
   const [placeName, setPlaceName] = useState('');
   const [places, setPlaces] = useState<DraftPlace[]>([]);
+  const [placeQuery, setPlaceQuery] = useState('');
+  // 글자를 지웠을 때 이전 결과가 남지 않도록 빈 검색어에서는 아예 끈다.
+  const placeSearch = useQuery({
+    queryKey: ['places', 'search', placeQuery],
+    queryFn: () => searchPlaces(placeQuery),
+    enabled: placeQuery.trim().length > 0,
+  });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -61,11 +75,24 @@ export default function NewScheduleScreen() {
     setStep(2);
   }
 
-  function addPlace() {
-    const name = placeName.trim();
-    if (!name) return;
-    setPlaces((current) => [...current, { id: Date.now(), name }]);
+  function addPlace(place?: AddSchedulePlaceInput) {
+    const picked = place ?? { name: placeName.trim() };
+    if (!picked.name) return;
+    setPlaces((current) => [...current, { id: Date.now(), place: picked }]);
     setPlaceName('');
+    setPlaceQuery('');
+  }
+
+  /** 검색 결과 하나를 담는다. 좌표와 출처를 그대로 넘겨 지도에 찍을 수 있게 한다. */
+  function addSearchResult(result: PlaceSearchResult) {
+    addPlace({
+      name: result.name,
+      address: result.address,
+      latitude: result.latitude,
+      longitude: result.longitude,
+      provider: result.provider,
+      provider_place_id: result.provider_place_id,
+    });
   }
 
   async function handleSubmit() {
@@ -83,7 +110,10 @@ export default function NewScheduleScreen() {
         startTime,
         endTime,
       });
-      await Promise.all(places.map((place) => addSchedulePlace(schedule.id, { name: place.name })));
+      // 담아둔 순서가 곧 방문 순서다. 동시에 보내면 순서가 뒤섞이므로 차례로 넣는다.
+      for (const draft of places) {
+        await addSchedulePlace(schedule.id, draft.place);
+      }
       await queryClient.invalidateQueries({ queryKey: ['schedules'] });
       router.replace('/(tabs)/home');
     } catch (caught) {
@@ -141,16 +171,39 @@ export default function NewScheduleScreen() {
               <Text style={styles.title}>이 하루에{"\n"}어디를 담아볼까요?</Text>
               <Text style={styles.description}>장소를 고른 순서가 그날의 흐름이 됩니다.</Text>
 
+              <TextInput accessibilityLabel="장소 검색" onChangeText={setPlaceQuery} placeholder="장소 이름으로 검색" placeholderTextColor={colors.muted} style={styles.placeTextInput} value={placeQuery} />
+
+              {placeSearch.isFetching ? <Text style={styles.searchNotice}>검색 중…</Text> : null}
+
+              {placeSearch.data ? (
+                <View style={styles.searchResults}>
+                  {/* 아직 지도 공급자가 붙기 전이라는 사실을 숨기지 않는다. 결과가 그럴듯해
+                      보여서 실제 장소로 오해하는 편이 더 위험하다. */}
+                  {placeSearch.data.provider === 'mock' ? (
+                    <Text style={styles.searchNotice}>지도 공급자 연동 전이라 검색 결과는 예시입니다. 실제 장소는 아래에 직접 입력해 주세요.</Text>
+                  ) : null}
+                  {placeSearch.data.items.map((item) => (
+                    <Pressable key={`${item.provider}-${item.provider_place_id ?? item.name}`} onPress={() => addSearchResult(item)} style={styles.searchResult}>
+                      <View style={styles.placeCopy}>
+                        <Text style={styles.placeName}>{item.name}</Text>
+                        {item.address ? <Text style={styles.placeMeta}>{item.address}</Text> : null}
+                      </View>
+                      <Text style={styles.addButtonText}>+</Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
+
               <View style={styles.placeInput}>
-                <TextInput accessibilityLabel="장소 이름" onChangeText={setPlaceName} onSubmitEditing={addPlace} placeholder="장소 이름을 입력해주세요" placeholderTextColor={colors.muted} returnKeyType="done" style={styles.placeTextInput} value={placeName} />
-                <Pressable onPress={addPlace} style={styles.addButton}><Text style={styles.addButtonText}>추가</Text></Pressable>
+                <TextInput accessibilityLabel="장소 이름" onChangeText={setPlaceName} onSubmitEditing={() => addPlace()} placeholder="검색에 없으면 직접 입력" placeholderTextColor={colors.muted} returnKeyType="done" style={styles.placeTextInput} value={placeName} />
+                <Pressable onPress={() => addPlace()} style={styles.addButton}><Text style={styles.addButtonText}>추가</Text></Pressable>
               </View>
 
               <View style={styles.placeList}>
                 {places.length ? places.map((place, index) => (
                   <View key={place.id} style={styles.placeRow}>
                     <View style={styles.placeNumber}><Text style={styles.placeNumberText}>{index + 1}</Text></View>
-                    <View style={styles.placeCopy}><Text style={styles.placeName}>{place.name}</Text><Text style={styles.placeMeta}>상세 주소와 시간은 나중에 추가할 수 있어요.</Text></View>
+                    <View style={styles.placeCopy}><Text style={styles.placeName}>{place.place.name}</Text><Text style={styles.placeMeta}>{place.place.address ?? '상세 주소와 시간은 나중에 추가할 수 있어요.'}</Text></View>
                     <Pressable onPress={() => setPlaces((current) => current.filter((item) => item.id !== place.id))}><Text style={styles.remove}>×</Text></Pressable>
                   </View>
                 )) : (
@@ -320,6 +373,9 @@ const styles = StyleSheet.create({
   error: { color: colors.danger, fontSize: 12, marginTop: 14 },
   primaryButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', marginTop: 22, minHeight: 52, paddingHorizontal: 18 },
   primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
+  searchResults: { gap: 6, marginTop: spacing.sm },
+  searchNotice: { color: colors.muted, fontSize: 11, lineHeight: 17, marginTop: spacing.sm },
+  searchResult: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', gap: spacing.md, minHeight: 52, paddingHorizontal: spacing.md, paddingVertical: 10 },
   placeInput: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 15, borderWidth: 1, flexDirection: 'row', marginTop: 23, minHeight: 55, paddingHorizontal: 8 },
   placeTextInput: { color: colors.text, flex: 1, fontSize: 13, paddingHorizontal: 8 },
   addButton: { backgroundColor: colors.primarySoft, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10 },

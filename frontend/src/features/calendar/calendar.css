@@ -208,20 +208,6 @@
   stroke: currentColor;
 }
 
-.calendar-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 48px 0;
-  gap: 8px;
-  color: var(--color-text-disabled);
-  font-size: 14px;
-}
-
-.calendar-empty__icon {
-  font-size: 36px;
-}
-
 .schedule-list {
   display: flex;
   flex-direction: column;

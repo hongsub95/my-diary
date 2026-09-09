@@ -6,6 +6,7 @@ import { useDiaryFeed } from '@/features/diaries/diary-queries';
 import type { RecordView } from '@/features/diaries/diary-adapter';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
+import { EmptyState } from '@/shared/components/empty-state';
 import { getApiError } from '@/shared/api/api-error';
 import { colors, spacing } from '@/shared/theme';
 
@@ -112,12 +113,13 @@ export default function RecordsScreen() {
           />
         )}
         ListEmptyComponent={
-          <View style={styles.empty}>
-            <Text style={styles.emptyTitle}>아직 남긴 하루가 없어요.</Text>
-            <Text style={styles.emptyText}>
-              다녀온 하루에 사진 한 장만 올려도 기록이 됩니다.
-            </Text>
-          </View>
+          <EmptyState
+            icon="📖"
+            title="아직 남긴 하루가 없어요"
+            description="사진 한 장이나 한 문장으로 하루를 남겨 보세요."
+            actionLabel="일정 보러 가기"
+            onAction={() => router.push('/(tabs)/schedules')}
+          />
         }
         // 끝에 다다르면 다음 페이지를 이어 받는다. 무한 스크롤이라 "더 보기" 버튼이 없다.
         onEndReached={() => {
@@ -159,8 +161,5 @@ const styles = StyleSheet.create({
   metaRow: { flexDirection: 'row', gap: spacing.md, marginTop: 4 },
   meta: { color: colors.muted, fontSize: 10 },
 
-  empty: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 17, borderWidth: 1, gap: 6, marginTop: spacing.lg, padding: spacing.xl },
-  emptyTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  emptyText: { color: colors.muted, fontSize: 12, textAlign: 'center' },
   footer: { color: colors.muted, fontSize: 12, paddingVertical: spacing.md, textAlign: 'center' },
 });

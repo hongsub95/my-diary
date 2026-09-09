@@ -146,45 +146,6 @@
   stroke: currentColor;
 }
 
-/* ── 빈 상태 ── */
-.records-empty {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  margin-top: 40px;
-  padding: 32px 20px;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-xl);
-  background: var(--color-surface);
-  text-align: center;
-}
-
-.records-empty__icon {
-  color: var(--color-text-disabled);
-}
-
-.records-empty__title {
-  font-size: 15px;
-  font-weight: 700;
-}
-
-.records-empty__text {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-}
-
-.records-empty__button {
-  margin-top: 8px;
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: var(--radius-lg);
-  background: var(--color-primary);
-  color: #fff;
-  font-size: 14px;
-  font-weight: 700;
-}
-
 /* ── 더 보기 ── */
 .records-page__more {
   display: block;
