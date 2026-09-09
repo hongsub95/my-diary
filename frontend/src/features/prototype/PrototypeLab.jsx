@@ -124,7 +124,7 @@ function Plan({ step, setStep, move }) {
     <div className="plan-view">
       <Progress step={2} />
       <Heading eyebrow="STEP 2 · 갈 곳 정하기" title={<>이 하루에<br />어디를 담아볼까요?</>} text="장소를 고른 순서가 그날의 흐름이 됩니다." />
-      <button className="search-place" type="button"><MapPinIcon />카페, 전시, 식당을 검색해 보세요</button>
+      <button className="search-place" type="button"><MapPinIcon />장소 이름을 입력해주세요</button>
       <div className="plan-grid"><div className="selected-places">{places.map((place,index) => <article key={place[1]}><i>{index + 1}</i><p><b>{place[1]}</b><small>{place[2]}</small></p><EllipsisHorizontalIcon /></article>)}<button type="button"><PlusIcon />장소 추가</button></div><MapPreview /></div>
       <div className="form-actions"><button onClick={() => setStep(1)} type="button">이전</button><button className="primary" onClick={() => move('home')} type="button">하루 완성하기<CheckIcon /></button></div>
     </div>
@@ -134,15 +134,15 @@ function Plan({ step, setStep, move }) {
       <Progress step={1} />
       <Heading eyebrow="STEP 1 · 하루 만들기" title={<>어떤 하루를<br />보내고 싶나요?</>} text="세부 일정표보다 그날의 모습을 먼저 떠올려 보세요." />
       <div className="day-form">
-        <Field label="하루의 이름">성수 전시와 저녁</Field>
+        <Field label="하루의 이름" required>하루의 이름을 작성해주세요</Field>
         <div className="form-row" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(100px, .45fr)' }}>
-          <Field label="시작일">2026. 09. 01</Field><Field label="시작 시간">14:00</Field>
+          <Field label="시작일" required>2026. 09. 01</Field><Field label="시작 시간" required>14:00</Field>
         </div>
         <div className="form-row" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(100px, .45fr)' }}>
-          <Field label="종료일">2026. 09. 01</Field><Field label="종료 시간">20:30</Field>
+          <Field label="종료일" required>2026. 09. 01</Field><Field label="종료 시간" required>20:30</Field>
         </div>
         <Field label="함께하는 공간"><span className="space-value"><Avatars /><span><b>우리 둘의 하루</b><small>홍섭님 · 민지님</small></span><ChevronRightIcon /></span></Field>
-        <Field label="한 줄 메모 · 선택">전시 보고 저녁 먹기. 서두르지 않기.</Field>
+        <Field label="한 줄 메모">메모를 작성해주세요</Field>
       </div>
       <div className="form-actions"><button className="primary" onClick={() => setStep(2)} type="button">갈 곳 정하기<ArrowRightIcon /></button></div>
     </div>
@@ -179,7 +179,7 @@ function Avatars() { return <span className="avatars"><i>홍</i><i>민</i></span
 function Progress({ step }) { return <div className="progress"><i className="on" /><i className={step === 2 ? 'on' : ''} /><b>{step} / 2</b></div> }
 function Heading({ eyebrow, title, text }) { return <div className="screen-heading"><span className="eyebrow">{eyebrow}</span><h2>{title}</h2><p>{text}</p></div> }
 function Title({ eyebrow, title, children }) { return <div className="section-title"><div><span className="eyebrow">{eyebrow}</span><h3>{title}</h3></div>{children}</div> }
-function Field({ label, children }) { return <label className="field"><span>{label}</span><div>{children}</div></label> }
+function Field({ label, required = false, children }) { return <label className="field"><span>{label}{required && <span aria-hidden="true" style={{ color: 'var(--accent)' }}> *</span>}</span><div>{children}</div></label> }
 function Photo({ className = '', label }) { return <div className={`memory-photo ${className}`}>{label && <span>{label}</span>}</div> }
 function RecordCard({ photo, date, title, text }) { return <article><Photo className={photo} /><div><span>{date}</span><h3>{title}</h3><p>{text}</p><small>3개 장소</small></div></article> }
 function MapPreview({ live = false }) { return <div className="map-preview"><i className="road one" /><i className="road two" />{places.map((place,index) => <b className={`pin pin-${index + 1}`} key={place[1]}>{index + 1}</b>)}{live && <i className="current" />}<p><b>{live ? '서울숲까지 12분' : '3개 장소 · 약 5.4km'}</b><span>{live ? '도보 경로 미리보기' : '선택한 순서대로 표시'}</span></p></div> }

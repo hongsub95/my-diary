@@ -101,14 +101,14 @@ export default function ScheduleNewPage() {
           </div>
 
           <div className="snew-form__field">
-            <label className="snew-form__label" htmlFor="schedule-title">하루의 이름 *</label>
+            <label className="snew-form__label" htmlFor="schedule-title">하루의 이름 <span className="snew-form__required" aria-hidden="true">*</span></label>
             <input
               id="schedule-title"
               type="text"
               value={form.title}
               onChange={(e) => set('title', e.target.value)}
               className="snew-form__input"
-              placeholder="예: 부산 바다와 맛있는 저녁"
+              placeholder="하루의 이름을 작성해주세요"
               required
             />
           </div>
@@ -125,7 +125,7 @@ export default function ScheduleNewPage() {
           <div className="snew-timing-grid">
             <div className="snew-timing-row">
               <div className="snew-form__field">
-                <label className="snew-form__label" htmlFor="schedule-start-date">시작일</label>
+                <label className="snew-form__label" htmlFor="schedule-start-date">시작일 <span className="snew-form__required" aria-hidden="true">*</span></label>
                 <input
                   id="schedule-start-date"
                   type="date"
@@ -143,9 +143,10 @@ export default function ScheduleNewPage() {
                 />
               </div>
               <div className="snew-form__field snew-timing-row__time">
-                <label className="snew-form__label" htmlFor="schedule-start-time">시작 시간</label>
+                <label className="snew-form__label" htmlFor="schedule-start-time">시작 시간 <span className="snew-form__required" aria-hidden="true">*</span></label>
                 <select
                   id="schedule-start-time"
+                  required
                   value={form.start_time}
                   onChange={(e) => set('start_time', e.target.value)}
                   className="snew-form__input snew-form__select"
@@ -157,7 +158,7 @@ export default function ScheduleNewPage() {
 
             <div className="snew-timing-row snew-timing-row--end">
               <div className="snew-form__field">
-                <label className="snew-form__label" htmlFor="schedule-end-date">종료일</label>
+                <label className="snew-form__label" htmlFor="schedule-end-date">종료일 <span className="snew-form__required" aria-hidden="true">*</span></label>
                 <input
                   id="schedule-end-date"
                   type="date"
@@ -169,9 +170,10 @@ export default function ScheduleNewPage() {
                 />
               </div>
               <div className="snew-form__field snew-timing-row__time">
-                <label className="snew-form__label" htmlFor="schedule-end-time">종료 시간</label>
+                <label className="snew-form__label" htmlFor="schedule-end-time">종료 시간 <span className="snew-form__required" aria-hidden="true">*</span></label>
                 <select
                   id="schedule-end-time"
+                  required
                   value={form.end_time}
                   onChange={(e) => set('end_time', e.target.value)}
                   className="snew-form__input snew-form__select"
@@ -186,13 +188,13 @@ export default function ScheduleNewPage() {
 
         <section className="snew-form__section snew-form__section--compact">
           <div className="snew-form__field">
-            <label className="snew-form__label" htmlFor="schedule-memo">한 줄 메모 <span>선택</span></label>
+            <label className="snew-form__label" htmlFor="schedule-memo">하루의 밑그림</label>
             <textarea
               id="schedule-memo"
               value={form.memo}
               onChange={(e) => set('memo', e.target.value)}
               className="snew-form__input snew-form__textarea"
-              placeholder="준비할 것, 꼭 하고 싶은 일을 남겨보세요."
+              placeholder="어떤 하루를 보내고 싶은지 적어주세요"
               rows={3}
             />
           </div>

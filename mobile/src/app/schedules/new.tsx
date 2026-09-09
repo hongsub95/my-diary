@@ -112,24 +112,24 @@ export default function NewScheduleScreen() {
               <Text style={styles.description}>세부 일정표보다 그날의 모습을 먼저 떠올려 보세요.</Text>
 
               <View style={styles.form}>
-                <Field label="하루의 이름">
-                  <TextInput onChangeText={setTitle} placeholder="예: 성수 전시와 저녁" placeholderTextColor={colors.muted} style={styles.input} value={title} />
+                <Field label="하루의 이름" required>
+                  <TextInput accessibilityLabel="하루의 이름, 필수" onChangeText={setTitle} placeholder="하루의 이름을 작성해주세요" placeholderTextColor={colors.muted} style={styles.input} value={title} />
                 </Field>
                 <View style={styles.timingCard}>
                   <View style={styles.timingRow}>
                     <View style={[styles.timingAccent, styles.timingAccentStart]} />
-                    <View style={styles.dateColumn}><Field label="시작일"><SelectButton label={startDate} onPress={() => setCalendarTarget('start')} /></Field></View>
-                    <View style={styles.timeColumn}><Field label="시작 시간"><TimeSelect value={startTime} onChange={setStartTime} /></Field></View>
+                    <View style={styles.dateColumn}><Field label="시작일" required><SelectButton label={startDate} onPress={() => setCalendarTarget('start')} /></Field></View>
+                    <View style={styles.timeColumn}><Field label="시작 시간" required><TimeSelect value={startTime} onChange={setStartTime} /></Field></View>
                   </View>
                   <View style={styles.timingDivider} />
                   <View style={styles.timingRow}>
                     <View style={[styles.timingAccent, styles.timingAccentEnd]} />
-                    <View style={styles.dateColumn}><Field label="종료일"><SelectButton label={endDate} onPress={() => setCalendarTarget('end')} /></Field></View>
-                    <View style={styles.timeColumn}><Field label="종료 시간"><TimeSelect value={endTime} onChange={setEndTime} /></Field></View>
+                    <View style={styles.dateColumn}><Field label="종료일" required><SelectButton label={endDate} onPress={() => setCalendarTarget('end')} /></Field></View>
+                    <View style={styles.timeColumn}><Field label="종료 시간" required><TimeSelect value={endTime} onChange={setEndTime} /></Field></View>
                   </View>
                 </View>
-                <Field label="한 줄 메모 · 선택">
-                  <TextInput multiline onChangeText={setDescription} placeholder="전시 보고 저녁 먹기. 서두르지 않기." placeholderTextColor={colors.muted} style={[styles.input, styles.textarea]} textAlignVertical="top" value={description} />
+                <Field label="하루의 밑그림">
+                  <TextInput accessibilityLabel="하루의 밑그림" multiline onChangeText={setDescription} placeholder="어떤 하루를 보내고 싶은지 적어주세요" placeholderTextColor={colors.muted} style={[styles.input, styles.textarea]} textAlignVertical="top" value={description} />
                 </Field>
               </View>
               {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -142,7 +142,7 @@ export default function NewScheduleScreen() {
               <Text style={styles.description}>장소를 고른 순서가 그날의 흐름이 됩니다.</Text>
 
               <View style={styles.placeInput}>
-                <TextInput onChangeText={setPlaceName} onSubmitEditing={addPlace} placeholder="카페, 전시, 식당 이름을 입력하세요" placeholderTextColor={colors.muted} returnKeyType="done" style={styles.placeTextInput} value={placeName} />
+                <TextInput accessibilityLabel="장소 이름" onChangeText={setPlaceName} onSubmitEditing={addPlace} placeholder="장소 이름을 입력해주세요" placeholderTextColor={colors.muted} returnKeyType="done" style={styles.placeTextInput} value={placeName} />
                 <Pressable onPress={addPlace} style={styles.addButton}><Text style={styles.addButtonText}>추가</Text></Pressable>
               </View>
 
@@ -185,8 +185,8 @@ export default function NewScheduleScreen() {
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <View style={styles.field}><Text style={styles.label}>{label}</Text>{children}</View>;
+function Field({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  return <View style={styles.field}><Text accessibilityLabel={required ? `${label}, 필수` : label} style={styles.label}>{label}{required ? <Text style={styles.requiredMark}> *</Text> : null}</Text>{children}</View>;
 }
 
 function SelectButton({ label, onPress }: { label: string; onPress: () => void }) {
@@ -302,6 +302,7 @@ const styles = StyleSheet.create({
   form: { gap: 15, marginTop: 25 },
   field: { gap: 7 },
   label: { color: colors.text, fontSize: 11, fontWeight: '800' },
+  requiredMark: { color: colors.primary },
   input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 14, minHeight: 52, paddingHorizontal: 14, paddingVertical: 13 },
   selectButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', minHeight: 52, paddingHorizontal: 14 },
   selectValue: { color: colors.text, flex: 1, fontSize: 14, fontWeight: '700' },
