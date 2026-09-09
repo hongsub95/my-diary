@@ -3,13 +3,19 @@ import { apiClient } from './client'
 import { toNavigableMenus } from '../navigation/menuRoutes'
 import { useAuth } from '../contexts/AuthContext'
 import {
+  completeSchedule,
   createSchedule,
   getSchedule,
   listSchedulePlaces,
   listSchedules,
 } from './schedules'
 import { toScheduleDetailView, toScheduleView } from './scheduleAdapter'
-import { addSchedulePlace, removeSchedulePlace, searchPlaces } from './places'
+import {
+  addSchedulePlace,
+  removeSchedulePlace,
+  searchPlaces,
+  updateSchedulePlace,
+} from './places'
 import {
   addTimelineItem,
   deleteDiaryEntry,
@@ -162,7 +168,35 @@ export function useSchedulePlaceMutations(scheduleId) {
     onSuccess: invalidate,
   })
 
-  return { add, remove }
+  // 당일 화면에서 "여기 다녀왔어요"를 누를 때 쓴다. 방문 여부가 바뀌면 다음 장소와
+  // 진행률이 함께 달라지므로 같은 캐시를 무효화한다.
+  const toggleVisited = useMutation({
+    mutationFn: ({ schedulePlaceId, visited }) =>
+      updateSchedulePlace({ scheduleId, schedulePlaceId, changes: { visited } }),
+    onSuccess: invalidate,
+  })
+
+  return { add, remove, toggleVisited }
+}
+
+/**
+ * 하루 완료 처리.
+ *
+ * 완료하면 계획에서 기억으로 넘어간다. 일정 탭에서 빠지고 기록 탭에 오르며, 상세 화면의
+ * 구성도 사진과 일기 중심으로 바뀐다.
+ *
+ * @param {number|string} scheduleId 일정 id
+ */
+export function useCompleteSchedule(scheduleId) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => completeSchedule(scheduleId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['schedules'] })
+      queryClient.invalidateQueries({ queryKey: ['diaries'] })
+    },
+  })
 }
 
 /**

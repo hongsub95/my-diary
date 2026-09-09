@@ -952,3 +952,88 @@
   background: var(--color-primary);
   color: #fff;
 }
+
+/* ── 시간 상태별 상세 ── */
+.sdetail-error {
+  color: var(--color-danger);
+  font-size: 13px;
+}
+
+/* 당일에는 다음 장소가 화면 맨 위에 온다. 지금 뭘 하면 되는지가 먼저다. */
+.sdetail-next {
+  padding: 18px;
+  border-radius: var(--radius-xl);
+  background: var(--color-ink);
+  color: #fff;
+}
+
+.sdetail-next__label {
+  color: var(--color-primary-light);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sdetail-next__name {
+  margin-top: 4px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 24px;
+}
+
+.sdetail-next__progress {
+  margin-top: 6px;
+  color: #dfd8d3;
+  font-size: 12px;
+}
+
+.sdetail-place__visit {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  color: var(--color-primary-text);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.sdetail-place__visit:disabled {
+  opacity: 0.6;
+}
+
+.sdetail-memo {
+  color: var(--color-text-primary);
+  font-size: 14px;
+  line-height: 1.7;
+  /* 사용자가 넣은 줄바꿈을 살린다. 준비 메모는 목록처럼 쓰는 경우가 많다. */
+  white-space: pre-wrap;
+}
+
+.sdetail-complete {
+  width: 100%;
+  min-height: 52px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.sdetail-complete:disabled {
+  opacity: 0.6;
+}
+
+/* 상태 배지. 예정·오늘·기록 대기·기록함을 색으로 구분한다. */
+.sdetail-header__badge--today {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.sdetail-header__badge--record_pending {
+  background: var(--color-orange-light);
+  color: var(--color-orange-text);
+}
+
+.sdetail-header__badge--recorded {
+  background: var(--color-sage);
+  color: #fff;
+}

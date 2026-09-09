@@ -67,3 +67,16 @@ export async function createSchedule({ spaceId, title, description, startAt, end
   })
   return data
 }
+
+/**
+ * 하루를 완료 처리한다.
+ *
+ * @param {number|string} scheduleId 일정 id
+ *
+ * 같은 요청을 두 번 보내도 결과가 같고, 완료 시각은 처음 값을 유지한다. 종료 시각이
+ * 지났다는 이유만으로 서버가 알아서 완료하지는 않는다(docs/API_SPEC.md 5.5절).
+ */
+export async function completeSchedule(scheduleId) {
+  const { data } = await apiClient.post(`/schedules/${scheduleId}/complete`)
+  return data
+}
