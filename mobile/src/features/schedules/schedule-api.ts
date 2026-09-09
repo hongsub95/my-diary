@@ -120,3 +120,34 @@ export async function addSchedulePlace(
   });
   return response.data;
 }
+
+/**
+ * 하루를 완료 처리한다.
+ *
+ * 같은 요청을 두 번 보내도 결과가 같고, 완료 시각은 처음 값을 유지한다. 종료 시각이
+ * 지났다는 이유만으로 서버가 알아서 완료하지는 않는다(docs/API_SPEC.md 5.5절).
+ */
+export async function completeSchedule(scheduleId: number): Promise<Schedule> {
+  const response = await apiClient.post<Schedule>(`/schedules/${scheduleId}/complete`);
+  return response.data;
+}
+
+/**
+ * 일정 속 장소의 방문 여부를 바꾼다.
+ *
+ * @param schedulePlaceId 바꿀 항목의 id. 장소 자체의 id가 아니다
+ *
+ * 장소 자체(이름·좌표)는 여기서 바꾸지 않는다. 같은 Place를 다른 일정도 참조하고 있어서
+ * 한 일정에서 고치면 남의 기록까지 바뀐다(API_SPEC 6.5절).
+ */
+export async function setPlaceVisited(
+  scheduleId: number,
+  schedulePlaceId: number,
+  visited: boolean,
+): Promise<SchedulePlace> {
+  const response = await apiClient.patch<SchedulePlace>(
+    `/schedules/${scheduleId}/places/${schedulePlaceId}`,
+    { visited },
+  );
+  return response.data;
+}

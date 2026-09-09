@@ -1,7 +1,13 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/auth-context';
-import { getSchedule, listSchedulePlaces, listSchedules } from './schedule-api';
+import {
+  completeSchedule,
+  getSchedule,
+  listSchedulePlaces,
+  listSchedules,
+  setPlaceVisited,
+} from './schedule-api';
 import { toScheduleDetailView, toScheduleView, type ScheduleView } from './schedule-adapter';
 
 /**
@@ -61,4 +67,32 @@ export function useSchedule(scheduleId: number) {
     },
     enabled: Number.isFinite(scheduleId),
   });
+}
+
+/**
+ * 한 하루의 상태를 바꾼다. 완료 처리와 장소 방문 체크를 함께 다룬다.
+ *
+ * 둘을 한 훅에 둔 이유: 화면에서 모두 "이 하루를 진행하는" 행동이고, 어느 쪽이 바뀌어도
+ * 홈 카드의 다음 장소·진행률과 목록의 요약이 함께 달라진다.
+ */
+export function useScheduleActions(scheduleId: number) {
+  const queryClient = useQueryClient();
+
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['schedules'] });
+    queryClient.invalidateQueries({ queryKey: ['diaries'] });
+  };
+
+  const complete = useMutation({
+    mutationFn: () => completeSchedule(scheduleId),
+    onSuccess: invalidate,
+  });
+
+  const toggleVisited = useMutation({
+    mutationFn: ({ schedulePlaceId, visited }: { schedulePlaceId: number; visited: boolean }) =>
+      setPlaceVisited(scheduleId, schedulePlaceId, visited),
+    onSuccess: invalidate,
+  });
+
+  return { complete, toggleVisited };
 }
