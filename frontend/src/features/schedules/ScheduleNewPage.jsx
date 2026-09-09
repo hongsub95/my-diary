@@ -33,14 +33,6 @@ function toUtcIso(date, timeText) {
   return new Date(`${date}T${timeText}:00+09:00`).toISOString()
 }
 
-function getDurationLabel(startDate, endDate) {
-  const start = Date.parse(`${startDate}T00:00:00Z`)
-  const end = Date.parse(`${endDate}T00:00:00Z`)
-  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) return '날짜를 선택해 주세요'
-  const nights = Math.round((end - start) / 86_400_000)
-  return nights === 0 ? '당일' : `${nights}박 ${nights + 1}일`
-}
-
 export default function ScheduleNewPage() {
   const navigate = useNavigate()
   const createSchedule = useCreateSchedule()
@@ -127,7 +119,6 @@ export default function ScheduleNewPage() {
             <span className="snew-form__step">2</span>
             <div>
               <h3>일정 구간</h3>
-              <p>당일부터 여러 날의 여행까지 하나의 일정으로 이어집니다.</p>
             </div>
           </div>
 
@@ -191,12 +182,6 @@ export default function ScheduleNewPage() {
             </div>
           </div>
 
-          <div className="snew-timing-meta">
-            <span className="snew-form__duration" aria-live="polite">
-              {getDurationLabel(form.start_date, form.end_date)}
-            </span>
-            <span className="snew-form__timezone">한국 시간 기준 · 30분 단위</span>
-          </div>
         </section>
 
         <section className="snew-form__section snew-form__section--compact">

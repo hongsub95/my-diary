@@ -141,10 +141,6 @@ function Plan({ step, setStep, move }) {
         <div className="form-row" style={{ gridTemplateColumns: 'minmax(0, 1fr) minmax(100px, .45fr)' }}>
           <Field label="종료일">2026. 09. 01</Field><Field label="종료 시간">20:30</Field>
         </div>
-        <div style={{ alignItems: 'center', display: 'flex', justifyContent: 'space-between' }}>
-          <b style={{ background: 'var(--accent-soft)', borderRadius: 99, color: 'var(--accent-dark)', fontSize: 9, padding: '5px 9px' }}>당일 일정</b>
-          <span style={{ color: 'var(--muted)', fontSize: 9 }}>한국 시간 · 30분 단위</span>
-        </div>
         <Field label="함께하는 공간"><span className="space-value"><Avatars /><span><b>우리 둘의 하루</b><small>홍섭님 · 민지님</small></span><ChevronRightIcon /></span></Field>
         <Field label="한 줄 메모 · 선택">전시 보고 저녁 먹기. 서두르지 않기.</Field>
       </div>
