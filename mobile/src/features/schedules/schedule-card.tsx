@@ -1,12 +1,17 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ScheduleView } from './schedule-adapter';
 import { formatKoreanDateTime } from '@/shared/utils/date';
 import { colors, spacing } from '@/shared/theme';
 
 export function ScheduleCard({ schedule }: { schedule: ScheduleView }) {
+  const router = useRouter();
+
   return (
-    <View style={styles.card}>
+    <Pressable
+      onPress={() => router.push({ pathname: '/schedules/[id]', params: { id: schedule.id } })}
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
       <View style={styles.topRow}>
         <Text style={styles.space}>{schedule.space_name}</Text>
         <Text style={[styles.status, schedule.status === 'completed' && styles.completed]}>
@@ -16,8 +21,8 @@ export function ScheduleCard({ schedule }: { schedule: ScheduleView }) {
       <Text style={styles.title}>{schedule.title}</Text>
       <Text style={styles.date}>{formatKoreanDateTime(schedule.start_at)}</Text>
       <Text style={styles.description}>{schedule.description}</Text>
-      <Text style={styles.meta}>장소 {schedule.place_count}곳 · {schedule.has_diary ? '일기 작성됨' : '일기 미작성'}</Text>
-    </View>
+      <Text style={styles.meta}>장소 {schedule.place_count}곳 · {schedule.has_diary ? '기록 있음' : '기록 없음'}</Text>
+    </Pressable>
   );
 }
 
@@ -31,4 +36,5 @@ const styles = StyleSheet.create({
   date: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: spacing.sm },
   description: { color: colors.muted, fontSize: 14, marginTop: spacing.sm },
   meta: { color: colors.muted, fontSize: 12, marginTop: spacing.md },
+  pressed: { opacity: 0.8 },
 });

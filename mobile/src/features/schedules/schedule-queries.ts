@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/auth-context';
-import { listSchedules } from './schedule-api';
-import { toScheduleView, type ScheduleView } from './schedule-adapter';
+import { getSchedule, listSchedulePlaces, listSchedules } from './schedule-api';
+import { toScheduleDetailView, toScheduleView, type ScheduleView } from './schedule-adapter';
 
 /**
  * 일정 API에 쓸 스페이스 UUID.
@@ -40,5 +40,25 @@ export function useSchedules({ from, to, includePlaces = false }: UseSchedulesOp
     },
     // 로그인 전이거나 기본 스페이스가 없으면 부를 경로 자체가 없다.
     enabled: Boolean(spaceId),
+  });
+}
+
+/**
+ * 일정 상세. 장소까지 함께 채워서 돌려준다.
+ *
+ * 상세 응답은 include를 받지 않아 장소가 따로 온다(API_SPEC 5.2절). 둘 다 같은 일정을
+ * 보는 요청이라 순서에 의존하지 않고 동시에 보낸다.
+ */
+export function useSchedule(scheduleId: number) {
+  return useQuery<ScheduleView>({
+    queryKey: ['schedules', 'detail', scheduleId],
+    queryFn: async () => {
+      const [schedule, places] = await Promise.all([
+        getSchedule(scheduleId),
+        listSchedulePlaces(scheduleId),
+      ]);
+      return toScheduleDetailView(schedule, places);
+    },
+    enabled: Number.isFinite(scheduleId),
   });
 }

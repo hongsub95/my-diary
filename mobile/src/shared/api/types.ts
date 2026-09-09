@@ -54,6 +54,12 @@ export type Schedule = {
   created_by: { id: number; nickname: string };
   place_count: number;
   has_diary: boolean;
+  // 실제로 완료 처리한 시각. 종료 시각이 지났다는 이유만으로는 채워지지 않는다.
+  completed_at: string | null;
+  // 지금 이 하루가 어느 단계인지. 서버가 계산해 내려준다.
+  // upcoming / today / record_pending / recorded / canceled
+  experience_phase: string;
+  record_summary: DiaryRecordSummary;
   // 목록 조회에서 include=places를 줬을 때만 채워진다. null은 "요청하지 않았다",
   // 빈 배열은 "요청했는데 장소가 없다"로 뜻이 다르다 (API_SPEC 5.2절).
   places: SchedulePlace[] | null;

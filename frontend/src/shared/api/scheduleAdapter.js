@@ -69,6 +69,12 @@ export function toScheduleView(schedule) {
     space_name: schedule.space_name,
     // 날짜별로 묶을 때 쓰는 키. 화면마다 다시 계산하면 시간대 처리가 어긋난다.
     date_key: toServiceDateKey(schedule.start_at),
+    // 지금 이 하루가 어느 단계인지. 서버가 계산해 내려주므로 웹과 앱이 같은 값을 본다.
+    // upcoming / today / record_pending / recorded / canceled
+    experience_phase: schedule.experience_phase,
+    completed_at: schedule.completed_at,
+    // 기록이 얼마나 남았는지. 홈의 기록 대기 카드와 목록 요약이 쓴다.
+    record_summary: schedule.record_summary,
     // 장소 개수는 include 여부와 상관없이 항상 온다. 목록에서 "3곳" 같은 요약을 쓸 때는
     // places.length가 아니라 이 값을 봐야 한다. 장소를 요청하지 않은 화면도 정확하다.
     place_count: schedule.place_count,

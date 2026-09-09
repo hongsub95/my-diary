@@ -1,4 +1,4 @@
-import type { Schedule, SchedulePlace } from '@/shared/api/types';
+import type { DiaryRecordSummary, Schedule, SchedulePlace } from '@/shared/api/types';
 import { seoulDateKey } from '@/shared/utils/date';
 
 // API 응답을 화면이 쓰는 형태로 바꾸는 자리.
@@ -36,6 +36,11 @@ export type ScheduleView = {
   dateKey: string;
   place_count: number;
   has_diary: boolean;
+  /** 실제로 완료 처리한 시각. 아직 완료하지 않았으면 null */
+  completed_at: string | null;
+  /** upcoming / today / record_pending / recorded / canceled */
+  experience_phase: string;
+  record_summary: DiaryRecordSummary;
   places: SchedulePlaceView[];
 };
 
@@ -70,6 +75,9 @@ export function toScheduleView(schedule: Schedule): ScheduleView {
     status: schedule.status,
     space_name: schedule.space_name,
     dateKey: seoulDateKey(schedule.start_at),
+    completed_at: schedule.completed_at,
+    experience_phase: schedule.experience_phase,
+    record_summary: schedule.record_summary,
     // 장소 개수는 include 여부와 상관없이 항상 온다. 장소를 요청하지 않은 화면도
     // 이 값으로는 정확한 개수를 보여줄 수 있다.
     place_count: schedule.place_count,

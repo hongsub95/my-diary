@@ -1,4 +1,5 @@
-import { FlatList, Image, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDiaryFeed } from '@/features/diaries/diary-queries';
@@ -13,17 +14,29 @@ import { colors, spacing } from '@/shared/theme';
  *
  * @param record 화면용 기록 모델
  * @param featured 목록 맨 위 큰 카드인지. 가장 최근 하루를 장면으로 먼저 보게 한다
- *
- * 아직 누를 수 없다. 앱에 일정 상세 화면이 없어서 갈 곳이 없기 때문이다. 상세 화면이
- * 생기면 이 카드에 이동을 붙인다. 눌리는데 아무 일도 없는 편보다 낫다.
+ * @param onPress 눌렀을 때. 그 하루의 상세로 들어간다
  */
-function RecordCard({ record, featured }: { record: RecordView; featured: boolean }) {
+function RecordCard({
+  record,
+  featured,
+  onPress,
+}: {
+  record: RecordView;
+  featured: boolean;
+  onPress: () => void;
+}) {
   // 함께한 사람을 날짜 옆에 붙인다. 제품 정체성상 "언제, 누구와"가 제목보다 먼저다
   // (docs/UX_IDENTITY_REDIRECTION_SPEC.md 8절).
   const people = record.authorNames.length > 0 ? record.authorNames.join(' · ') : null;
 
   return (
-    <View style={[styles.card, featured && styles.cardFeatured]}>
+    <Pressable
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.card,
+        featured && styles.cardFeatured,
+        pressed && styles.pressed,
+      ]}>
       {record.coverUrl ? (
         <Image
           source={{ uri: record.coverUrl }}
@@ -53,7 +66,7 @@ function RecordCard({ record, featured }: { record: RecordView; featured: boolea
           {record.timelineCount > 0 ? <Text style={styles.meta}>⏱ {record.timelineCount}</Text> : null}
         </View>
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -64,6 +77,7 @@ function RecordCard({ record, featured }: { record: RecordView; featured: boolea
  * (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 2절).
  */
 export default function RecordsScreen() {
+  const router = useRouter();
   const feed = useDiaryFeed();
 
   if (feed.isLoading) return <LoadingScreen message="기록을 불러오고 있어요." />;
@@ -88,7 +102,15 @@ export default function RecordsScreen() {
             <Text style={styles.description}>날짜보다 장면으로 먼저 기억해 보세요.</Text>
           </View>
         }
-        renderItem={({ item, index }) => <RecordCard record={item} featured={index === 0} />}
+        renderItem={({ item, index }) => (
+          <RecordCard
+            record={item}
+            featured={index === 0}
+            onPress={() =>
+              router.push({ pathname: '/schedules/[id]', params: { id: item.scheduleId } })
+            }
+          />
+        )}
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyTitle}>아직 남긴 하루가 없어요.</Text>
@@ -120,6 +142,7 @@ const styles = StyleSheet.create({
 
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 17, borderWidth: 1, flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md, padding: 10 },
   cardFeatured: { flexDirection: 'column', gap: 0, overflow: 'hidden', padding: 0 },
+  pressed: { opacity: 0.8 },
 
   thumbnail: { backgroundColor: colors.sand, borderRadius: 12, height: 88, width: 88 },
   featuredPhoto: { backgroundColor: colors.sand, height: 200, width: '100%' },
