@@ -312,3 +312,58 @@
   border-radius: var(--radius-lg);
   padding: 12px 14px;
 }
+
+/* ── 계정 탈퇴 ─────────────────────────────────────── */
+
+/* 되돌릴 수 없는 동작이라 일반 카드와 색으로 구분한다. 같은 흰 카드에 담으면
+   읽지 않고 넘어간다. */
+.more-danger {
+  background: var(--color-surface);
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-xl);
+  padding: 16px;
+}
+
+.more-danger--spaces {
+  border-color: var(--color-border);
+}
+
+.more-danger__title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-danger);
+  margin-bottom: 10px;
+}
+
+.more-danger--spaces .more-danger__title {
+  color: var(--color-text-primary);
+}
+
+.more-danger__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.more-danger__list li {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+}
+
+.more-danger__count {
+  color: var(--color-text-secondary);
+}
+
+.more-danger__note {
+  margin-top: 10px;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-danger);
+}
+
+.more-form__submit--danger {
+  background: var(--color-danger);
+}

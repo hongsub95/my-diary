@@ -40,3 +40,21 @@ export async function changePassword({ currentPassword, newPassword }) {
     new_password: newPassword,
   })
 }
+
+/**
+ * 계정을 탈퇴 처리한다.
+ *
+ * @param {{currentPassword: string}} form 재인증용 비밀번호
+ * @returns {Promise<void>} 성공하면 204라 본문이 없다
+ * @throws 비밀번호가 틀리면 422 (`INVALID_CURRENT_PASSWORD`). 이때는 아무것도 지워지지 않는다
+ *
+ * **DELETE인데 본문을 보낸다.** 재인증 비밀번호를 실어야 해서다. axios는 두 번째 인자가
+ * config이므로 `{ data }`로 감싸야 본문이 실린다 — 다른 메서드처럼 바로 넘기면
+ * 조용히 빈 본문이 나가고 서버는 422를 돌려준다.
+ *
+ * 성공하면 서버가 세션 쿠키까지 지운다. 호출한 화면은 로컬 로그인 상태를 비우고
+ * 로그인 화면으로 보내면 된다.
+ */
+export async function deleteAccount({ currentPassword }) {
+  await apiClient.delete('/users/me', { data: { current_password: currentPassword } })
+}

@@ -1,6 +1,7 @@
 import os
 from functools import lru_cache
 
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 어떤 환경으로 띄울지는 OS 환경변수 APP_ENV로 정한다.
@@ -106,9 +107,10 @@ class Settings(BaseSettings):
     service_timezone: str = "Asia/Seoul"
 
     # ── 장소 검색 공급자 ───────────────────────────
-    # 지도 공급자는 아직 확정 전이라 기본값이 mock이다. 카카오 기술 검증이 끝나면
-    # 어댑터를 추가하고(app/places/providers.py) 이 값을 kakao로 바꾼다.
+    # 실제 연동 환경은 PLACE_SEARCH_PROVIDER=kakao로 설정한다.
     place_search_provider: str = "mock"
+    kakao_rest_api_key: SecretStr = SecretStr("")
+    kakao_search_timeout_seconds: float = Field(default=5.0, gt=0, le=30)
 
     model_config = SettingsConfigDict(
         env_file=ENV_FILES,

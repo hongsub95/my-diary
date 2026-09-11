@@ -3,6 +3,7 @@ import type { User } from '@/shared/api/types';
 
 export type UpdateProfileInput = { nickname: string };
 export type ChangePasswordInput = { currentPassword: string; newPassword: string };
+export type DeleteAccountInput = { currentPassword: string };
 
 /**
  * 닉네임을 바꾼다.
@@ -37,4 +38,22 @@ export async function changePassword(input: ChangePasswordInput): Promise<void> 
     current_password: input.currentPassword,
     new_password: input.newPassword,
   });
+}
+
+/**
+ * 계정을 탈퇴 처리한다.
+ *
+ * @param input 재인증용 비밀번호
+ * @throws 비밀번호가 틀리면 422 (`INVALID_CURRENT_PASSWORD`). 이때는 아무것도 지워지지 않는다
+ *
+ * **DELETE인데 본문을 보낸다.** 재인증 비밀번호를 실어야 해서다. axios는 두 번째 인자가
+ * config이므로 `{ data }`로 감싸야 본문이 실린다 — 다른 메서드처럼 바로 넘기면 조용히
+ * 빈 본문이 나가고 서버는 422를 돌려준다.
+ *
+ * 호출한 화면은 성공 후 토큰을 비우고 로그인 화면으로 보내야 한다. 앱의 access token은
+ * 무상태라 서버가 회수할 수 없지만, 탈퇴한 계정은 매 요청 사용자 조회에서 걸러지므로
+ * 남아 있어도 아무 API를 부를 수 없다.
+ */
+export async function deleteAccount(input: DeleteAccountInput): Promise<void> {
+  await apiClient.delete('/users/me', { data: { current_password: input.currentPassword } });
 }

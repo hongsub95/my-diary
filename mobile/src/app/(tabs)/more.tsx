@@ -106,10 +106,13 @@ export default function MoreScreen() {
           <Pressable onPress={logout} style={({ pressed }) => [styles.logoutButton, pressed && styles.pressed]}>
             <Text style={styles.logoutText}>로그아웃</Text>
           </Pressable>
-          {/* 탈퇴는 데이터 처리 안내와 재인증이 함께 필요해(6.5절) API가 생긴 뒤에 연다. */}
-          <Pressable disabled style={styles.withdrawButton}>
+          {/* 탈퇴 자체는 다음 화면에서 한다. 여기서 바로 실행하지 않는 이유는 6.5절이
+              요구하는 데이터 처리 안내와 재인증을 거쳐야 하기 때문이다. */}
+          <Pressable
+            onPress={() => router.push('/more/delete')}
+            style={({ pressed }) => [styles.withdrawButton, pressed && styles.pressed]}>
             <Text style={styles.withdrawText}>계정 탈퇴</Text>
-            <Text style={styles.badge}>준비 중</Text>
+            <Text style={styles.rowArrow}>›</Text>
           </Pressable>
         </View>
       </ScrollView>

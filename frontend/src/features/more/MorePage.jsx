@@ -129,10 +129,11 @@ export default function MorePage() {
             <Icon raw={logoutRaw} size={20} className="more-logout__icon" />
             로그아웃
           </button>
-          {/* 탈퇴는 데이터 처리 안내와 재인증이 함께 필요해(6.5절) API가 생긴 뒤에 연다. */}
-          <button type="button" className="more-withdraw" disabled aria-disabled="true">
+          {/* 탈퇴 자체는 다음 화면에서 한다. 여기서 바로 실행하지 않는 이유는 6.5절이
+              요구하는 데이터 처리 안내와 재인증을 거쳐야 하기 때문이다. */}
+          <button type="button" onClick={() => navigate('/more/delete')} className="more-withdraw">
             <span>계정 탈퇴</span>
-            <span className="more-menu__badge">준비 중</span>
+            <Icon raw={chevronRightRaw} size={16} className="more-menu__arrow" />
           </button>
         </section>
       </div>

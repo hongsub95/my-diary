@@ -46,11 +46,14 @@ def _set_session_cookie(response: Response, session_id: str) -> None:
     )
 
 
-def _clear_session_cookie(response: Response) -> None:
+def clear_session_cookie(response: Response) -> None:
     """브라우저에서 세션 쿠키를 지운다.
 
     설정값(path, domain 등)이 심을 때와 다르면 브라우저가 다른 쿠키로 인식해
     지워지지 않으므로, 심을 때와 동일한 값을 넘겨야 한다.
+
+    로그아웃 말고 계정 탈퇴(app/users/router.py)에서도 쓴다. 세션을 서버에서 지워도
+    브라우저에 쿠키가 남아 있으면 다음 요청마다 죽은 세션 ID를 들고 가게 된다.
     """
     response.delete_cookie(
         key=settings.session_cookie_name,
@@ -155,7 +158,7 @@ def web_logout(
                 request=request,
                 detail={"client": "web"},
             )
-    _clear_session_cookie(response)
+    clear_session_cookie(response)
     return None
 
 
@@ -185,7 +188,7 @@ def web_logout_all(
         request=request,
         detail={"removed_sessions": removed},
     )
-    _clear_session_cookie(response)
+    clear_session_cookie(response)
     return None
 
 
