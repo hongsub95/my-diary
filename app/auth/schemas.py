@@ -21,6 +21,32 @@ MIN_PASSWORD_LENGTH = 9
 SPECIAL_CHARACTERS = punctuation
 
 
+def validate_password_rules(value: str) -> str:
+    """비밀번호의 길이·구성 규칙과 bcrypt의 내부 길이 제한을 검사한다.
+
+    :param value: 사용자가 입력한 평문 비밀번호
+    :raises ValueError: 규칙을 어겼을 때. 문구는 화면에 그대로 노출된다
+    :return: 검증을 통과한 비밀번호 원본
+
+    회원가입(RegisterRequest)과 비밀번호 변경(app/users/schemas.py)이 이 함수를 함께
+    쓴다. 한쪽만 느슨하면 가입은 막혔던 비밀번호가 변경으로는 통과해 정책이 무의미해진다.
+    """
+    # 바이트 검사를 가장 먼저 한다. Field(max_length=...)는 '글자 수'를 세지만
+    # bcrypt의 한계는 '바이트 수'다. 한글은 UTF-8에서 한 글자가 3바이트라,
+    # 글자 수만 검사하면 통과한 값이 해싱 단계에서 터진다.
+    if len(value.encode("utf-8")) > MAX_PASSWORD_BYTES:
+        raise ValueError("비밀번호가 너무 깁니다. 조금 짧게 입력해 주세요.")
+    if len(value) < MIN_PASSWORD_LENGTH:
+        raise ValueError(f"비밀번호는 {MIN_PASSWORD_LENGTH}자 이상이어야 합니다.")
+    if not (
+        any(character in ascii_letters for character in value)
+        and any(character in digits for character in value)
+        and any(character in SPECIAL_CHARACTERS for character in value)
+    ):
+        raise ValueError("비밀번호는 영문, 숫자, 특수문자를 각각 1개 이상 포함해야 합니다.")
+    return value
+
+
 class RegisterRequest(BaseModel):
     """회원가입 요청 본문."""
 
@@ -36,31 +62,8 @@ class RegisterRequest(BaseModel):
     @field_validator("password")
     @classmethod
     def validate_password_policy(cls, value: str) -> str:
-        """비밀번호의 길이·구성 규칙과 bcrypt의 내부 길이 제한을 검사한다.
-
-        Args:
-            value: 사용자가 입력한 평문 비밀번호.
-
-        Returns:
-            검증을 통과한 비밀번호 원본.
-
-        Raises:
-            ValueError: 규칙을 어겼을 때. 문구는 화면에 그대로 노출된다.
-        """
-        # 바이트 검사를 가장 먼저 한다. Field(max_length=...)는 '글자 수'를 세지만
-        # bcrypt의 한계는 '바이트 수'다. 한글은 UTF-8에서 한 글자가 3바이트라,
-        # 글자 수만 검사하면 통과한 값이 해싱 단계에서 터진다.
-        if len(value.encode("utf-8")) > MAX_PASSWORD_BYTES:
-            raise ValueError("비밀번호가 너무 깁니다. 조금 짧게 입력해 주세요.")
-        if len(value) < MIN_PASSWORD_LENGTH:
-            raise ValueError(f"비밀번호는 {MIN_PASSWORD_LENGTH}자 이상이어야 합니다.")
-        if not (
-            any(character in ascii_letters for character in value)
-            and any(character in digits for character in value)
-            and any(character in SPECIAL_CHARACTERS for character in value)
-        ):
-            raise ValueError("비밀번호는 영문, 숫자, 특수문자를 각각 1개 이상 포함해야 합니다.")
-        return value
+        """가입 비밀번호가 규칙을 지키는지 본다. 규칙 본문은 위 함수에 있다."""
+        return validate_password_rules(value)
 
     @field_validator("nickname")
     @classmethod

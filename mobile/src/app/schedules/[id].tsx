@@ -4,6 +4,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DiarySection } from '@/features/diaries/diary-section';
+import { PlacePicker } from '@/features/places/place-picker';
 import { useSchedule, useScheduleActions } from '@/features/schedules/schedule-queries';
 import type { SchedulePlaceView } from '@/features/schedules/schedule-adapter';
 import { getApiError } from '@/shared/api/api-error';
@@ -29,12 +30,16 @@ const PHASE_LABELS: Record<string, string> = {
 function PlaceList({
   places,
   checkable,
+  removable,
   onToggle,
+  onRemove,
   busy,
 }: {
   places: SchedulePlaceView[];
   checkable: boolean;
+  removable: boolean;
   onToggle: (place: SchedulePlaceView) => void;
+  onRemove: (place: SchedulePlaceView) => void;
   busy: boolean;
 }) {
   return (
@@ -54,6 +59,13 @@ function PlaceList({
           {checkable ? (
             <Pressable onPress={() => onToggle(place)} disabled={busy} style={styles.visitButton}>
               <Text style={styles.visitText}>{place.visited ? '취소' : '다녀왔어요'}</Text>
+            </Pressable>
+          ) : removable ? (
+            <Pressable
+              accessibilityLabel={`${place.name} 빼기`}
+              onPress={() => onRemove(place)}
+              disabled={busy}>
+              <Text style={styles.removeMark}>×</Text>
             </Pressable>
           ) : null}
         </View>
@@ -79,8 +91,9 @@ export default function ScheduleDetailScreen() {
   const scheduleId = Number(rawId);
 
   const schedule = useSchedule(scheduleId);
-  const { complete, toggleVisited } = useScheduleActions(scheduleId);
+  const { complete, toggleVisited, addPlace, removePlace } = useScheduleActions(scheduleId);
   const [error, setError] = useState<string | null>(null);
+  const [picking, setPicking] = useState(false);
 
   if (schedule.isLoading) return <LoadingScreen message="하루를 불러오고 있어요." />;
   if (schedule.isError || !schedule.data) {
@@ -111,24 +124,48 @@ export default function ScheduleDetailScreen() {
 
   const placesSection = (
     <View style={styles.section}>
-      {/* 완료한 하루에는 계획을 더 담지 않는다. 그날 있었던 일은 방문 기록으로 남긴다. */}
-      <Text style={styles.sectionTitle}>{isDone ? '다녀온 장소' : '장소'}</Text>
+      <View style={styles.sectionHead}>
+        {/* 완료한 하루에는 계획을 더 담지 않는다. 그날 있었던 일은 방문 기록으로 남긴다. */}
+        <Text style={styles.sectionTitle}>{isDone ? '다녀온 장소' : '장소'}</Text>
+        {!isDone && !picking ? (
+          <Pressable onPress={() => setPicking(true)}>
+            <Text style={styles.action}>+ 추가</Text>
+          </Pressable>
+        ) : null}
+      </View>
+
+      {picking ? (
+        <>
+          <PlacePicker
+            busy={addPlace.isPending}
+            onPick={(place) => run(() => addPlace.mutateAsync(place))}
+          />
+          <Pressable onPress={() => setPicking(false)} style={styles.closePicker}>
+            <Text style={styles.action}>닫기</Text>
+          </Pressable>
+        </>
+      ) : null}
+
       {day.places.length > 0 ? (
         <PlaceList
           places={day.places}
           checkable={isToday}
-          busy={toggleVisited.isPending}
+          // 방문 체크가 켜진 당일에는 빼기 버튼을 두지 않는다. 두 버튼이 같은 자리에
+          // 겹치면 다녀온 곳을 지우려다 잘못 누르기 쉽다.
+          removable={!isDone && !isToday}
+          busy={toggleVisited.isPending || removePlace.isPending}
           onToggle={(place) =>
             run(() =>
               toggleVisited.mutateAsync({ schedulePlaceId: place.id, visited: !place.visited }),
             )
           }
+          onRemove={(place) => run(() => removePlace.mutateAsync(place.id))}
         />
-      ) : (
+      ) : !picking ? (
         <Text style={styles.empty}>
           {isDone ? '담아둔 장소가 없었어요.' : '아직 담은 장소가 없어요.'}
         </Text>
-      )}
+      ) : null}
     </View>
   );
 
@@ -230,7 +267,11 @@ const styles = StyleSheet.create({
   nextProgress: { color: '#DFD8D3', fontSize: 12 },
 
   section: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.sm, padding: spacing.lg },
+  sectionHead: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
+  action: { color: colors.primary, fontSize: 12, fontWeight: '700' },
+  closePicker: { alignItems: 'flex-end' },
+  removeMark: { color: colors.muted, fontSize: 20, paddingHorizontal: 6 },
   empty: { color: colors.muted, fontSize: 12 },
   memo: { color: colors.text, fontSize: 13, lineHeight: 21 },
 

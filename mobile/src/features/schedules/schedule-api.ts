@@ -151,3 +151,15 @@ export async function setPlaceVisited(
   );
   return response.data;
 }
+
+/**
+ * 일정에서 장소를 뺀다.
+ *
+ * @param schedulePlaceId 뺄 항목의 id. 장소 자체의 id가 아니다(API_SPEC 6.1절)
+ */
+export async function removeSchedulePlace(
+  scheduleId: number,
+  schedulePlaceId: number,
+): Promise<void> {
+  await apiClient.delete(`/schedules/${scheduleId}/places/${schedulePlaceId}`);
+}

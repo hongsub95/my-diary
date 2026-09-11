@@ -2,11 +2,14 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAuth } from '@/features/auth/auth-context';
 import {
+  addSchedulePlace,
   completeSchedule,
   getSchedule,
   listSchedulePlaces,
   listSchedules,
+  removeSchedulePlace,
   setPlaceVisited,
+  type AddSchedulePlaceInput,
 } from './schedule-api';
 import { toScheduleDetailView, toScheduleView, type ScheduleView } from './schedule-adapter';
 
@@ -94,5 +97,15 @@ export function useScheduleActions(scheduleId: number) {
     onSuccess: invalidate,
   });
 
-  return { complete, toggleVisited };
+  const addPlace = useMutation({
+    mutationFn: (place: AddSchedulePlaceInput) => addSchedulePlace(scheduleId, place),
+    onSuccess: invalidate,
+  });
+
+  const removePlace = useMutation({
+    mutationFn: (schedulePlaceId: number) => removeSchedulePlace(scheduleId, schedulePlaceId),
+    onSuccess: invalidate,
+  });
+
+  return { complete, toggleVisited, addPlace, removePlace };
 }
