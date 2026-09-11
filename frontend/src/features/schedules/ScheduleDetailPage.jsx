@@ -10,6 +10,7 @@ import {
 } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import PlacePicker from './PlacePicker'
+import KakaoMap from '../../shared/map/KakaoMap'
 import DiarySection from '../diaries/DiarySection'
 import './schedules.css'
 
@@ -57,6 +58,10 @@ function PlaceList({ places, checkable, mutations, onError }) {
 
   return (
     <div className="sdetail-places">
+      {/* 목록 위에 지도를 둔다. 마커 번호가 아래 목록의 순번과 같아서 "몇 번째로
+          어디를 가는지"를 지도에서 바로 읽을 수 있다. */}
+      <KakaoMap places={places} />
+
       {places.map((place, index) => (
         <div key={place.id} className="sdetail-place">
           {/* 화면에는 방문 차례를 1부터 보여준다. sort_order는 0부터 시작하는

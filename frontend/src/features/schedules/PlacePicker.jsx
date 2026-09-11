@@ -4,13 +4,16 @@ import mapPinRaw from '../../assets/icons/map-pin.svg?raw'
 import plusRaw from '../../assets/icons/plus.svg?raw'
 import { usePlaceSearch } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
+import KakaoMap from '../../shared/map/KakaoMap'
 
 /**
  * 일정에 장소를 담는 패널.
  *
- * 검색해서 고르는 길과 직접 입력하는 길을 함께 둔다. 지도 공급자가 아직 mock이라
- * 검색만 두면 실제로 쓸 수 없고, 공급자가 붙은 뒤에도 검색에 안 나오는 장소는
- * 직접 넣어야 하기 때문이다(docs/DEVELOPMENT_BRIEF.md 6절).
+ * 검색해서 고르는 길과 직접 입력하는 길을 함께 둔다. 검색에 안 나오는 장소는 직접
+ * 넣어야 하기 때문이다(docs/DEVELOPMENT_BRIEF.md 6절).
+ *
+ * **검색 결과를 눌러도 바로 담기지 않는다.** 고르는 것과 담는 것을 나눠서, 지도와
+ * 목록을 훑어보다가 실수로 담기는 일이 없게 한다. 모바일도 같은 흐름이다.
  *
  * @param {object} props
  * @param {object} props.mutation useSchedulePlaceMutations의 add
@@ -22,7 +25,12 @@ export default function PlacePicker({ mutation, onClose }) {
   const [manualName, setManualName] = useState('')
   const [manualAddress, setManualAddress] = useState('')
   const [error, setError] = useState('')
+  // 고른 검색 결과의 순번. 지도 마커와 목록이 같은 값을 본다.
+  const [selectedIndex, setSelectedIndex] = useState(null)
   const search = usePlaceSearch(query)
+
+  const items = search.data?.items ?? []
+  const selected = selectedIndex === null ? null : items[selectedIndex]
 
   const submit = async (place) => {
     setError('')
@@ -67,25 +75,53 @@ export default function PlacePicker({ mutation, onClose }) {
               지도 공급자 연동 전이라 검색 결과는 예시입니다. 실제 장소는 직접 입력해주세요.
             </p>
           )}
+          {/* 검색 결과가 실제 좌표를 가진 경우에만 지도를 띄운다. mock 공급자나
+              좌표 없는 결과에 지도를 띄우면 빈 지도만 보인다. */}
+          {items.length > 0 && (
+            <KakaoMap
+              places={items.map((item, index) => ({ ...item, id: String(index) }))}
+              selectedId={selectedIndex === null ? undefined : String(selectedIndex)}
+              onSelect={(id) => setSelectedIndex(Number(id))}
+            />
+          )}
+
+          {items.length === 0 && (
+            <p className="place-picker__hint">
+              검색 결과가 없어요. 지역명과 장소 이름을 함께 넣어보세요.
+            </p>
+          )}
+
           <ul className="place-picker__results">
-            {search.data.items.map((item) => (
+            {items.map((item, index) => (
               <li key={`${item.provider}-${item.provider_place_id ?? item.name}`}>
                 <button
                   type="button"
-                  className="place-picker__result"
-                  onClick={() => submit(item)}
-                  disabled={mutation.isPending}
+                  className={`place-picker__result${selectedIndex === index ? ' place-picker__result--selected' : ''}`}
+                  onClick={() => setSelectedIndex(index)}
+                  aria-pressed={selectedIndex === index}
                 >
                   <Icon raw={mapPinRaw} size={16} className="place-picker__pin" />
                   <span className="place-picker__result-text">
-                    <strong>{item.name}</strong>
+                    {/* 지도 마커와 같은 번호를 붙여 눈으로 맞출 수 있게 한다. */}
+                    <strong>{index + 1}. {item.name}</strong>
                     {item.address && <em>{item.address}</em>}
                   </span>
-                  <Icon raw={plusRaw} size={16} />
+                  {selectedIndex === index ? <span aria-hidden="true">✓</span> : <Icon raw={plusRaw} size={16} />}
                 </button>
               </li>
             ))}
           </ul>
+
+          {selected && (
+            <button
+              type="button"
+              className="place-picker__submit"
+              onClick={() => submit(selected)}
+              disabled={mutation.isPending}
+            >
+              {mutation.isPending ? '담는 중…' : `${selected.name} 담기`}
+            </button>
+          )}
         </>
       )}
 

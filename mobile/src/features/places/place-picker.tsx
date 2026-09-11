@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { searchPlaces, type PlaceSearchResult } from './place-api';
 import type { AddSchedulePlaceInput } from '@/features/schedules/schedule-api';
+import { KakaoMap } from './kakao-map';
 
 /**
  * 장소를 고르는 패널. 검색과 직접 입력을 함께 둔다.
@@ -26,12 +28,21 @@ export function PlacePicker({
 }) {
   const [query, setQuery] = useState('');
   const [manualName, setManualName] = useState('');
+  const palette = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  useEffect(() => {
+    const timer = setTimeout(() => setSearchQuery(query.trim()), 350);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   // 글자를 지웠을 때 이전 결과가 남지 않도록 빈 검색어에서는 아예 끈다.
   const search = useQuery({
-    queryKey: ['places', 'search', query],
-    queryFn: () => searchPlaces(query),
-    enabled: query.trim().length > 0,
+    queryKey: ['places', 'search', searchQuery],
+    queryFn: () => searchPlaces(searchQuery),
+    enabled: searchQuery.length > 0 && searchQuery === query.trim(),
+    retry: false,
   });
 
   /** 검색 결과를 담는다. 좌표와 출처를 그대로 넘겨 지도에 찍을 수 있게 한다. */
@@ -58,7 +69,7 @@ export function PlacePicker({
     <View style={styles.container}>
       <TextInput
         accessibilityLabel="장소 검색"
-        onChangeText={setQuery}
+        onChangeText={(value) => { setQuery(value); setSelectedIndex(null); }}
         placeholder="장소 이름으로 검색"
         placeholderTextColor={colors.muted}
         style={styles.input}
@@ -66,9 +77,18 @@ export function PlacePicker({
       />
 
       {search.isFetching ? <Text style={styles.notice}>검색 중…</Text> : null}
+      {search.isError && query.trim() === searchQuery ? <Text style={styles.notice}>검색을 불러오지 못했어요. 다시 검색하거나 아래에 직접 입력해 주세요.</Text> : null}
 
-      {search.data ? (
+      {search.data && query.trim() && query.trim() === searchQuery ? (
         <View style={styles.results}>
+          {search.data.provider === 'kakao' && search.data.items.length > 0 ? (
+            <KakaoMap
+              places={search.data.items.map((item, index) => ({ ...item, id: String(index) }))}
+              selectedId={selectedIndex === null ? undefined : String(selectedIndex)}
+              onSelect={(id) => setSelectedIndex(Number(id))}
+            />
+          ) : null}
+          {search.data.items.length === 0 ? <Text style={styles.notice}>검색 결과가 없어요. 지역명과 장소 이름을 함께 입력해 보세요.</Text> : null}
           {/* 아직 지도 공급자가 붙기 전이라는 사실을 숨기지 않는다. 결과가 그럴듯해
               보여서 실제 장소로 오해하는 편이 더 위험하다. */}
           {search.data.provider === 'mock' ? (
@@ -76,19 +96,24 @@ export function PlacePicker({
               지도 공급자 연동 전이라 검색 결과는 예시입니다. 실제 장소는 아래에 직접 입력해 주세요.
             </Text>
           ) : null}
-          {search.data.items.map((item) => (
+          {search.data.items.map((item, index) => (
             <Pressable
               key={`${item.provider}-${item.provider_place_id ?? item.name}`}
-              onPress={() => pickResult(item)}
+              onPress={() => setSelectedIndex(index)}
               disabled={busy}
-              style={({ pressed }) => [styles.result, pressed && styles.pressed]}>
+              style={({ pressed }) => [styles.result, selectedIndex === index && { borderColor: palette.primary }, pressed && styles.pressed]}>
               <View style={styles.resultBody}>
-                <Text style={styles.resultName}>{item.name}</Text>
+                <Text style={styles.resultName}>{index + 1}. {item.name}</Text>
                 {item.address ? <Text style={styles.resultAddress}>{item.address}</Text> : null}
               </View>
-              <Text style={styles.plus}>+</Text>
+              <Text style={styles.plus}>{selectedIndex === index ? '✓' : '›'}</Text>
             </Pressable>
           ))}
+          {selectedIndex !== null && search.data.items[selectedIndex] ? (
+            <Pressable disabled={busy} onPress={() => pickResult(search.data.items[selectedIndex])} style={styles.addButton}>
+              <Text style={styles.addText}>{search.data.items[selectedIndex].name} 담기</Text>
+            </Pressable>
+          ) : null}
         </View>
       ) : null}
 
@@ -114,7 +139,7 @@ export function PlacePicker({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   container: { gap: spacing.sm },
   input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 14, minHeight: 48, paddingHorizontal: spacing.md },
   flex: { flex: 1 },
@@ -124,9 +149,9 @@ const styles = StyleSheet.create({
   resultBody: { flex: 1, gap: 2 },
   resultName: { color: colors.text, fontSize: 14, fontWeight: '600' },
   resultAddress: { color: colors.muted, fontSize: 11 },
-  plus: { color: colors.primary, fontSize: 20, fontWeight: '700' },
+  plus: { color: palette.primary, fontSize: 20, fontWeight: '700' },
   manualRow: { flexDirection: 'row', gap: spacing.sm },
-  addButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', minHeight: 48, paddingHorizontal: spacing.lg },
+  addButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', minHeight: 48, paddingHorizontal: spacing.lg },
   addText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
   pressed: { opacity: 0.85 },
 });

@@ -1037,3 +1037,9 @@
   background: var(--color-sage);
   color: #fff;
 }
+
+/* 고른 검색 결과. 누르는 즉시 담지 않고 선택만 하므로, 무엇이 선택됐는지 보여야 한다. */
+.place-picker__result--selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary-light);
+}

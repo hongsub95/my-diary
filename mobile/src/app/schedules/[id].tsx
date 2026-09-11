@@ -5,12 +5,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { DiarySection } from '@/features/diaries/diary-section';
 import { PlacePicker } from '@/features/places/place-picker';
+import { KakaoMap } from '@/features/places/kakao-map';
 import { useSchedule, useScheduleActions } from '@/features/schedules/schedule-queries';
 import type { SchedulePlaceView } from '@/features/schedules/schedule-adapter';
 import { getApiError } from '@/shared/api/api-error';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 import { formatKoreanDateTime } from '@/shared/utils/date';
 
 const PHASE_LABELS: Record<string, string> = {
@@ -42,6 +44,7 @@ function PlaceList({
   onRemove: (place: SchedulePlaceView) => void;
   busy: boolean;
 }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={styles.placeList}>
       {places.map((place, index) => (
@@ -85,6 +88,7 @@ function PlaceList({
  * docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 3.3~3.5절이며, 웹과 같은 규칙이다.
  */
 export default function ScheduleDetailScreen() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
@@ -144,6 +148,10 @@ export default function ScheduleDetailScreen() {
             <Text style={styles.action}>닫기</Text>
           </Pressable>
         </>
+      ) : null}
+
+      {day.places.length > 0 ? (
+        <KakaoMap places={day.places.map(place => ({ ...place, id: String(place.id) }))} />
       ) : null}
 
       {day.places.length > 0 ? (
@@ -247,7 +255,7 @@ export default function ScheduleDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   header: { alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   backButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
@@ -256,20 +264,20 @@ const styles = StyleSheet.create({
 
   content: { gap: spacing.lg, padding: spacing.lg, paddingBottom: 60 },
   summary: { gap: 5 },
-  phase: { color: colors.primary, fontSize: 12, fontWeight: '700' },
+  phase: { color: palette.primary, fontSize: 12, fontWeight: '700' },
   title: { color: colors.text, fontSize: 26, fontWeight: '800' },
   when: { color: colors.muted, fontSize: 13 },
   error: { color: colors.danger, fontSize: 12 },
 
   nextCard: { backgroundColor: colors.text, borderRadius: 18, gap: 4, padding: spacing.lg },
-  nextLabel: { color: colors.primarySoft, fontSize: 12, fontWeight: '700' },
+  nextLabel: { color: palette.primarySoft, fontSize: 12, fontWeight: '700' },
   nextName: { color: '#FFFFFF', fontSize: 22, fontWeight: '800' },
   nextProgress: { color: '#DFD8D3', fontSize: 12 },
 
   section: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.sm, padding: spacing.lg },
   sectionHead: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  action: { color: colors.primary, fontSize: 12, fontWeight: '700' },
+  action: { color: palette.primary, fontSize: 12, fontWeight: '700' },
   closePicker: { alignItems: 'flex-end' },
   removeMark: { color: colors.muted, fontSize: 20, paddingHorizontal: 6 },
   empty: { color: colors.muted, fontSize: 12 },
@@ -277,16 +285,16 @@ const styles = StyleSheet.create({
 
   placeList: { gap: spacing.sm },
   place: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
-  placeOrder: { backgroundColor: colors.primarySoft, borderRadius: 13, color: colors.primary, fontSize: 11, fontWeight: '800', height: 26, lineHeight: 26, textAlign: 'center', width: 26 },
+  placeOrder: { backgroundColor: palette.primarySoft, borderRadius: 13, color: palette.primary, fontSize: 11, fontWeight: '800', height: 26, lineHeight: 26, textAlign: 'center', width: 26 },
   placeOrderDone: { backgroundColor: colors.sage, color: '#FFFFFF' },
   placeBody: { flex: 1, gap: 2 },
   placeName: { color: colors.text, fontSize: 14, fontWeight: '600' },
   placeNameDone: { color: colors.muted, textDecorationLine: 'line-through' },
   placeAddress: { color: colors.muted, fontSize: 11 },
   visitButton: { borderColor: colors.border, borderRadius: 12, borderWidth: 1, minHeight: 36, justifyContent: 'center', paddingHorizontal: 12 },
-  visitText: { color: colors.primary, fontSize: 12, fontWeight: '700' },
+  visitText: { color: palette.primary, fontSize: 12, fontWeight: '700' },
 
-  completeButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', minHeight: 52 },
+  completeButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', minHeight: 52 },
   completeText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   pressed: { opacity: 0.85 },
 });
