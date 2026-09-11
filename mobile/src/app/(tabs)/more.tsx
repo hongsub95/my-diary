@@ -3,7 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
-import { colors, spacing } from '@/shared/theme';
+import { colors, getPalette, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemeContext, useThemedStyles } from '@/shared/theme-context';
 
 type MoreMenuItem = {
   key: string;
@@ -11,7 +12,7 @@ type MoreMenuItem = {
   // 열 화면의 경로. 없으면 아직 화면이나 API가 없다는 뜻이라 눌리지 않고 '준비 중'으로
   // 표시한다. 미구현 항목을 눌러 빈 화면이나 오류를 보여주지 않기 위한 장치다
   // (docs/BOTTOM_NAVIGATION_SPEC.md 7절). 화면이 준비되면 href만 채우면 된다.
-  href?: '/more/profile' | '/more/password';
+  href?: '/more/profile' | '/more/password' | '/more/theme';
   // 소셜 로그인 계정에는 감춰야 하는 항목(같은 문서 6.5절).
   emailAccountOnly?: boolean;
 };
@@ -30,7 +31,7 @@ const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
     title: '앱 설정',
     items: [
       { key: 'notifications', label: '알림 설정' },
-      { key: 'theme', label: '테마' },
+      { key: 'theme', label: '테마', href: '/more/theme' },
     ],
   },
   {
@@ -50,6 +51,9 @@ const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
 export default function MoreScreen() {
   const { logout, user } = useAuth();
   const router = useRouter();
+  const styles = useThemedStyles(createStyles);
+  // 들어가 보지 않아도 지금 어떤 색인지 알 수 있어야 한다 (docs/DESIGN_SPEC.md 3절).
+  const { activeKey } = useThemeContext();
 
   // 소셜 로그인이 생기면 서버가 계정 유형을 내려준다. UserResponse에 아직 그 필드가
   // 없고 소셜 로그인 자체가 미구현이라, 그때까지 이 값은 항상 true다.
@@ -86,6 +90,12 @@ export default function MoreScreen() {
                       onPress={item.href ? () => router.push(item.href!) : undefined}
                       style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
                       <Text style={[styles.rowLabel, !item.href && styles.rowLabelMuted]}>{item.label}</Text>
+                      {item.key === 'theme' ? (
+                        <View style={styles.rowValue}>
+                          <View style={[styles.rowSwatch, { backgroundColor: getPalette(activeKey).primary }]} />
+                          <Text style={styles.rowValueText}>{getPalette(activeKey).label}</Text>
+                        </View>
+                      ) : null}
                       {item.href ? (
                         <Text style={styles.rowArrow}>›</Text>
                       ) : (
@@ -120,13 +130,13 @@ export default function MoreScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   title: { color: colors.text, fontSize: 28, fontWeight: '800', marginBottom: spacing.xl },
   profile: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, flexDirection: 'row', padding: spacing.lg },
-  avatar: { alignItems: 'center', backgroundColor: colors.primarySoft, borderRadius: 24, height: 48, justifyContent: 'center', width: 48 },
-  avatarText: { color: colors.primary, fontSize: 20, fontWeight: '800' },
+  avatar: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: 24, height: 48, justifyContent: 'center', width: 48 },
+  avatarText: { color: palette.primary, fontSize: 20, fontWeight: '800' },
   profileText: { gap: 3, marginLeft: spacing.md },
   nickname: { color: colors.text, fontSize: 17, fontWeight: '700' },
   email: { color: colors.muted, fontSize: 14 },
@@ -138,6 +148,9 @@ const styles = StyleSheet.create({
   rowLabel: { color: colors.text, fontSize: 15 },
   // 항목 전체를 흐리게 하면 무엇이 준비 중인지 읽기 어려워진다. 글자색만 낮춘다.
   rowLabelMuted: { color: colors.muted },
+  rowValue: { alignItems: 'center', flexDirection: 'row', gap: 8, marginRight: spacing.sm },
+  rowSwatch: { borderColor: 'rgba(0,0,0,0.08)', borderRadius: 8, borderWidth: 1, height: 16, width: 16 },
+  rowValueText: { color: colors.muted, fontSize: 13 },
   rowArrow: { color: colors.border, fontSize: 22, fontWeight: '700' },
   badge: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 999, borderWidth: 1, color: colors.muted, fontSize: 11, fontWeight: '700', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 3 },
   divider: { backgroundColor: colors.border, height: 1, marginLeft: spacing.lg },

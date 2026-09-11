@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '@/features/auth/auth-context';
+import { ThemeProvider } from '@/shared/theme-context';
 
 export default function RootLayout() {
   const [queryClient] = useState(
@@ -21,8 +22,11 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false }} />
+          {/* 테마는 계정에 저장되므로 사용자 정보를 읽어야 한다. AuthProvider 안이어야 한다. */}
+          <ThemeProvider>
+            <StatusBar style="dark" />
+            <Stack screenOptions={{ headerShown: false }} />
+          </ThemeProvider>
         </AuthProvider>
       </QueryClientProvider>
     </SafeAreaProvider>

@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/features/auth/auth-context';
 import { updateProfile } from '@/features/users/user-api';
 import { getApiError } from '@/shared/api/api-error';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 
 /**
  * 더보기 > 내 정보 > 프로필 수정.
@@ -21,6 +22,7 @@ export default function ProfileEditScreen() {
   const [nickname, setNickname] = useState(user?.nickname ?? '');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const styles = useThemedStyles(createStyles);
 
   const trimmed = nickname.trim();
   // 값이 그대로면 저장할 것이 없다. 서버는 같은 닉네임 재저장을 허용하지만(3-U절),
@@ -106,7 +108,7 @@ export default function ProfileEditScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   flex: { flex: 1 },
   header: { alignItems: 'center', backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 58, paddingHorizontal: spacing.sm },
@@ -124,7 +126,7 @@ const styles = StyleSheet.create({
   inputReadonly: { color: colors.muted },
   hint: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   error: { color: colors.danger, fontSize: 13, lineHeight: 19 },
-  submit: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 16, justifyContent: 'center', minHeight: 52 },
+  submit: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 16, justifyContent: 'center', minHeight: 52 },
   submitDisabled: { opacity: 0.45 },
   submitText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   pressed: { opacity: 0.85 },

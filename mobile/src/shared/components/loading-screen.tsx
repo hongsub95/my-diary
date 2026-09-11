@@ -1,11 +1,14 @@
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { colors, spacing } from '@/shared/theme';
+import { useTheme } from '@/shared/theme-context';
 
 export function LoadingScreen({ message }: { message: string }) {
+  const palette = useTheme();
+
   return (
     <View style={styles.container}>
-      <ActivityIndicator color={colors.primary} size="large" />
+      <ActivityIndicator color={palette.primary} size="large" />
       <Text style={styles.message}>{message}</Text>
     </View>
   );

@@ -1,8 +1,11 @@
 import { Pressable, StyleSheet, Text } from 'react-native';
 
-import { colors } from '@/shared/theme';
+import { type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 
 export function ScheduleFab({ onPress }: { onPress: () => void }) {
+  const styles = useThemedStyles(createStyles);
+
   return (
     <Pressable
       accessibilityLabel="새 일정 만들기"
@@ -17,10 +20,10 @@ export function ScheduleFab({ onPress }: { onPress: () => void }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   button: {
     alignItems: 'center',
-    backgroundColor: colors.primary,
+    backgroundColor: palette.primary,
     borderRadius: 28,
     bottom: 16,
     elevation: 6,

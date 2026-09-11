@@ -1,21 +1,28 @@
 import { apiClient } from '@/shared/api/client';
 import type { User } from '@/shared/api/types';
 
-export type UpdateProfileInput = { nickname: string };
+export type UpdateProfileInput = { nickname?: string; themeKey?: string };
 export type ChangePasswordInput = { currentPassword: string; newPassword: string };
 export type DeleteAccountInput = { currentPassword: string };
 
 /**
- * 닉네임을 바꾼다.
+ * 프로필을 바꾼다. **넘긴 필드만 바뀐다.**
  *
- * @param input 새 닉네임. 앞뒤 공백은 서버가 제거한다
+ * @param input 새 닉네임(앞뒤 공백은 서버가 제거) 또는 테마 키
  * @returns 갱신된 사용자 정보. `/auth/me`와 같은 형태다
- * @throws 다른 사람이 쓰는 닉네임이면 409 (`NICKNAME_ALREADY_EXISTS`)
+ * @throws 다른 사람이 쓰는 닉네임이면 409, 지원하지 않는 테마 키면 422
  *
- * 응답을 auth-context의 updateUser에 넘기면 더보기 상단 카드가 함께 갱신된다.
+ * 응답을 auth-context의 updateUser에 넘기면 더보기 상단 카드와 테마가 함께 갱신된다.
+ *
+ * 보내지 않은 필드를 서버가 건드리지 않기 때문에, 테마 화면이 닉네임을 같이 실어 보낼
+ * 필요가 없다. 그렇게 하면 그 사이 다른 기기에서 바꾼 닉네임을 옛 값으로 덮어쓰게 된다.
  */
 export async function updateProfile(input: UpdateProfileInput): Promise<User> {
-  const response = await apiClient.patch<User>('/users/me', { nickname: input.nickname });
+  const body: { nickname?: string; theme_key?: string } = {};
+  if (input.nickname !== undefined) body.nickname = input.nickname;
+  if (input.themeKey !== undefined) body.theme_key = input.themeKey;
+
+  const response = await apiClient.patch<User>('/users/me', body);
   return response.data;
 }
 

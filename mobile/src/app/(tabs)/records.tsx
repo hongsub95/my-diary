@@ -8,7 +8,8 @@ import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { EmptyState } from '@/shared/components/empty-state';
 import { getApiError } from '@/shared/api/api-error';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 
 /**
  * 기록 카드 하나.
@@ -26,6 +27,7 @@ function RecordCard({
   featured: boolean;
   onPress: () => void;
 }) {
+  const styles = useThemedStyles(createStyles);
   // 함께한 사람을 날짜 옆에 붙인다. 제품 정체성상 "언제, 누구와"가 제목보다 먼저다
   // (docs/UX_IDENTITY_REDIRECTION_SPEC.md 8절).
   const people = record.authorNames.length > 0 ? record.authorNames.join(' · ') : null;
@@ -79,6 +81,7 @@ function RecordCard({
  */
 export default function RecordsScreen() {
   const router = useRouter();
+  const styles = useThemedStyles(createStyles);
   const feed = useDiaryFeed();
 
   if (feed.isLoading) return <LoadingScreen message="기록을 불러오고 있어요." />;
@@ -134,11 +137,11 @@ export default function RecordsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: 120 },
   heading: { marginBottom: spacing.lg },
-  eyebrow: { color: colors.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
+  eyebrow: { color: palette.primary, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
   title: { color: colors.text, fontSize: 27, fontWeight: '800', lineHeight: 34, marginTop: 6 },
   description: { color: colors.muted, fontSize: 12, marginTop: 7 },
 

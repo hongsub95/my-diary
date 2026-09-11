@@ -5,10 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { getApiError } from '@/shared/api/api-error';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 
 export default function LoginScreen() {
   const router = useRouter();
+  const styles = useThemedStyles(createStyles);
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -77,20 +79,20 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flex: 1, justifyContent: 'center', padding: spacing.xl, gap: spacing.xxl },
   heading: { gap: spacing.sm },
-  eyebrow: { color: colors.primary, fontSize: 16, fontWeight: '700' },
+  eyebrow: { color: palette.primary, fontSize: 16, fontWeight: '700' },
   title: { color: colors.text, fontSize: 30, fontWeight: '800', lineHeight: 40 },
   form: { gap: spacing.sm },
   label: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: spacing.sm },
   input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 16, paddingHorizontal: spacing.md, paddingVertical: 15 },
   error: { color: colors.danger, fontSize: 14, marginTop: spacing.xs },
-  primaryButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, marginTop: spacing.md, paddingVertical: 16 },
+  primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, marginTop: spacing.md, paddingVertical: 16 },
   primaryButtonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   pressed: { opacity: 0.82 },
   disabled: { opacity: 0.5 },
   footer: { color: colors.muted, textAlign: 'center' },
-  link: { color: colors.primary, fontWeight: '700' },
+  link: { color: palette.primary, fontWeight: '700' },
 });

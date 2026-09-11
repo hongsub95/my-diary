@@ -8,7 +8,8 @@ import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import { ScheduleFab } from '@/shared/components/schedule-fab';
 import { EmptyState } from '@/shared/components/empty-state';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useTheme, useThemedStyles } from '@/shared/theme-context';
 
 LocaleConfig.locales.ko = {
   monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
@@ -30,11 +31,13 @@ function lastDayOfMonth(yearMonth: string) {
 // 예정·기록 대기·기록됨을 색으로 구분한다. 예정과 기록을 같은 점으로 표시하면
 // 캘린더가 "무엇이 있었는지"를 알려주지 못한다
 // (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 6절).
-const DOT_COLORS: Record<string, string> = {
-  planned: colors.primary,
+const dotColors = (palette: ThemePalette): Record<string, string> => ({
+  // 예정만 테마를 따른다. 기록 대기(오렌지)와 기록됨(세이지)은 뜻이 고정된 색이라
+  // 테마로 바뀌면 안 된다 (docs/DESIGN_SPEC.md 2.3절).
+  planned: palette.primary,
   pending: colors.orange,
   recorded: colors.sage,
-};
+});
 
 function localDateKey(date = new Date()) {
   return [
@@ -45,6 +48,9 @@ function localDateKey(date = new Date()) {
 }
 
 export default function CalendarScreen() {
+  const palette = useTheme();
+  const styles = useThemedStyles(createStyles);
+  const DOT_COLORS = useMemo(() => dotColors(palette), [palette]);
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(() => localDateKey());
 
@@ -84,10 +90,10 @@ export default function CalendarScreen() {
     marks[selectedDate] = {
       ...marks[selectedDate],
       selected: true,
-      selectedColor: colors.primary,
+      selectedColor: palette.primary,
     };
     return marks;
-  }, [schedules.data, selectedDate]);
+  }, [schedules.data, selectedDate, DOT_COLORS, palette.primary]);
 
   const selectedSchedules = useMemo(
     () => (schedules.data ?? []).filter((schedule) => schedule.dateKey === selectedDate),
@@ -118,14 +124,14 @@ export default function CalendarScreen() {
             firstDay={0}
             theme={{
               calendarBackground: colors.surface,
-              selectedDayBackgroundColor: colors.primary,
+              selectedDayBackgroundColor: palette.primary,
               selectedDayTextColor: '#FFFFFF',
-              todayTextColor: colors.primary,
+              todayTextColor: palette.primary,
               dayTextColor: colors.text,
               textDisabledColor: colors.border,
               monthTextColor: colors.text,
-              arrowColor: colors.primary,
-              dotColor: colors.primary,
+              arrowColor: palette.primary,
+              dotColor: palette.primary,
               textMonthFontSize: 18,
               textMonthFontWeight: '800',
               textDayHeaderFontWeight: '700',
@@ -172,11 +178,11 @@ export default function CalendarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: 120 },
   heading: { gap: spacing.xs, marginBottom: spacing.lg },
-  eyebrow: { color: colors.primary, fontSize: 14, fontWeight: '700' },
+  eyebrow: { color: palette.primary, fontSize: 14, fontWeight: '700' },
   title: { color: colors.text, fontSize: 28, fontWeight: '800' },
   calendarCard: {
     backgroundColor: colors.surface,
@@ -198,6 +204,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
-  sectionCount: { color: colors.primary, fontSize: 13, fontWeight: '700' },
+  sectionCount: { color: palette.primary, fontSize: 13, fontWeight: '700' },
   list: { gap: spacing.md },
 });

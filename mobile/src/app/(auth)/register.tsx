@@ -6,7 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/features/auth/auth-context';
 import { getApiError } from '@/shared/api/api-error';
 import { utf8ByteLength } from '@/shared/utils/text';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 
 const SPECIAL_CHARACTERS = `!"#$%&'()*+,-./:;<=>?@[\\]^_\`{|}~`;
 
@@ -23,6 +24,7 @@ type FieldErrors = Partial<Record<'email' | 'nickname' | 'password', string>>;
 
 export default function RegisterScreen() {
   const router = useRouter();
+  const styles = useThemedStyles(createStyles);
   const { register } = useAuth();
   const [email, setEmail] = useState('');
   const [nickname, setNickname] = useState('');
@@ -93,7 +95,7 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   flex: { flex: 1 },
   safeArea: { flex: 1, backgroundColor: colors.background },
   container: { flexGrow: 1, justifyContent: 'center', padding: spacing.xl, paddingVertical: spacing.xxl },
@@ -103,10 +105,10 @@ const styles = StyleSheet.create({
   input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 16, paddingHorizontal: spacing.md, paddingVertical: 15 },
   hint: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: spacing.xs },
   error: { color: colors.danger, fontSize: 13, marginTop: spacing.xs },
-  button: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, marginTop: spacing.xl, paddingVertical: 16 },
+  button: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, marginTop: spacing.xl, paddingVertical: 16 },
   buttonText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   footer: { color: colors.muted, marginTop: spacing.lg, textAlign: 'center' },
-  link: { color: colors.primary, fontWeight: '700' },
+  link: { color: palette.primary, fontWeight: '700' },
   pressed: { opacity: 0.82 },
   disabled: { opacity: 0.5 },
 });

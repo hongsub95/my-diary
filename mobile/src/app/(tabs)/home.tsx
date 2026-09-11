@@ -11,7 +11,8 @@ import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { getApiError } from '@/shared/api/api-error';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
 
 // 홈이 내다보는 기간. 오늘부터 이만큼 안에 다음 약속이 있으면 보여준다.
@@ -75,6 +76,7 @@ function resolveFocus(schedules: ScheduleView[], pendingRecord: RecordView | nul
 }
 
 export default function HomeScreen() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const { user } = useAuth();
 
@@ -163,6 +165,7 @@ export default function HomeScreen() {
 
 /** 오늘의 하루. 시작 전이면 시작 시각을, 진행 중이면 다음 장소를 앞세운다. */
 function TodayCard({ schedule, onOpen }: { schedule: ScheduleView; onOpen: () => void }) {
+  const styles = useThemedStyles(createStyles);
   // Date.now() 대신 new Date()를 쓴다. React Compiler가 Date.now()를 렌더 중 부르면
   // 안 되는 순수하지 않은 호출로 잡는다.
   const started = new Date(schedule.start_at) <= new Date();
@@ -205,6 +208,7 @@ function TodayCard({ schedule, onOpen }: { schedule: ScheduleView; onOpen: () =>
 
 /** 다녀왔는데 아직 남기지 않은 하루. 홈이 기록을 유도하는 자리다. */
 function RecordPromptCard({ record, onOpen }: { record: RecordView; onOpen: () => void }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={[styles.card, styles.cardRecord]}>
       <Text style={styles.cardEyebrow}>{record.dateLabel} · 아직 남기지 않았어요</Text>
@@ -224,6 +228,7 @@ function RecordPromptCard({ record, onOpen }: { record: RecordView; onOpen: () =
 
 /** 다음 약속. 오늘은 비었지만 앞으로 잡힌 하루가 있을 때 보여준다. */
 function UpcomingCard({ schedule, onOpen }: { schedule: ScheduleView; onOpen: () => void }) {
+  const styles = useThemedStyles(createStyles);
   const noPlaces = schedule.place_count === 0;
 
   return (
@@ -247,11 +252,11 @@ function UpcomingCard({ schedule, onOpen }: { schedule: ScheduleView; onOpen: ()
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   content: { padding: spacing.lg, paddingBottom: 120 },
   heading: { gap: 6 },
-  eyebrow: { color: colors.primary, fontSize: 12, fontWeight: '800' },
+  eyebrow: { color: palette.primary, fontSize: 12, fontWeight: '800' },
   title: { color: colors.text, fontSize: 25, fontWeight: '800' },
 
   // 홈은 여러 정보를 나열하지 않고 지금 할 일 하나만 크게 보여준다. 그래서 카드가
@@ -259,7 +264,7 @@ const styles = StyleSheet.create({
   card: { alignItems: 'flex-start', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, gap: spacing.sm, marginTop: spacing.xl, padding: spacing.lg },
   // 오늘의 하루는 어두운 바탕으로 두어 먼저 눈에 들어오게 한다.
   cardToday: { backgroundColor: colors.text, borderColor: colors.text },
-  cardRecord: { backgroundColor: colors.primarySoft, borderColor: colors.primary },
+  cardRecord: { backgroundColor: palette.primarySoft, borderColor: palette.primary },
 
   cardEyebrow: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   cardTitle: { color: colors.text, fontSize: 25, fontWeight: '800', lineHeight: 33 },
@@ -267,11 +272,11 @@ const styles = StyleSheet.create({
   cardMeta: { color: colors.muted, fontSize: 12 },
   strong: { color: colors.text, fontWeight: '700' },
 
-  onDark: { color: colors.primarySoft },
+  onDark: { color: palette.primarySoft },
   titleOnDark: { color: '#FFFFFF' },
   lineOnDark: { color: '#DFD8D3' },
 
-  primaryButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', marginTop: spacing.sm, minHeight: 50, paddingHorizontal: spacing.xl },
+  primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', marginTop: spacing.sm, minHeight: 50, paddingHorizontal: spacing.xl },
   primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   secondaryButton: { justifyContent: 'center', minHeight: 44 },
   secondaryText: { color: colors.muted, fontSize: 13, fontWeight: '600' },

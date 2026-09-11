@@ -5,7 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { changePassword } from '@/features/users/user-api';
 import { getApiError } from '@/shared/api/api-error';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 
 /**
  * 더보기 > 내 정보 > 비밀번호 변경.
@@ -24,6 +25,7 @@ export default function PasswordChangeScreen() {
   const [confirm, setConfirm] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const styles = useThemedStyles(createStyles);
 
   const filled = current.length > 0 && next.length > 0 && confirm.length > 0;
 
@@ -134,7 +136,7 @@ export default function PasswordChangeScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   flex: { flex: 1 },
   header: { alignItems: 'center', backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 58, paddingHorizontal: spacing.sm },
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
   hint: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   notice: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.muted, fontSize: 12, lineHeight: 19, padding: spacing.md },
   error: { color: colors.danger, fontSize: 13, lineHeight: 19 },
-  submit: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 16, justifyContent: 'center', minHeight: 52 },
+  submit: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 16, justifyContent: 'center', minHeight: 52 },
   submitDisabled: { opacity: 0.45 },
   submitText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
   pressed: { opacity: 0.85 },

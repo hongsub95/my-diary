@@ -22,6 +22,8 @@ export type User = {
   nickname: string;
   // 스페이스의 공개 UUID. 그대로 /spaces/{id}/schedules 경로에 넣어 쓸 수 있다.
   default_space_id: SpaceId | null;
+  // 고른 테마 색상 키. 실제 색은 shared/theme.ts의 THEME_PALETTES가 들고 있다.
+  theme_key: string;
   created_at: string;
 };
 

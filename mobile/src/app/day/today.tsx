@@ -6,9 +6,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 
 export default function TodayScreen() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const params = useLocalSearchParams<{ id?: string | string[] }>();
   const schedules = useSchedules({ includePlaces: true });
@@ -83,19 +85,19 @@ export default function TodayScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   header: { alignItems: 'center', backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 62, paddingHorizontal: spacing.sm },
   headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   headerButtonText: { color: colors.text, fontSize: 35, lineHeight: 38 },
   headerCopy: { alignItems: 'center', flex: 1 },
-  headerEyebrow: { color: colors.primaryDark, fontSize: 9, fontWeight: '800' },
+  headerEyebrow: { color: palette.primaryDark, fontSize: 9, fontWeight: '800' },
   headerTitle: { color: colors.text, fontSize: 14, fontWeight: '800', marginTop: 2 },
   content: { padding: spacing.lg, paddingBottom: 60 },
   live: { color: colors.sage, fontSize: 10, fontWeight: '800', letterSpacing: 1.1 },
   title: { color: colors.text, fontFamily: 'serif', fontSize: 31, fontWeight: '800', lineHeight: 39, marginTop: 9 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 7 },
-  eyebrow: { color: colors.primaryDark, fontSize: 9, fontWeight: '800', letterSpacing: 1.1 },
+  eyebrow: { color: palette.primaryDark, fontSize: 9, fontWeight: '800', letterSpacing: 1.1 },
   nextCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 23, borderWidth: 1, marginTop: 20, overflow: 'hidden' },
   photo: { backgroundColor: '#7D907A', height: 170, overflow: 'hidden' },
   photoLand: { backgroundColor: '#455C49', borderRadius: 160, bottom: -80, height: 190, opacity: 0.55, position: 'absolute', right: -40, transform: [{ rotate: '-9deg' }], width: 320 },
@@ -106,7 +108,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', gap: 9, marginTop: 17 },
   secondaryButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 13, borderWidth: 1, flex: 1, justifyContent: 'center', minHeight: 46 },
   secondaryText: { color: colors.text, fontSize: 12, fontWeight: '800' },
-  primaryButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 13, flex: 1, justifyContent: 'center', minHeight: 46 },
+  primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 13, flex: 1, justifyContent: 'center', minHeight: 46 },
   primaryText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   empty: { paddingVertical: 20 },
   flowCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 22, borderWidth: 1, marginTop: 16, padding: 16 },
@@ -123,7 +125,7 @@ const styles = StyleSheet.create({
   flowCopy: { flex: 1 },
   flowName: { color: colors.text, fontSize: 12, fontWeight: '800' },
   flowMemo: { color: colors.muted, fontSize: 9, marginTop: 3 },
-  nextBadge: { backgroundColor: colors.primarySoft, borderRadius: 10, color: colors.primaryDark, fontSize: 8, fontWeight: '800', overflow: 'hidden', paddingHorizontal: 7, paddingVertical: 4 },
+  nextBadge: { backgroundColor: palette.primarySoft, borderRadius: 10, color: palette.primaryDark, fontSize: 8, fontWeight: '800', overflow: 'hidden', paddingHorizontal: 7, paddingVertical: 4 },
   photoAction: { alignItems: 'center', backgroundColor: colors.ink, borderRadius: 18, flexDirection: 'row', marginTop: 14, minHeight: 66, padding: 14 },
   photoActionIcon: { color: '#E9B8C3', fontSize: 24 },
   photoActionCopy: { flex: 1, marginLeft: 12 },

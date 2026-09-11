@@ -1,6 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 
 type EmptyStateProps = {
   icon: string;
@@ -20,6 +21,7 @@ export function EmptyState({
   onAction,
   compact = false,
 }: EmptyStateProps) {
+  const styles = useThemedStyles(createStyles);
   return (
     <View style={[styles.container, compact && styles.containerCompact]}>
       <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={[styles.visual, compact && styles.visualCompact]}>
@@ -36,16 +38,16 @@ export function EmptyState({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   container: { alignItems: 'center', gap: 7, paddingHorizontal: spacing.lg, paddingVertical: spacing.xxl },
   containerCompact: { paddingVertical: spacing.xl },
-  visual: { alignItems: 'center', backgroundColor: colors.primarySoft, borderRadius: 32, height: 64, justifyContent: 'center', marginBottom: 5, width: 64 },
+  visual: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: 32, height: 64, justifyContent: 'center', marginBottom: 5, width: 64 },
   visualCompact: { borderRadius: 26, height: 52, width: 52 },
   icon: { fontSize: 29 },
   iconCompact: { fontSize: 24 },
   title: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
   description: { color: colors.muted, fontSize: 12, lineHeight: 19, textAlign: 'center' },
-  action: { backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', marginTop: spacing.sm, minHeight: 44, paddingHorizontal: spacing.lg },
+  action: { backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', marginTop: spacing.sm, minHeight: 44, paddingHorizontal: spacing.lg },
   actionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
   pressed: { opacity: 0.82 },
 });

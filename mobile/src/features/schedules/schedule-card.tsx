@@ -3,10 +3,12 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import type { ScheduleView } from './schedule-adapter';
 import { formatKoreanDateTime } from '@/shared/utils/date';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useThemedStyles } from '@/shared/theme-context';
 
 export function ScheduleCard({ schedule }: { schedule: ScheduleView }) {
   const router = useRouter();
+  const styles = useThemedStyles(createStyles);
 
   return (
     <Pressable
@@ -26,11 +28,11 @@ export function ScheduleCard({ schedule }: { schedule: ScheduleView }) {
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, padding: spacing.lg },
   topRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  space: { color: colors.primary, fontSize: 13, fontWeight: '700' },
-  status: { backgroundColor: colors.primarySoft, borderRadius: 999, color: colors.primary, fontSize: 12, fontWeight: '700', overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 5 },
+  space: { color: palette.primary, fontSize: 13, fontWeight: '700' },
+  status: { backgroundColor: palette.primarySoft, borderRadius: 999, color: palette.primary, fontSize: 12, fontWeight: '700', overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 5 },
   completed: { backgroundColor: '#E8F5EE', color: '#238257' },
   title: { color: colors.text, fontSize: 19, fontWeight: '800', marginTop: spacing.md },
   date: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: spacing.sm },

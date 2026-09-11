@@ -13,7 +13,8 @@ import {
   type AddSchedulePlaceInput,
 } from '@/features/schedules/schedule-api';
 import { getApiError } from '@/shared/api/api-error';
-import { colors, spacing } from '@/shared/theme';
+import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
@@ -29,6 +30,7 @@ const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
 type DraftPlace = { id: number; place: AddSchedulePlaceInput };
 
 export default function NewScheduleScreen() {
+  const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const queryClient = useQueryClient();
   const { user } = useAuth();
@@ -193,10 +195,12 @@ export default function NewScheduleScreen() {
 }
 
 function Field({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+  const styles = useThemedStyles(createStyles);
   return <View style={styles.field}><Text accessibilityLabel={required ? `${label}, 필수` : label} style={styles.label}>{label}{required ? <Text style={styles.requiredMark}> *</Text> : null}</Text>{children}</View>;
 }
 
 function SelectButton({ label, onPress }: { label: string; onPress: () => void }) {
+  const styles = useThemedStyles(createStyles);
   return (
     <Pressable accessibilityRole="button" onPress={onPress} style={styles.selectButton}>
       <Text style={styles.selectValue}>{label}</Text>
@@ -206,6 +210,7 @@ function SelectButton({ label, onPress }: { label: string; onPress: () => void }
 }
 
 function TimeSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+  const styles = useThemedStyles(createStyles);
   const [visible, setVisible] = useState(false);
   return (
     <>
@@ -244,6 +249,8 @@ function DatePickerModal({ target, startDate, endDate, onSelect, onClose }: {
   onSelect: (date: string) => void;
   onClose: () => void;
 }) {
+  const palette = useTheme();
+  const styles = useThemedStyles(createStyles);
   return (
     <Modal animationType="fade" onRequestClose={onClose} transparent visible={target !== null}>
       <Pressable onPress={onClose} style={styles.modalBackdrop}>
@@ -255,14 +262,14 @@ function DatePickerModal({ target, startDate, endDate, onSelect, onClose }: {
           <Calendar
             current={target === 'end' ? endDate : startDate}
             markingType="period"
-            markedDates={getMarkedDates(startDate, endDate)}
+            markedDates={getMarkedDates(startDate, endDate, palette)}
             minDate={target === 'end' ? startDate : undefined}
             onDayPress={(day: DateData) => onSelect(day.dateString)}
             theme={{
-              arrowColor: colors.primary,
-              selectedDayBackgroundColor: colors.primary,
+              arrowColor: palette.primary,
+              selectedDayBackgroundColor: palette.primary,
               selectedDayTextColor: '#FFFFFF',
-              todayTextColor: colors.primaryDark,
+              todayTextColor: palette.primaryDark,
               calendarBackground: colors.surface,
               textDayFontWeight: '600',
               textMonthFontWeight: '800',
@@ -274,23 +281,23 @@ function DatePickerModal({ target, startDate, endDate, onSelect, onClose }: {
   );
 }
 
-function getMarkedDates(startDate: string, endDate: string) {
+function getMarkedDates(startDate: string, endDate: string, palette: ThemePalette) {
   const marks: Record<string, { color: string; startingDay?: boolean; endingDay?: boolean; textColor: string }> = {};
   const start = Date.parse(`${startDate}T00:00:00Z`);
   const end = Date.parse(`${endDate}T00:00:00Z`);
   for (let value = start; value <= end; value += 86_400_000) {
     const key = new Date(value).toISOString().slice(0, 10);
     marks[key] = {
-      color: colors.primarySoft,
+      color: palette.primarySoft,
       startingDay: key === startDate,
       endingDay: key === endDate,
-      textColor: key === startDate || key === endDate ? colors.primaryDark : colors.text,
+      textColor: key === startDate || key === endDate ? palette.primaryDark : colors.text,
     };
   }
   return marks;
 }
 
-const styles = StyleSheet.create({
+const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   flex: { flex: 1 },
   header: { alignItems: 'center', backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 58, paddingHorizontal: spacing.sm },
@@ -300,16 +307,16 @@ const styles = StyleSheet.create({
   headerTitle: { color: colors.text, flex: 1, fontSize: 16, fontWeight: '800', textAlign: 'center' },
   content: { padding: spacing.lg, paddingBottom: 50 },
   progress: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-  progressOn: { backgroundColor: colors.primary, borderRadius: 4, flex: 1, height: 4 },
+  progressOn: { backgroundColor: palette.primary, borderRadius: 4, flex: 1, height: 4 },
   progressOff: { backgroundColor: colors.border, borderRadius: 4, flex: 1, height: 4 },
   progressText: { color: colors.muted, fontSize: 10, fontWeight: '700', marginLeft: 5 },
-  eyebrow: { color: colors.primaryDark, fontSize: 10, fontWeight: '800', letterSpacing: 1.1, marginTop: 28 },
+  eyebrow: { color: palette.primaryDark, fontSize: 10, fontWeight: '800', letterSpacing: 1.1, marginTop: 28 },
   title: { color: colors.text, fontFamily: 'serif', fontSize: 32, fontWeight: '800', lineHeight: 40, marginTop: 9 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 7 },
   form: { gap: 15, marginTop: 25 },
   field: { gap: 7 },
   label: { color: colors.text, fontSize: 11, fontWeight: '800' },
-  requiredMark: { color: colors.primary },
+  requiredMark: { color: palette.primary },
   input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 14, minHeight: 52, paddingHorizontal: 14, paddingVertical: 13 },
   selectButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', minHeight: 52, paddingHorizontal: 14 },
   selectValue: { color: colors.text, flex: 1, fontSize: 14, fontWeight: '700' },
@@ -319,28 +326,28 @@ const styles = StyleSheet.create({
   timingCard: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
   timingRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 13, paddingVertical: 14, position: 'relative' },
   timingAccent: { borderBottomRightRadius: 3, borderTopRightRadius: 3, bottom: 18, left: 0, position: 'absolute', top: 18, width: 3 },
-  timingAccentStart: { backgroundColor: colors.primary, opacity: 0.55 },
-  timingAccentEnd: { backgroundColor: colors.primary },
+  timingAccentStart: { backgroundColor: palette.primary, opacity: 0.55 },
+  timingAccentEnd: { backgroundColor: palette.primary },
   timingDivider: { backgroundColor: colors.border, height: 1 },
   dateColumn: { flex: 1, minWidth: 0 },
   timeColumn: { flexBasis: 104, flexGrow: 0, flexShrink: 0 },
   error: { color: colors.danger, fontSize: 12, marginTop: 14 },
-  primaryButton: { alignItems: 'center', backgroundColor: colors.primary, borderRadius: 14, justifyContent: 'center', marginTop: 22, minHeight: 52, paddingHorizontal: 18 },
+  primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', marginTop: 22, minHeight: 52, paddingHorizontal: 18 },
   primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '800' },
   placeInput: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 15, borderWidth: 1, flexDirection: 'row', marginTop: 23, minHeight: 55, paddingHorizontal: 8 },
   placeTextInput: { color: colors.text, flex: 1, fontSize: 13, paddingHorizontal: 8 },
-  addButton: { backgroundColor: colors.primarySoft, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10 },
-  addButtonText: { color: colors.primaryDark, fontSize: 11, fontWeight: '800' },
+  addButton: { backgroundColor: palette.primarySoft, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10 },
+  addButtonText: { color: palette.primaryDark, fontSize: 11, fontWeight: '800' },
   placeList: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, marginTop: 14, overflow: 'hidden', padding: 12 },
   placeRow: { alignItems: 'center', flexDirection: 'row', minHeight: 67, paddingHorizontal: 4 },
-  placeNumber: { alignItems: 'center', backgroundColor: colors.primarySoft, borderColor: colors.primary, borderRadius: 15, borderWidth: 1, height: 30, justifyContent: 'center', width: 30 },
-  placeNumberText: { color: colors.primaryDark, fontSize: 11, fontWeight: '800' },
+  placeNumber: { alignItems: 'center', backgroundColor: palette.primarySoft, borderColor: palette.primary, borderRadius: 15, borderWidth: 1, height: 30, justifyContent: 'center', width: 30 },
+  placeNumberText: { color: palette.primaryDark, fontSize: 11, fontWeight: '800' },
   placeCopy: { flex: 1, marginLeft: 12 },
   placeName: { color: colors.text, fontSize: 13, fontWeight: '800' },
   placeMeta: { color: colors.muted, fontSize: 9, marginTop: 4 },
   remove: { color: colors.muted, fontSize: 22, padding: 8 },
   emptyPlaces: { alignItems: 'center', paddingHorizontal: 15, paddingVertical: 28 },
-  emptyPlacesIcon: { color: colors.primary, fontSize: 31 },
+  emptyPlacesIcon: { color: palette.primary, fontSize: 31 },
   emptyPlacesTitle: { color: colors.text, fontSize: 13, fontWeight: '800', marginTop: 8 },
   emptyPlacesText: { color: colors.muted, fontSize: 10, marginTop: 5 },
   actions: { flexDirection: 'row', gap: 9 },
@@ -356,7 +363,7 @@ const styles = StyleSheet.create({
   sheetClose: { color: colors.muted, fontSize: 28, padding: 8 },
   timeGrid: { gap: 6, paddingTop: 12 },
   timeOption: { alignItems: 'center', borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 48, paddingHorizontal: 16 },
-  timeOptionSelected: { backgroundColor: colors.primary, borderColor: colors.primary },
+  timeOptionSelected: { backgroundColor: palette.primary, borderColor: palette.primary },
   timeOptionText: { color: colors.text, flex: 1, fontSize: 14, fontWeight: '700' },
   timeOptionTextSelected: { color: '#FFFFFF' },
   timeOptionCheck: { color: '#FFFFFF', fontSize: 15, fontWeight: '800' },
