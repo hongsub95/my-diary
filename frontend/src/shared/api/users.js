@@ -5,16 +5,24 @@ import { apiClient } from './client'
 // 자기 계정을 고치는' 호출이라, 실패했을 때 화면이 할 일이 다르다.
 
 /**
- * 닉네임을 바꾼다.
+ * 프로필을 바꾼다. **넘긴 필드만 바뀐다.**
  *
- * @param {{nickname: string}} form
+ * @param {{nickname?: string, themeKey?: string}} form
  * @returns {Promise<object>} 갱신된 사용자 정보. `/auth/me`와 같은 형태다
- * @throws 다른 사람이 쓰는 닉네임이면 409 (`NICKNAME_ALREADY_EXISTS`)
+ * @throws 다른 사람이 쓰는 닉네임이면 409, 지원하지 않는 테마 키면 422
  *
- * 응답을 그대로 AuthContext에 넣으면 상단 프로필과 아바타가 함께 갱신된다.
+ * 응답을 그대로 AuthContext에 넣으면 상단 프로필과 테마가 함께 갱신된다.
+ *
+ * 보내지 않은 필드를 서버가 건드리지 않기 때문에, 테마 화면이 닉네임을 같이 실어
+ * 보낼 필요가 없다. 그렇게 하면 그 사이 다른 기기에서 바꾼 닉네임을 옛 값으로
+ * 덮어쓰게 된다.
  */
-export async function updateProfile({ nickname }) {
-  const { data } = await apiClient.patch('/users/me', { nickname })
+export async function updateProfile({ nickname, themeKey }) {
+  const body = {}
+  if (nickname !== undefined) body.nickname = nickname
+  if (themeKey !== undefined) body.theme_key = themeKey
+
+  const { data } = await apiClient.patch('/users/me', body)
   return data
 }
 

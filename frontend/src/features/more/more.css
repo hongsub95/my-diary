@@ -367,3 +367,82 @@
 .more-form__submit--danger {
   background: var(--color-danger);
 }
+
+/* ── 테마 선택 ─────────────────────────────────────── */
+
+.theme-option {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* 터치 영역을 44px 이상으로 유지한다 (BOTTOM_NAVIGATION_SPEC.md 7절). */
+  min-height: 56px;
+  padding: 14px 16px;
+  font-size: 15px;
+  color: var(--color-text-primary);
+  transition: background 0.12s;
+}
+
+.theme-option:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+}
+
+.theme-option:disabled {
+  cursor: default;
+}
+
+.theme-option__swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  /* 옅은 색 견본이 흰 카드에 묻히지 않도록 테두리를 둔다. */
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  flex-shrink: 0;
+}
+
+.theme-option__label {
+  flex: 1;
+  text-align: left;
+}
+
+/* 선택 표시를 색이 아니라 기호로 한다. 고른 색 자체가 선택 신호가 되면,
+   색을 구분하기 어려운 사용자는 무엇이 선택됐는지 알 수 없다. */
+.theme-option__check {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.theme-error {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.theme-retry {
+  min-height: 40px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-primary-text);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-full);
+}
+
+/* 더보기 목록에서 현재 테마를 미리 보여준다. 들어가 보지 않아도 무엇이 켜져 있는지
+   알 수 있어야 한다 (DESIGN_SPEC 3절). */
+.more-menu__value {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+}
+
+.more-menu__swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}

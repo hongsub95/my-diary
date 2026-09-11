@@ -5,6 +5,7 @@ import userRaw from '../../assets/icons/user.svg?raw'
 import logoutRaw from '../../assets/icons/logout.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
 import { useAuth } from '../../shared/contexts/AuthContext'
+import { getPalette } from '../../shared/theme/palettes'
 import './more.css'
 
 // 더보기 안의 항목은 동작이 제각각이라 DB로 관리하지 않고 여기서 관리한다
@@ -28,7 +29,7 @@ const MENU_GROUPS = [
     title: '앱 설정',
     items: [
       { key: 'notifications', label: '알림 설정' },
-      { key: 'theme', label: '테마' },
+      { key: 'theme', label: '테마', to: '/more/theme' },
     ],
   },
   {
@@ -65,6 +66,9 @@ export default function MorePage() {
 
   // 소셜 로그인이 생기면 서버가 계정 유형을 내려준다. 그 전까지 이 값은 항상 true다.
   const canChangePassword = user?.auth_provider ? user.auth_provider === 'email' : true
+
+  // 테마 항목에 현재 색을 함께 보여주기 위한 값.
+  const currentPalette = getPalette(user?.theme_key)
 
   const handleLogout = () => {
     logout()
@@ -108,6 +112,17 @@ export default function MorePage() {
                       aria-disabled={!item.to}
                     >
                       <span>{item.label}</span>
+                      {item.key === 'theme' && (
+                        /* 들어가 보지 않아도 지금 어떤 색인지 알 수 있어야 한다
+                           (docs/DESIGN_SPEC.md 3절). 이름과 견본을 함께 둔다. */
+                        <span className="more-menu__value">
+                          <span
+                            className="more-menu__swatch"
+                            style={{ background: currentPalette.primary }}
+                          />
+                          {currentPalette.label}
+                        </span>
+                      )}
                       {item.to ? (
                         <Icon raw={chevronRightRaw} size={16} className="more-menu__arrow" />
                       ) : (

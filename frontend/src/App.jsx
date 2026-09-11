@@ -14,6 +14,7 @@ import MorePage from './features/more/MorePage'
 import ProfileEditPage from './features/more/ProfileEditPage'
 import PasswordChangePage from './features/more/PasswordChangePage'
 import AccountDeletePage from './features/more/AccountDeletePage'
+import ThemePage from './features/more/ThemePage'
 import RecordsPage from './features/records/RecordsPage'
 import PrototypeLab from './features/prototype/PrototypeLab'
 
@@ -66,6 +67,7 @@ export default function App() {
             (docs/BOTTOM_NAVIGATION_SPEC.md 7절 — 화면별로 정하도록 열려 있다). */}
         <Route path="more/profile" element={<ProfileEditPage />} />
         <Route path="more/password" element={<PasswordChangePage />} />
+        <Route path="more/theme" element={<ThemePage />} />
         <Route path="more/delete" element={<AccountDeletePage />} />
         {/* 설정은 더보기로 흡수됐다. 예전 주소나 북마크로 들어와도 끊기지 않도록
             당분간 리다이렉트로 남겨둔다 (docs/BOTTOM_NAVIGATION_SPEC.md 5.1절). */}
