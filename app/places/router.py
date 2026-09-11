@@ -147,7 +147,9 @@ def remove_place(
 )
 def search_places(
     current_user: CurrentUser,
-    query: Annotated[str, Query(alias="query", min_length=1, max_length=100, description="검색어")],
+    query: Annotated[str, Query(
+        alias="query", min_length=1, max_length=100, pattern=r"\S", description="검색어",
+    )],
 ) -> PlaceSearchResponse:
     """장소 검색.
 

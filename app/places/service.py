@@ -4,6 +4,7 @@
 볼 수 있는가"를 이미 확인한 뒤에 호출한다. 여기서는 일정 안에서의 규칙만 다룬다.
 """
 
+import logging
 from datetime import time
 from decimal import Decimal
 
@@ -27,6 +28,7 @@ from app.places.schemas import (
 from app.schedules.models import Schedule
 
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 # 검색 결과 최대 개수. 화면이 한 번에 보여줄 수 있는 양을 넘기면 스크롤만 길어진다.
 SEARCH_LIMIT = 15
@@ -239,6 +241,9 @@ def search_places(query: str) -> PlaceSearchResponse:
     try:
         provider = providers.get_provider(settings.place_search_provider)
         items = provider.search(query, SEARCH_LIMIT)
+    except providers.PlaceProviderError as error:
+        logger.warning("Place search failed: %s", error.reason)
+        raise PlaceSearchUnavailableError() from None
     except ValueError as error:
         # 설정 오타나 미구현 공급자. 서버 로그에는 원인이 남고 클라이언트는 공통 문구를 받는다.
         raise PlaceSearchUnavailableError() from error

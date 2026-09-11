@@ -62,3 +62,18 @@ class PasswordChangeRequest(BaseModel):
         통과해, 정책이 있으나 마나 한 상태가 된다.
         """
         return validate_password_rules(value)
+
+
+class AccountDeleteRequest(BaseModel):
+    """계정 탈퇴 요청.
+
+    비밀번호를 받는 이유는 비밀번호 변경과 같다. 로그인된 기기를 잠깐 빌린 사람이
+    계정을 지워버리는 것을 막는다. 되돌리기 어려운 동작일수록 재인증이 필요하다
+    (docs/BOTTOM_NAVIGATION_SPEC.md 6.5절).
+
+    새 비밀번호와 달리 규칙 검사를 하지 않는다. 여기 오는 값은 이미 저장된 비밀번호와
+    맞는지만 보면 되고, 규칙이 바뀌기 전에 만든 계정은 지금 규칙을 통과하지 못할 수도
+    있다. 그런 계정이 탈퇴조차 못 하게 되면 안 된다.
+    """
+
+    current_password: str

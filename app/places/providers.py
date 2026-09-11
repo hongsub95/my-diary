@@ -1,7 +1,6 @@
 """장소 검색 공급자 어댑터.
 
-지도 공급자는 아직 확정 전이다. 카카오가 유력하지만 기술 검증이 남아 있어
-(docs/COURSE_RECOMMENDATION_SPEC.md 9.4절), 그때까지는 mock으로 동작한다.
+카카오 키워드 검색과 개발·테스트용 mock을 제공한다.
 
 어댑터로 분리해 두는 이유 (docs/API_SPEC.md 공급자 어댑터 요구사항):
 
@@ -9,16 +8,16 @@
   클라이언트가 함께 깨지고, 키·쿼터 같은 내부 사정이 노출된다.
 - 공급자를 바꿀 때 라우터와 서비스는 건드리지 않는다. 설정값 하나만 바꾸면 된다.
 
-카카오를 붙일 때 할 일:
-
-1. `KakaoPlaceSearchProvider`를 이 파일에 추가한다 (Protocol만 만족하면 된다).
-2. `PROVIDERS`에 등록한다.
-3. `.env`에 `PLACE_SEARCH_PROVIDER=kakao`와 REST API 키를 넣는다.
+실제 연동은 PLACE_SEARCH_PROVIDER=kakao와 KAKAO_REST_API_KEY로 활성화한다.
 """
 
 from decimal import Decimal
 from typing import Protocol
 
+import httpx
+from pydantic import BaseModel, Field
+
+from app.core.config import get_settings
 from app.places.schemas import PROVIDER_KAKAO, PROVIDER_MANUAL, PlaceSearchResultResponse
 
 
@@ -83,14 +82,90 @@ class MockPlaceSearchProvider:
         return results[:limit]
 
 
-# 설정값(PLACE_SEARCH_PROVIDER)으로 고를 수 있는 공급자들.
-# 카카오 어댑터를 만들면 여기에 PROVIDER_KAKAO 항목을 추가한다.
+class PlaceProviderError(Exception):
+    """응답 본문·키 없이 운영 진단용 사유만 전달하는 공급자 오류."""
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+        super().__init__(reason)
+
+
+class _KakaoDocument(BaseModel):
+    id: str = Field(min_length=1, max_length=200)
+    place_name: str = Field(min_length=1, max_length=200)
+    address_name: str = Field(default="", max_length=500)
+    road_address_name: str = Field(default="", max_length=500)
+    x: Decimal = Field(ge=-180, le=180, allow_inf_nan=False)
+    y: Decimal = Field(ge=-90, le=90, allow_inf_nan=False)
+    category_name: str = ""
+    phone: str = ""
+
+
+class _KakaoResponse(BaseModel):
+    documents: list[_KakaoDocument]
+
+
+class KakaoPlaceSearchProvider:
+    """카카오 키워드 검색의 첫 페이지를 기존 장소 응답으로 정규화한다."""
+
+    name = PROVIDER_KAKAO
+    URL = "https://dapi.kakao.com/v2/local/search/keyword.json"
+
+    def search(self, query: str, limit: int) -> list[PlaceSearchResultResponse]:
+        settings = get_settings()
+        key = settings.kakao_rest_api_key.get_secret_value().strip()
+        if not key:
+            raise PlaceProviderError("missing_key")
+        query = query.strip()
+        if not query or limit < 1:
+            raise ValueError("Invalid search input")
+        size = min(limit, 15)
+        try:
+            # 호출당 클라이언트를 닫고 자동 재시도하지 않아 쿼터 중복 소비를 피한다.
+            with httpx.Client(timeout=settings.kakao_search_timeout_seconds) as client:
+                response = client.get(
+                    self.URL,
+                    headers={"Authorization": f"KakaoAK {key}"},
+                    params={"query": query, "size": size, "page": 1},
+                )
+        except httpx.TimeoutException:
+            raise PlaceProviderError("timeout") from None
+        except httpx.RequestError:
+            raise PlaceProviderError("network") from None
+
+        if response.status_code != 200:
+            reason = {
+                401: "authentication",
+                403: "permission",
+                429: "quota",
+            }.get(response.status_code, "upstream_http")
+            raise PlaceProviderError(reason)
+        try:
+            payload = _KakaoResponse.model_validate(response.json())
+            results = []
+            for doc in payload.documents[:size]:
+                if not doc.id.strip() or not doc.place_name.strip():
+                    raise ValueError("Invalid place")
+                results.append(PlaceSearchResultResponse(
+                    name=doc.place_name.strip(),
+                    address=doc.road_address_name or doc.address_name or None,
+                    latitude=doc.y,
+                    longitude=doc.x,
+                    provider=self.name,
+                    provider_place_id=doc.id,
+                    category=doc.category_name or None,
+                    phone=doc.phone or None,
+                ))
+            return results
+        except ValueError:
+            raise PlaceProviderError("invalid_response") from None
+
+
+# 등록할 때 키를 읽거나 외부 API를 호출하지 않는다.
 PROVIDERS: dict[str, PlaceSearchProvider] = {
     MockPlaceSearchProvider.name: MockPlaceSearchProvider(),
+    KakaoPlaceSearchProvider.name: KakaoPlaceSearchProvider(),
 }
-
-# 아직 구현되지 않았지만 설정값으로 지정될 수 있는 이름. 오타와 구분해 안내하기 위해 둔다.
-NOT_YET_IMPLEMENTED = (PROVIDER_KAKAO,)
 
 
 def get_provider(name: str) -> PlaceSearchProvider:
@@ -106,11 +181,6 @@ def get_provider(name: str) -> PlaceSearchProvider:
     if provider is not None:
         return provider
 
-    if name in NOT_YET_IMPLEMENTED:
-        raise ValueError(
-            f"'{name}' 장소 검색 공급자는 아직 구현되지 않았습니다. "
-            f"app/places/providers.py에 어댑터를 추가하세요."
-        )
     raise ValueError(
         f"알 수 없는 장소 검색 공급자입니다: '{name}'. "
         f"사용 가능: {', '.join(sorted(PROVIDERS))}"

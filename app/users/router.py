@@ -4,17 +4,18 @@
 설정을 바꾸는 API를 다룬다.
 """
 
-from fastapi import APIRouter, Request, status
+from fastapi import APIRouter, Request, Response, status
 
 from app.audit import service as audit
 from app.audit.models import AuditAction
 from app.auth.dependencies import CurrentUser, DbSession, RedisClient
 from app.auth.schemas import UserResponse
+from app.auth.web_router import clear_session_cookie
 from app.core.config import get_settings
 from app.spaces import service as space_service
 from app.spaces.schemas import DefaultSpaceUpdateRequest, SpaceResponse
 from app.users import service
-from app.users.schemas import PasswordChangeRequest, ProfileUpdateRequest
+from app.users.schemas import AccountDeleteRequest, PasswordChangeRequest, ProfileUpdateRequest
 
 settings = get_settings()
 
@@ -97,5 +98,55 @@ def change_password(
         actor_email=current_user.email,
         request=request,
         detail={"revoked_sessions": removed},
+    )
+    return None
+
+
+@router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="계정 탈퇴",
+    description=(
+        "비밀번호로 본인을 확인한 뒤 계정을 탈퇴 처리한다. **요청 본문이 필요하다.** "
+        "행을 지우지 않고 사용 플래그를 내리므로 남긴 일기와 사진은 기록으로 남고, "
+        "이메일과 닉네임은 계속 점유된다. 소유한 스페이스는 남은 멤버가 있어도 함께 "
+        "보관되므로 화면에서 먼저 경고해야 한다."
+    ),
+)
+def delete_account(
+    payload: AccountDeleteRequest,
+    request: Request,
+    response: Response,
+    current_user: CurrentUser,
+    db: DbSession,
+    redis_client: RedisClient,
+) -> None:
+    """계정 탈퇴."""
+    # 감사 로그를 먼저 읽어둔다. 탈퇴가 끝나면 current_user의 값을 쓰기 애매해지고,
+    # 무엇보다 "누가 탈퇴했는가"는 계정이 사라진 뒤에도 남아야 한다.
+    user_id = current_user.id
+    actor_email = current_user.email
+
+    result = service.delete_account(
+        db=db,
+        redis_client=redis_client,
+        user=current_user,
+        current_password=payload.current_password,
+    )
+
+    # 웹은 세션을 지워도 브라우저에 쿠키가 남는다. 그대로 두면 다음 요청마다 죽은
+    # 세션 ID를 들고 가고, 사용자 눈에는 "로그아웃이 안 된" 것처럼 보인다.
+    # 앱(JWT)은 쿠키가 없어 이 호출이 아무 일도 하지 않는다.
+    clear_session_cookie(response)
+
+    # 되돌릴 수 없는 동작이라 반드시 남긴다. 무엇이 함께 보관됐는지까지 적어야
+    # 나중에 "내 스페이스가 왜 없어졌냐"는 문의를 확인할 수 있다.
+    audit.record(
+        db,
+        AuditAction.ACCOUNT_DELETED,
+        user_id=user_id,
+        actor_email=actor_email,
+        request=request,
+        detail=result,
     )
     return None

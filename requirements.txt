@@ -27,6 +27,8 @@ python-multipart==0.0.20
 # 리눅스에는 보통 OS에 들어 있지만 Windows에는 없어서, 없으면 ZoneInfoNotFoundError가 난다.
 tzdata==2025.2
 
+# 외부 장소 검색 HTTP 클라이언트 (테스트에서도 사용)
+httpx==0.28.1
+
 # Test
 pytest==8.3.5
-httpx==0.28.1
