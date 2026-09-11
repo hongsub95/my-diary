@@ -4,13 +4,20 @@
 """
 
 import redis
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.auth import security, session as session_store
 from app.auth.service import NicknameAlreadyExistsError
+from app.spaces.models import (
+    SPACE_MEMBER_STATUS_ACTIVE,
+    SPACE_MEMBER_STATUS_LEFT,
+    SPACE_ROLE_OWNER,
+    Space,
+    SpaceMember,
+)
 from app.users.errors import InvalidCurrentPasswordError, SamePasswordError
-from app.users.models import User
+from app.users.models import USER_NOT_IN_USE, User
 
 
 def update_profile(db: Session, user: User, nickname: str) -> User:
@@ -72,3 +79,76 @@ def change_password(
         session_store.delete_session(redis_client, session_id)
         removed += 1
     return removed
+
+
+def delete_account(
+    db: Session,
+    redis_client: redis.Redis,
+    user: User,
+    current_password: str,
+) -> dict[str, int]:
+    """계정을 탈퇴 처리한다.
+
+    :param current_password: 재인증용 비밀번호. 화면에서 확인 절차를 거쳤더라도
+        서버가 다시 본인인지 확인한다
+    :raises InvalidCurrentPasswordError: 비밀번호가 틀릴 때 (422)
+    :return: 감사 로그에 남길 처리 건수
+        (`archived_spaces`, `left_spaces`, `revoked_sessions`)
+
+    **행을 지우지 않는다.** `use`를 0으로 내리고 `deleted_at`을 남긴다. 지워버리면
+    그 사람이 남긴 일기·사진·일정의 작성자를 되짚을 수 없고, "탈퇴한 작성자의 항목은
+    읽기 전용으로 보존한다"는 정책(docs/SPACE_MODEL_SPEC.md 13절)을 지킬 수 없다.
+
+    **이메일과 닉네임은 계속 점유된다.** 행이 남아 있어 UNIQUE 제약이 그대로 걸리기
+    때문이다. 같은 이메일로 다시 가입하려 하면 409가 난다. 되살리기(복구) 기능이
+    생긴다면 이 점이 오히려 전제가 된다.
+
+    **소유한 스페이스는 함께 보관된다.** 남은 멤버가 있어도 마찬가지다
+    (같은 문서 7.4절). 그래서 탈퇴 화면은 무엇이 사라지는지 먼저 경고해야 한다.
+    """
+    if not security.verify_password(current_password, user.password_hash):
+        raise InvalidCurrentPasswordError()
+
+    archived_spaces = 0
+    left_spaces = 0
+
+    memberships = db.scalars(
+        select(SpaceMember).where(
+            SpaceMember.user_id == user.id,
+            SpaceMember.status == SPACE_MEMBER_STATUS_ACTIVE,
+        )
+    ).all()
+
+    for membership in memberships:
+        if membership.role == SPACE_ROLE_OWNER:
+            space = db.get(Space, membership.space_id)
+            # 이미 보관된 스페이스를 다시 건드리면 보관 시각이 지금으로 밀린다.
+            if space is not None and space.archived_at is None:
+                space.archived_at = func.now()
+                archived_spaces += 1
+        else:
+            left_spaces += 1
+
+        # owner든 아니든 본인 멤버십은 정리한다. 스페이스가 나중에 복구되더라도
+        # 탈퇴한 사람이 멤버로 되살아나면 안 된다.
+        membership.status = SPACE_MEMBER_STATUS_LEFT
+        membership.left_at = func.now()
+
+    user.use = USER_NOT_IN_USE
+    user.deleted_at = func.now()
+    # 기본 스페이스는 방금 보관됐다. 값을 남겨두면 "삭제된 스페이스를 가리키는 기본값"이
+    # 되어, 복구 기능을 만들 때 열 수 없는 곳을 가리키는 상태로 되살아난다.
+    user.default_space_id = None
+
+    db.commit()
+
+    # 세션은 DB 커밋이 끝난 뒤에 지운다. 순서를 뒤집으면 커밋이 실패했을 때 멀쩡한
+    # 계정의 로그인만 끊어진다. 여기는 지금 쓰는 세션까지 전부 지운다 —
+    # 비밀번호 변경과 달리 남겨둘 세션이 없다.
+    revoked_sessions = session_store.delete_all_user_sessions(redis_client, user.id)
+
+    return {
+        "archived_spaces": archived_spaces,
+        "left_spaces": left_spaces,
+        "revoked_sessions": revoked_sessions,
+    }

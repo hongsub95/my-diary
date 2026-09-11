@@ -20,7 +20,7 @@ from app.spaces.models import (
     Space,
     SpaceMember,
 )
-from app.users.models import User
+from app.users.models import USER_IN_USE, User
 
 
 class EmailAlreadyExistsError(AppError):
@@ -75,13 +75,26 @@ class InvalidRefreshTokenError(AppError):
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
-    """이메일로 사용자를 찾는다. 없으면 None."""
+    """이메일로 사용자를 찾는다. 없으면 None.
+
+    **탈퇴한 계정도 함께 찾는다.** 회원가입의 중복 검사가 이 함수를 쓰는데, 여기서
+    탈퇴 계정을 걸러버리면 같은 이메일로 다시 가입할 수 있다고 판단해 INSERT까지 갔다가
+    UNIQUE 제약에 걸려 500이 난다. 탈퇴해도 이메일은 계속 점유된 상태로 둔다.
+
+    로그인은 이 함수를 쓰되 탈퇴 여부를 따로 본다 (authenticate_user 참고).
+    """
     return db.scalar(select(User).where(User.email == email))
 
 
 def get_user_by_id(db: Session, user_id: int) -> User | None:
-    """id로 사용자를 찾는다. 없으면 None."""
-    return db.get(User, user_id)
+    """id로 사용 중인 사용자를 찾는다. 없거나 탈퇴했으면 None.
+
+    탈퇴한 계정을 여기서 걸러야 이미 발급된 access token이 더 이상 통하지 않는다.
+    JWT는 무상태라 서버가 회수할 수 없어서, 매 요청 이 조회에서 막는 것이 유일한
+    차단 지점이다. 세션 쿠키 쪽은 탈퇴 시 Redis에서 지우지만 그것만 믿지 않는다.
+    """
+    user = db.get(User, user_id)
+    return user if user is not None and user.use == USER_IN_USE else None
 
 
 def register_user(
@@ -192,6 +205,24 @@ def authenticate_user(
             actor_email=email,
             request=request,
             detail={"reason": "WRONG_PASSWORD"},
+        )
+        raise InvalidCredentialsError()
+
+    # 비밀번호가 맞아도 탈퇴한 계정은 들여보내지 않는다. 비밀번호를 확인한 뒤에 보는
+    # 이유: 순서를 뒤집으면 아무 비밀번호나 넣어도 "탈퇴한 계정"이라는 답이 돌아와,
+    # 그 이메일이 가입돼 있었다는 사실이 새어 나간다.
+    #
+    # 오류도 로그인 실패와 같은 것을 쓴다. "탈퇴한 계정입니다"라고 알려주면 친절하지만,
+    # 같은 이유로 계정 열거에 쓰인다. 정말 탈퇴한 본인이라면 다시 가입을 시도했을 때
+    # 이메일 중복(409)으로 안내된다.
+    if user.use != USER_IN_USE:
+        audit.record(
+            db,
+            AuditAction.LOGIN_FAILED,
+            user_id=user.id,
+            actor_email=email,
+            request=request,
+            detail={"reason": "DELETED_ACCOUNT"},
         )
         raise InvalidCredentialsError()
 

@@ -19,6 +19,19 @@ from app.core.database import Base
 USER_ROLE_MASTER = 0
 USER_ROLE_USER = 1
 
+# 계정 사용 여부 플래그.
+#
+# 탈퇴해도 행을 지우지 않고 이 값을 0으로 내린다. 지워버리면 그 사람이 남긴 일기·사진·
+# 일정의 작성자를 되짚을 수 없고, "탈퇴한 작성자의 항목은 읽기 전용으로 보존한다"는
+# 정책(docs/SPACE_MODEL_SPEC.md 13절)을 지킬 수 없다.
+#
+# | 값 | 뜻 |
+# |---|---|
+# | 0 | 탈퇴. 로그인도 조회도 되지 않는다 |
+# | 1 | 사용 중 |
+USER_NOT_IN_USE = 0
+USER_IN_USE = 1
+
 
 class User(Base):
     """회원 계정 테이블. 이메일/비밀번호 로그인과 닉네임 표시를 위한 기본 프로필을 담는다."""
@@ -41,6 +54,17 @@ class User(Base):
     default_space_id: Mapped[int | None] = mapped_column(
         ForeignKey("nl_spaces.id", ondelete="SET NULL", use_alter=True, name="fk_users_default_space")
     )
+    # 사용 여부. 위 USER_IN_USE / USER_NOT_IN_USE 표 참고.
+    # server_default를 두는 이유는 role과 같다. 이미 쌓여 있던 행도 마이그레이션 시점에
+    # 사용 중으로 메워진다.
+    use: Mapped[int] = mapped_column(nullable=False, server_default=str(USER_IN_USE))
+    # 탈퇴 시각. use=0과 짝으로 움직인다.
+    #
+    # 플래그만으로도 "지금 쓸 수 있는 계정인가"는 알 수 있지만 "언제 지웠는가"는 모른다.
+    # 보관 기간을 두고 지난 계정을 영구 삭제하는 정책(SPACE_MODEL_SPEC 7.4의 30일 권장)을
+    # 나중에 넣으려면 이 값이 필요하다. 플래그를 지운 시점에 기록해야 하므로 두 값은
+    # 항상 같은 트랜잭션에서 함께 바꾼다.
+    deleted_at: Mapped[datetime | None] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
