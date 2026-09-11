@@ -20,6 +20,32 @@ MIN_PASSWORD_LENGTH = 9
 # 여기를 바꾸면 명세와 프론트엔드 검증도 함께 고쳐야 한다.
 SPECIAL_CHARACTERS = punctuation
 
+MIN_NICKNAME_LENGTH = 2
+# nl_users.nickname이 String(50)이라 이보다 길면 DB가 거절한다. 두 값은 함께 움직여야 한다.
+MAX_NICKNAME_LENGTH = 50
+
+
+def validate_nickname_rules(value: str) -> str:
+    """닉네임의 공백·길이 규칙을 검사하고 앞뒤 공백을 제거한다.
+
+    :param value: 사용자가 입력한 닉네임
+    :raises ValueError: 규칙을 어겼을 때. 문구는 화면에 그대로 노출된다
+    :return: 앞뒤 공백을 제거한 닉네임
+
+    회원가입(RegisterRequest)과 프로필 수정(app/users/schemas.py)이 함께 쓴다.
+    길이를 Field가 아니라 여기서 재는 이유는 두 가지다. 첫째, Field는 영어 문구를
+    그대로 내보낸다(비밀번호 쪽 주석과 같은 이유). 둘째, Field는 공백을 지우기 전
+    값을 재기 때문에 `"  가  "`처럼 실제로는 한 글자인 닉네임이 통과해 버린다.
+    """
+    stripped = value.strip()
+    if not stripped:
+        raise ValueError("닉네임은 공백일 수 없습니다.")
+    if len(stripped) < MIN_NICKNAME_LENGTH:
+        raise ValueError(f"닉네임은 {MIN_NICKNAME_LENGTH}자 이상이어야 합니다.")
+    if len(stripped) > MAX_NICKNAME_LENGTH:
+        raise ValueError(f"닉네임은 {MAX_NICKNAME_LENGTH}자 이하여야 합니다.")
+    return stripped
+
 
 def validate_password_rules(value: str) -> str:
     """비밀번호의 길이·구성 규칙과 bcrypt의 내부 길이 제한을 검사한다.
@@ -51,7 +77,9 @@ class RegisterRequest(BaseModel):
     """회원가입 요청 본문."""
 
     email: EmailStr
-    nickname: str = Field(min_length=2, max_length=50)
+    nickname: str = Field(
+        description=f"{MIN_NICKNAME_LENGTH}~{MAX_NICKNAME_LENGTH}자. 앞뒤 공백은 서버가 제거한다",
+    )
     # min_length를 Field에 두면 pydantic이 "String should have at least 9 characters"
     # 라는 영어 문구를 그대로 응답에 실어 보낸다. API_SPEC 2.5절이 message를 '사용자에게
     # 그대로 노출 가능한 한국어'로 못박았기 때문에 길이 검사도 아래 validator로 옮겼다.
@@ -67,12 +95,9 @@ class RegisterRequest(BaseModel):
 
     @field_validator("nickname")
     @classmethod
-    def validate_nickname_not_blank(cls, value: str) -> str:
-        """공백만 입력한 닉네임을 거르고 앞뒤 공백을 제거한다."""
-        stripped = value.strip()
-        if not stripped:
-            raise ValueError("닉네임은 공백일 수 없습니다.")
-        return stripped
+    def validate_nickname_policy(cls, value: str) -> str:
+        """가입 닉네임이 규칙을 지키는지 본다. 규칙 본문은 위 함수에 있다."""
+        return validate_nickname_rules(value)
 
 
 class LoginRequest(BaseModel):

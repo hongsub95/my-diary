@@ -6,7 +6,12 @@
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.auth.schemas import validate_password_rules
+from app.auth.schemas import (
+    MAX_NICKNAME_LENGTH,
+    MIN_NICKNAME_LENGTH,
+    validate_nickname_rules,
+    validate_password_rules,
+)
 
 
 class ProfileUpdateRequest(BaseModel):
@@ -16,16 +21,22 @@ class ProfileUpdateRequest(BaseModel):
     필요하고, 그 절차가 정해지기 전까지는 열지 않는다.
     """
 
-    nickname: str = Field(min_length=2, max_length=50)
+    nickname: str = Field(
+        description=f"{MIN_NICKNAME_LENGTH}~{MAX_NICKNAME_LENGTH}자. 앞뒤 공백은 서버가 제거한다",
+    )
 
     @field_validator("nickname")
     @classmethod
-    def validate_nickname_not_blank(cls, value: str) -> str:
-        """공백만 입력한 닉네임을 거르고 앞뒤 공백을 제거한다. 회원가입과 같은 규칙이다."""
-        stripped = value.strip()
-        if not stripped:
-            raise ValueError("닉네임은 공백일 수 없습니다.")
-        return stripped
+    def validate_nickname(cls, value: str) -> str:
+        """닉네임이 회원가입과 같은 규칙을 지키는지 본다.
+
+        :param value: 사용자가 입력한 닉네임
+        :raises ValueError: 규칙을 어겼을 때. 문구는 화면에 그대로 노출된다
+
+        규칙을 회원가입과 공유한다. 여기만 느슨하면 가입 때 막혔던 닉네임이 수정으로는
+        통과한다. 비밀번호도 같은 이유로 규칙을 공유한다.
+        """
+        return validate_nickname_rules(value)
 
 
 class PasswordChangeRequest(BaseModel):

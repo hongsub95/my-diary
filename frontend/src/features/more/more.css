@@ -178,3 +178,137 @@
   color: var(--color-text-secondary);
   cursor: default;
 }
+
+/* ── 더보기 하위 화면 (프로필 수정, 비밀번호 변경) ─────────────────── */
+
+.more-sub__header {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 48px 16px 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.more-sub__back {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 터치 영역을 44px 이상으로 유지한다 (BOTTOM_NAVIGATION_SPEC.md 7절). */
+  width: 44px;
+  height: 44px;
+  margin-left: -10px;
+  border-radius: var(--radius-full);
+  color: var(--color-text-primary);
+}
+
+.more-sub__back:hover {
+  background: var(--color-surface-hover);
+}
+
+.more-sub__back svg {
+  stroke: currentColor;
+}
+
+.more-sub__body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 20px 16px;
+}
+
+.more-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 16px;
+}
+
+.more-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.more-form__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+}
+
+.more-form__input {
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  font-size: 15px;
+  color: var(--color-text-primary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+}
+
+.more-form__input:focus {
+  outline: none;
+  border-color: var(--color-primary);
+}
+
+/* 바꿀 수 없는 값. 입력칸 모양은 유지해서 무엇이 들어 있는지 읽히게 하되,
+   손댈 수 없다는 것은 색으로 알린다. 아래 hint가 이유를 설명한다. */
+.more-form__input--readonly {
+  color: var(--color-text-secondary);
+  background: var(--color-surface-hover);
+  cursor: not-allowed;
+}
+
+.more-form__hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.more-form__notice {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+}
+
+.more-form__error {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-danger);
+}
+
+.more-form__submit {
+  width: 100%;
+  min-height: 52px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--color-primary);
+  border-radius: var(--radius-xl);
+  transition: opacity 0.12s;
+}
+
+.more-form__submit:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+/* 방금 끝낸 동작을 알린다. 비밀번호 변경처럼 화면에 흔적이 남지 않는 작업은
+   돌아온 자리에서 한 번 말해주지 않으면 됐는지 알 수 없다. */
+.more-notice {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--color-primary);
+  background: var(--color-primary-light);
+  border-radius: var(--radius-lg);
+  padding: 12px 14px;
+}

@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -7,10 +8,10 @@ import { colors, spacing } from '@/shared/theme';
 type MoreMenuItem = {
   key: string;
   label: string;
-  // 이 빌드에서 실제로 열 수 있는가. false면 눌리지 않고 '준비 중'으로 표시한다.
-  // 화면과 API가 준비되면 true로 바꾸고 이동 코드를 붙이면 된다. 미구현 항목을 눌러
-  // 빈 화면이나 오류를 보여주지 않기 위한 장치다(docs/BOTTOM_NAVIGATION_SPEC.md 7절).
-  ready: boolean;
+  // 열 화면의 경로. 없으면 아직 화면이나 API가 없다는 뜻이라 눌리지 않고 '준비 중'으로
+  // 표시한다. 미구현 항목을 눌러 빈 화면이나 오류를 보여주지 않기 위한 장치다
+  // (docs/BOTTOM_NAVIGATION_SPEC.md 7절). 화면이 준비되면 href만 채우면 된다.
+  href?: '/more/profile' | '/more/password';
   // 소셜 로그인 계정에는 감춰야 하는 항목(같은 문서 6.5절).
   emailAccountOnly?: boolean;
 };
@@ -21,22 +22,22 @@ const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
   {
     title: '내 정보',
     items: [
-      { key: 'profile', label: '프로필 수정', ready: false },
-      { key: 'password', label: '비밀번호 변경', ready: false, emailAccountOnly: true },
+      { key: 'profile', label: '프로필 수정', href: '/more/profile' },
+      { key: 'password', label: '비밀번호 변경', href: '/more/password', emailAccountOnly: true },
     ],
   },
   {
     title: '앱 설정',
     items: [
-      { key: 'notifications', label: '알림 설정', ready: false },
-      { key: 'theme', label: '테마', ready: false },
+      { key: 'notifications', label: '알림 설정' },
+      { key: 'theme', label: '테마' },
     ],
   },
   {
     title: '서비스 정보',
     items: [
-      { key: 'privacy', label: '개인정보 처리방침', ready: false },
-      { key: 'terms', label: '서비스 이용약관', ready: false },
+      { key: 'privacy', label: '개인정보 처리방침' },
+      { key: 'terms', label: '서비스 이용약관' },
     ],
   },
 ];
@@ -48,6 +49,7 @@ const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
  */
 export default function MoreScreen() {
   const { logout, user } = useAuth();
+  const router = useRouter();
 
   // 소셜 로그인이 생기면 서버가 계정 유형을 내려준다. UserResponse에 아직 그 필드가
   // 없고 소셜 로그인 자체가 미구현이라, 그때까지 이 값은 항상 true다.
@@ -80,10 +82,11 @@ export default function MoreScreen() {
                 {items.map((item, index) => (
                   <View key={item.key}>
                     <Pressable
-                      disabled={!item.ready}
+                      disabled={!item.href}
+                      onPress={item.href ? () => router.push(item.href!) : undefined}
                       style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-                      <Text style={[styles.rowLabel, !item.ready && styles.rowLabelMuted]}>{item.label}</Text>
-                      {item.ready ? (
+                      <Text style={[styles.rowLabel, !item.href && styles.rowLabelMuted]}>{item.label}</Text>
+                      {item.href ? (
                         <Text style={styles.rowArrow}>›</Text>
                       ) : (
                         <Text style={styles.badge}>준비 중</Text>
