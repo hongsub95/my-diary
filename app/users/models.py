@@ -32,6 +32,28 @@ USER_ROLE_USER = 1
 USER_NOT_IN_USE = 0
 USER_IN_USE = 1
 
+# 사용자가 고른 테마 색상 키.
+#
+# 서버는 키만 알고 실제 색상값은 모른다. 팔레트는 화면마다 표현이 달라(웹은 CSS 변수,
+# 모바일은 theme.ts) 클라이언트가 들고 있고, 서버는 "이 사람이 어느 팔레트를 골랐나"만
+# 계정에 저장해 웹과 모바일이 같은 테마를 쓰게 한다 (docs/DESIGN_SPEC.md 2.3절).
+DEFAULT_THEME_KEY = "rose"
+# 접근성 검증을 마친 프리셋만 넣는다. 자유 색상 선택은 명암 보정이 필요해 Phase 2다.
+SUPPORTED_THEME_KEYS = ("rose", "purple", "emerald", "blue", "orange")
+
+
+def normalize_theme_key(value: str | None) -> str:
+    """저장된 테마 키를 화면에 내보낼 수 있는 값으로 바꾼다.
+
+    :param value: DB에 있는 값. 비어 있거나 지원하지 않는 키일 수 있다
+    :return: 지원하는 테마 키. 아니면 기본값
+
+    프리셋을 나중에 없애면 그 키를 고른 채로 남아 있는 계정이 생긴다. 그때 없는 팔레트를
+    그대로 내려주면 클라이언트가 색을 찾지 못해 화면이 깨진다. 명세가 "지원하지 않는
+    값이면 rose를 사용한다"고 정한 이유이고, 그 판단을 응답 만드는 곳 한 군데에 모은다.
+    """
+    return value if value in SUPPORTED_THEME_KEYS else DEFAULT_THEME_KEY
+
 
 class User(Base):
     """회원 계정 테이블. 이메일/비밀번호 로그인과 닉네임 표시를 위한 기본 프로필을 담는다."""
@@ -53,6 +75,12 @@ class User(Base):
     # spaces.owner_id -> users.id 순환 참조가 생기므로 FK 제약은 마이그레이션에서 use_alter로 처리한다.
     default_space_id: Mapped[int | None] = mapped_column(
         ForeignKey("nl_spaces.id", ondelete="SET NULL", use_alter=True, name="fk_users_default_space")
+    )
+    # 고른 테마 색상 키. 위 SUPPORTED_THEME_KEYS 참고.
+    # CHECK 제약을 일부러 걸지 않았다. 이유는 role과 같다 — 프리셋이 늘 때마다
+    # 마이그레이션을 새로 만들어야 한다. 허용 값 검사는 요청 스키마가 한다.
+    theme_key: Mapped[str] = mapped_column(
+        String(20), nullable=False, server_default=DEFAULT_THEME_KEY
     )
     # 사용 여부. 위 USER_IN_USE / USER_NOT_IN_USE 표 참고.
     # server_default를 두는 이유는 role과 같다. 이미 쌓여 있던 행도 마이그레이션 시점에

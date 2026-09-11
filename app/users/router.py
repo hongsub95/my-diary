@@ -45,7 +45,8 @@ def update_default_space(
     response_model=UserResponse,
     summary="프로필 수정",
     description=(
-        "닉네임을 바꾼다. 이미 다른 사람이 쓰는 닉네임이면 409다. "
+        "닉네임과 테마 색상을 바꾼다. **보낸 필드만 변경된다.** "
+        "이미 다른 사람이 쓰는 닉네임이면 409, 지원하지 않는 테마 키면 422다. "
         "이메일은 로그인 수단이라 여기서 바꾸지 않는다."
     ),
 )
@@ -55,7 +56,12 @@ def update_profile(
     db: DbSession,
 ) -> UserResponse:
     """프로필 수정."""
-    user = service.update_profile(db, current_user, payload.nickname)
+    user = service.update_profile(
+        db,
+        current_user,
+        nickname=payload.nickname,
+        theme_key=payload.theme_key,
+    )
     return UserResponse.from_user(user)
 
 

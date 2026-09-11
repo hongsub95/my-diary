@@ -12,31 +12,62 @@ from app.auth.schemas import (
     validate_nickname_rules,
     validate_password_rules,
 )
+from app.users.models import SUPPORTED_THEME_KEYS
 
 
 class ProfileUpdateRequest(BaseModel):
-    """프로필 수정 요청.
+    """프로필 수정 요청. **보낸 필드만 변경된다.**
 
-    지금은 닉네임만 바꾼다. 이메일은 로그인 수단이라 바꾸려면 본인 확인 절차가 따로
-    필요하고, 그 절차가 정해지기 전까지는 열지 않는다.
+    이메일은 로그인 수단이라 바꾸려면 본인 확인 절차가 따로 필요하고, 그 절차가
+    정해지기 전까지는 열지 않는다.
+
+    두 필드를 모두 선택으로 둔 이유: 테마는 프로필 화면이 아니라 테마 화면에서 바꾸고,
+    닉네임은 프로필 화면에서 바꾼다. 서로 다른 화면이 같은 엔드포인트를 쓰는데 한쪽이
+    필수면, 테마만 바꾸려는 요청이 닉네임을 같이 실어 보내야 한다. 그러면 그 사이 다른
+    기기에서 바꾼 닉네임을 옛 값으로 덮어쓰게 된다.
     """
 
-    nickname: str = Field(
+    nickname: str | None = Field(
+        default=None,
         description=f"{MIN_NICKNAME_LENGTH}~{MAX_NICKNAME_LENGTH}자. 앞뒤 공백은 서버가 제거한다",
+    )
+    theme_key: str | None = Field(
+        default=None,
+        description=f"테마 색상 키. {', '.join(SUPPORTED_THEME_KEYS)} 중 하나",
     )
 
     @field_validator("nickname")
     @classmethod
-    def validate_nickname(cls, value: str) -> str:
+    def validate_nickname(cls, value: str | None) -> str | None:
         """닉네임이 회원가입과 같은 규칙을 지키는지 본다.
 
-        :param value: 사용자가 입력한 닉네임
+        :param value: 사용자가 입력한 닉네임. 보내지 않았으면 None
         :raises ValueError: 규칙을 어겼을 때. 문구는 화면에 그대로 노출된다
 
         규칙을 회원가입과 공유한다. 여기만 느슨하면 가입 때 막혔던 닉네임이 수정으로는
         통과한다. 비밀번호도 같은 이유로 규칙을 공유한다.
         """
+        if value is None:
+            return None
         return validate_nickname_rules(value)
+
+    @field_validator("theme_key")
+    @classmethod
+    def validate_theme_key(cls, value: str | None) -> str | None:
+        """지원하는 테마 키인지 본다.
+
+        :param value: 고른 테마 키. 보내지 않았으면 None
+        :raises ValueError: 지원하지 않는 키일 때
+
+        조회할 때(normalize_theme_key)는 모르는 키를 조용히 기본값으로 바꾸지만, 저장할
+        때는 거절한다. 오타나 낡은 클라이언트가 보낸 값을 소리 없이 다른 값으로 바꿔
+        저장하면, 사용자는 고른 것과 다른 색을 보면서 이유를 알 수 없다.
+        """
+        if value is None:
+            return None
+        if value not in SUPPORTED_THEME_KEYS:
+            raise ValueError("지원하지 않는 테마입니다.")
+        return value
 
 
 class PasswordChangeRequest(BaseModel):

@@ -12,6 +12,7 @@ from string import ascii_letters, digits, punctuation
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.auth.security import MAX_PASSWORD_BYTES
+from app.users.models import normalize_theme_key
 
 MIN_PASSWORD_LENGTH = 9
 
@@ -142,6 +143,9 @@ class UserResponse(BaseModel):
     # 결국 GET /spaces를 한 번 더 불러 UUID를 찾아야 했다. 스페이스의 공개 식별자는
     # UUID 하나뿐이라는 원칙(docs/API_SPEC.md 4.1절)과도 어긋난다.
     default_space_id: uuid_module.UUID | None
+    # 이 사람이 고른 테마 색상 키. 클라이언트는 로그인 직후 이 값으로 팔레트를 적용한다.
+    # 서버는 키만 알고 실제 색상값은 모른다 (app/users/models.py의 SUPPORTED_THEME_KEYS).
+    theme_key: str
     created_at: datetime
 
     @classmethod
@@ -159,6 +163,9 @@ class UserResponse(BaseModel):
             nickname=user.nickname,
             role=user.role,
             default_space_id=user.default_space.uuid if user.default_space is not None else None,
+            # 프리셋이 없어진 뒤에도 남아 있는 키를 그대로 내보내면 클라이언트가 색을
+            # 찾지 못해 화면이 깨진다. 여기서 기본값으로 맞춰서 내보낸다.
+            theme_key=normalize_theme_key(user.theme_key),
             created_at=user.created_at,
         )
 

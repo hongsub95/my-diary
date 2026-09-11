@@ -20,20 +20,36 @@ from app.users.errors import InvalidCurrentPasswordError, SamePasswordError
 from app.users.models import USER_NOT_IN_USE, User
 
 
-def update_profile(db: Session, user: User, nickname: str) -> User:
-    """닉네임을 바꾼다.
+def update_profile(
+    db: Session,
+    user: User,
+    nickname: str | None = None,
+    theme_key: str | None = None,
+) -> User:
+    """프로필을 수정한다. None인 필드는 건드리지 않는다.
 
+    :param nickname: 새 닉네임. 스키마에서 형식 검증 완료
+    :param theme_key: 새 테마 색상 키. 스키마에서 허용 값 검증 완료
     :raises NicknameAlreadyExistsError: 다른 사람이 이미 쓰는 닉네임일 때 (409)
 
     자기 닉네임을 그대로 다시 저장하는 것은 막지 않는다. 화면에서 다른 값을 고치다가
     닉네임을 건드리지 않고 저장하는 경우가 흔하다.
+
+    닉네임 중복은 여기서 보지만 경합까지 막지는 못한다. 두 사람이 같은 닉네임으로 동시에
+    저장하면 둘 다 검사를 통과하고 뒤에 커밋한 쪽이 DB의 UNIQUE 제약에 걸린다. 지금은
+    닉네임을 바꾸는 빈도가 낮아 그대로 두지만, 여기서 409가 아니라 500이 날 수 있다는
+    뜻이다.
     """
-    if nickname != user.nickname:
+    if nickname is not None and nickname != user.nickname:
         taken = db.scalar(select(User.id).where(User.nickname == nickname))
         if taken is not None:
             raise NicknameAlreadyExistsError()
 
-    user.nickname = nickname
+    if nickname is not None:
+        user.nickname = nickname
+    if theme_key is not None:
+        user.theme_key = theme_key
+
     db.commit()
     db.refresh(user)
     return user
