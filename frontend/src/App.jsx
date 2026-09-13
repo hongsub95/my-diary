@@ -15,6 +15,7 @@ import ProfileEditPage from './features/more/ProfileEditPage'
 import PasswordChangePage from './features/more/PasswordChangePage'
 import AccountDeletePage from './features/more/AccountDeletePage'
 import ThemePage from './features/more/ThemePage'
+import LegalPage from './features/more/LegalPage'
 import RecordsPage from './features/records/RecordsPage'
 import PrototypeLab from './features/prototype/PrototypeLab'
 
@@ -69,6 +70,8 @@ export default function App() {
         <Route path="more/password" element={<PasswordChangePage />} />
         <Route path="more/theme" element={<ThemePage />} />
         <Route path="more/delete" element={<AccountDeletePage />} />
+        {/* 문서마다 화면을 만들지 않고 코드로 갈라 쓴다. 문서가 늘어도 경로만 추가하면 된다. */}
+        <Route path="more/legal/:code" element={<LegalPage />} />
         {/* 설정은 더보기로 흡수됐다. 예전 주소나 북마크로 들어와도 끊기지 않도록
             당분간 리다이렉트로 남겨둔다 (docs/BOTTOM_NAVIGATION_SPEC.md 5.1절). */}
         <Route path="settings" element={<Navigate to="/more" replace />} />

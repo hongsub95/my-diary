@@ -6,6 +6,7 @@ import logoutRaw from '../../assets/icons/logout.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
 import { useAuth } from '../../shared/contexts/AuthContext'
 import { getPalette } from '../../shared/theme/palettes'
+import { LEGAL_DOCUMENTS } from '../../shared/api/legal'
 import './more.css'
 
 // 더보기 안의 항목은 동작이 제각각이라 DB로 관리하지 않고 여기서 관리한다
@@ -35,8 +36,8 @@ const MENU_GROUPS = [
   {
     title: '서비스 정보',
     items: [
-      { key: 'privacy', label: '개인정보 처리방침' },
-      { key: 'terms', label: '서비스 이용약관' },
+      { key: 'privacy', label: '개인정보 처리방침', to: `/more/legal/${LEGAL_DOCUMENTS.privacy}` },
+      { key: 'terms', label: '서비스 이용약관', to: `/more/legal/${LEGAL_DOCUMENTS.terms}` },
     ],
   },
 ]

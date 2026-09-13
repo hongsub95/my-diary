@@ -12,6 +12,7 @@ from app.diaries.timeline_router import (
     schedule_timeline_router,
     timeline_router as diary_timeline_router,
 )
+from app.legal.router import router as legal_router
 from app.menus.router import router as menus_router
 from app.places.router import (
     places_router,
@@ -30,6 +31,8 @@ api_router.include_router(health_router)
 api_router.include_router(auth_router)
 api_router.include_router(auth_web_router)
 api_router.include_router(menus_router)
+# 약관은 인증 없이 열린다. 가입 전에 읽어야 동의할 수 있다.
+api_router.include_router(legal_router)
 api_router.include_router(spaces_router)
 # 일정은 경로가 두 갈래다. /spaces/{space_id}/schedules 는 spaces_router 뒤에 등록해야
 # /spaces/join 같은 고정 경로가 {space_id}로 먼저 잡히지 않는다.

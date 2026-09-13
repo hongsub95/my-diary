@@ -3,6 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
+import { LEGAL_DOCUMENTS } from '@/features/legal/legal-api';
 import { colors, getPalette, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemeContext, useThemedStyles } from '@/shared/theme-context';
 
@@ -13,6 +14,8 @@ type MoreMenuItem = {
   // 표시한다. 미구현 항목을 눌러 빈 화면이나 오류를 보여주지 않기 위한 장치다
   // (docs/BOTTOM_NAVIGATION_SPEC.md 7절). 화면이 준비되면 href만 채우면 된다.
   href?: '/more/profile' | '/more/password' | '/more/theme';
+  // 약관은 문서 코드로 갈라 쓰는 동적 경로라 href와 따로 둔다.
+  legalCode?: string;
   // 소셜 로그인 계정에는 감춰야 하는 항목(같은 문서 6.5절).
   emailAccountOnly?: boolean;
 };
@@ -37,8 +40,8 @@ const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
   {
     title: '서비스 정보',
     items: [
-      { key: 'privacy', label: '개인정보 처리방침' },
-      { key: 'terms', label: '서비스 이용약관' },
+      { key: 'privacy', label: '개인정보 처리방침', legalCode: LEGAL_DOCUMENTS.privacy },
+      { key: 'terms', label: '서비스 이용약관', legalCode: LEGAL_DOCUMENTS.terms },
     ],
   },
 ];
@@ -86,17 +89,23 @@ export default function MoreScreen() {
                 {items.map((item, index) => (
                   <View key={item.key}>
                     <Pressable
-                      disabled={!item.href}
-                      onPress={item.href ? () => router.push(item.href!) : undefined}
+                      disabled={!item.href && !item.legalCode}
+                      onPress={
+                        item.legalCode
+                          ? () => router.push({ pathname: '/more/legal/[code]', params: { code: item.legalCode! } })
+                          : item.href
+                            ? () => router.push(item.href!)
+                            : undefined
+                      }
                       style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-                      <Text style={[styles.rowLabel, !item.href && styles.rowLabelMuted]}>{item.label}</Text>
+                      <Text style={[styles.rowLabel, !item.href && !item.legalCode && styles.rowLabelMuted]}>{item.label}</Text>
                       {item.key === 'theme' ? (
                         <View style={styles.rowValue}>
                           <View style={[styles.rowSwatch, { backgroundColor: getPalette(activeKey).primary }]} />
                           <Text style={styles.rowValueText}>{getPalette(activeKey).label}</Text>
                         </View>
                       ) : null}
-                      {item.href ? (
+                      {item.href || item.legalCode ? (
                         <Text style={styles.rowArrow}>›</Text>
                       ) : (
                         <Text style={styles.badge}>준비 중</Text>

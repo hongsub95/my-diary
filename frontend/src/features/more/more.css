@@ -446,3 +446,101 @@
   border-radius: var(--radius-full);
   border: 1px solid rgba(0, 0, 0, 0.08);
 }
+
+/* ── 약관 본문 ─────────────────────────────────────── */
+
+.legal {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  padding: 20px 16px;
+}
+
+.legal__updated {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.legal__heading--main {
+  margin-top: 12px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.legal__heading--sub {
+  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.legal__paragraph {
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--color-text-primary);
+}
+
+/* 불릿을 list-style 대신 직접 그린다. 항목마다 블록이 따로 오기 때문에
+   ul로 묶으려면 화면이 다시 그룹을 만들어야 한다. */
+.legal__bullet {
+  display: flex;
+  gap: 8px;
+  padding-left: 4px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: var(--color-text-primary);
+}
+
+.legal__bullet > span {
+  color: var(--color-text-secondary);
+}
+
+/* 꼭 읽어야 하는 주의사항. 본문과 같은 모양이면 그냥 지나친다. */
+.legal__callout {
+  background: var(--color-bg);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  padding: 12px 14px;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--color-text-primary);
+}
+
+/* 표만 따로 스크롤시킨다. 페이지 전체가 가로로 밀리면 본문을 읽기 어려워진다. */
+.legal__table-scroll {
+  overflow-x: auto;
+}
+
+.legal__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.legal__table th,
+.legal__table td {
+  border: 1px solid var(--color-border-light);
+  padding: 8px 10px;
+  text-align: left;
+  line-height: 1.6;
+  vertical-align: top;
+}
+
+.legal__table th {
+  background: var(--color-bg);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.legal__error {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+}
