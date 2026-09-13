@@ -6,6 +6,7 @@ import { Calendar, DateData } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
+import { KakaoMap } from '@/features/places/kakao-map';
 import { PlacePicker } from '@/features/places/place-picker';
 import {
   addSchedulePlace,
@@ -16,6 +17,7 @@ import { getApiError } from '@/shared/api/api-error';
 import { colors, spacing, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
+import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -51,6 +53,7 @@ export default function NewScheduleScreen() {
   const [places, setPlaces] = useState<DraftPlace[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
 
   function validateBasics() {
     if (!title.trim()) return '하루의 이름을 입력해 주세요.';
@@ -64,7 +67,8 @@ export default function NewScheduleScreen() {
 
   function moveNext() {
     const validation = validateBasics();
-    if (validation) return setError(validation);
+    if (validation) { setError(null); showSnackbar(validation); return; }
+    dismissSnackbar();
     setError(null);
     setStep(2);
   }
@@ -77,7 +81,8 @@ export default function NewScheduleScreen() {
 
   async function handleSubmit() {
     const validation = validateBasics();
-    if (validation) return setError(validation);
+    if (validation) { setError(null); showSnackbar(validation); return; }
+    dismissSnackbar();
     setSubmitting(true);
     setError(null);
     try {
@@ -149,14 +154,29 @@ export default function NewScheduleScreen() {
             <>
               <Text style={styles.eyebrow}>STEP 2 · 갈 곳 정하기</Text>
               <Text style={styles.title}>이 하루에{"\n"}어디를 담아볼까요?</Text>
-              <Text style={styles.description}>장소를 고른 순서가 그날의 흐름이 됩니다.</Text>
 
               {/* 일정 상세와 같은 패널을 쓴다. 담는 곳만 다르다 — 여기서는 저장 전
                   목록에 쌓고, 상세에서는 서버에 바로 담는다. */}
-              <PlacePicker onPick={addPlace} busy={submitting} initialCenter={(() => {
-                const last = [...places].reverse().find(item => item.place.latitude != null && item.place.longitude != null)?.place;
-                return last ? { latitude: Number(last.latitude), longitude: Number(last.longitude) } : undefined;
-              })()} />
+              <View style={styles.placePickerSection}>
+                <PlacePicker onPick={addPlace} busy={submitting} initialCenter={(() => {
+                  const last = [...places].reverse().find(item => item.place.latitude != null && item.place.longitude != null)?.place;
+                  return last ? { latitude: Number(last.latitude), longitude: Number(last.longitude) } : undefined;
+                })()} />
+              </View>
+
+              {/* 목록 위에 지도를 둔다. 마커 번호가 아래 순번과 같아서 "몇 번째로
+                  어디를 가는지"를 지도에서 바로 읽을 수 있다. 일정 상세와 같은 구성이다.
+                  저장 전 초안이라 서버 id가 없으므로 화면이 매긴 임시 id를 넘긴다. */}
+              {places.length ? (
+                <KakaoMap
+                  places={places.map((item) => ({
+                    id: String(item.id),
+                    name: item.place.name,
+                    latitude: item.place.latitude ?? null,
+                    longitude: item.place.longitude ?? null,
+                  }))}
+                />
+              ) : null}
 
               <View style={styles.placeList}>
                 {places.length ? places.map((place, index) => (
@@ -192,6 +212,7 @@ export default function NewScheduleScreen() {
           startDate={startDate}
           target={calendarTarget}
         />
+        <Snackbar notice={notice} onDismiss={dismissSnackbar} />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -317,6 +338,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   title: { color: colors.text, fontFamily: 'serif', fontSize: 32, fontWeight: '800', lineHeight: 40, marginTop: 9 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 7 },
   form: { gap: 15, marginTop: 25 },
+  placePickerSection: { marginTop: 24 },
   field: { gap: 7 },
   label: { color: colors.text, fontSize: 11, fontWeight: '800' },
   requiredMark: { color: palette.primary },
