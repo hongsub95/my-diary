@@ -3,6 +3,12 @@
   background: var(--color-bg);
 }
 
+.all-menu-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.all-menu-item { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 22px 8px; min-height: 100px; border: 1px solid var(--color-border-light); border-radius: 18px; background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; }
+.all-menu-item > span { font-size: 26px; color: var(--color-primary); }
+.all-menu-item strong { font-size: 14px; }
+.all-menu-item:hover { background: var(--color-primary-light); }
+
 .more-page__header {
   padding: 48px 16px 16px;
   background: var(--color-surface);

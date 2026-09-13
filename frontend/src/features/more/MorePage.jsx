@@ -8,6 +8,9 @@ import { useAuth } from '../../shared/contexts/AuthContext'
 import { getPalette } from '../../shared/theme/palettes'
 import { LEGAL_DOCUMENTS } from '../../shared/api/legal'
 import './more.css'
+import { useMenus } from '../../shared/api/queries'
+import { buildAllMenus } from '../../shared/navigation/allMenus'
+import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 
 // 더보기 안의 항목은 동작이 제각각이라 DB로 관리하지 않고 여기서 관리한다
 // (docs/BOTTOM_NAVIGATION_SPEC.md 8.1절). 그룹 구성은 같은 문서 6.5절을 따른다.
@@ -36,8 +39,8 @@ const MENU_GROUPS = [
   {
     title: '서비스 정보',
     items: [
-      { key: 'privacy', label: '개인정보 처리방침', to: `/more/legal/${LEGAL_DOCUMENTS.privacy}` },
-      { key: 'terms', label: '서비스 이용약관', to: `/more/legal/${LEGAL_DOCUMENTS.terms}` },
+      { key: 'privacy', label: '개인정보 처리방침', to: `/legal/${LEGAL_DOCUMENTS.privacy}` },
+      { key: 'terms', label: '서비스 이용약관', to: `/legal/${LEGAL_DOCUMENTS.terms}` },
     ],
   },
 ]
@@ -51,6 +54,11 @@ export default function MorePage() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const menuQuery = useMenus()
+  const { notice: menuNotice, showSnackbar, dismissSnackbar } = useSnackbar()
+  useEffect(() => {
+    if (menuQuery.error) showSnackbar('메뉴를 불러오지 못했어요. 다시 시도해 주세요.')
+  }, [menuQuery.error, showSnackbar])
 
   // 하위 화면이 끝나고 돌아오면서 남긴 한 줄. 비밀번호 변경처럼 화면에 흔적이 남지
   // 않는 작업은 돌아온 자리에서 말해주지 않으면 됐는지 알 수 없다.
@@ -93,6 +101,19 @@ export default function MorePage() {
             <p className="more-profile__name">{user?.nickname}</p>
             <p className="more-profile__email">{user?.email}</p>
           </div>
+        </section>
+
+        <section className="more-group" aria-labelledby="all-menu-title">
+          <h2 id="all-menu-title" className="more-group__title">전체 메뉴</h2>
+          <div className="all-menu-grid">
+            {buildAllMenus(menuQuery.data ?? []).map(menu => (
+              <button type="button" key={menu.code} onClick={() => navigate(menu.path)} className="all-menu-item">
+                <span aria-hidden="true">{menu.icon}</span><strong>{menu.name}</strong>
+              </button>
+            ))}
+          </div>
+          {menuQuery.isPending && <p role="status">메뉴를 불러오고 있어요.</p>}
+          {menuQuery.isError && <button type="button" onClick={() => menuQuery.refetch()}>메뉴 다시 불러오기</button>}
         </section>
 
         {MENU_GROUPS.map((group) => {
@@ -153,6 +174,7 @@ export default function MorePage() {
           </button>
         </section>
       </div>
+      <Snackbar notice={menuNotice} onDismiss={dismissSnackbar} />
     </div>
   )
 }
