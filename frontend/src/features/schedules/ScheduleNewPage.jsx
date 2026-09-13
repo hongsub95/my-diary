@@ -4,6 +4,7 @@ import { Icon } from '../../shared/components/Icon'
 import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
 import { useCreateSchedule } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
+import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 import './schedules.css'
 
 const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
@@ -37,6 +38,7 @@ export default function ScheduleNewPage() {
   const navigate = useNavigate()
   const createSchedule = useCreateSchedule()
   const [error, setError] = useState('')
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
   const today = serviceDateFormatter.format(new Date())
   const [form, setForm] = useState({
     title: '',
@@ -51,16 +53,32 @@ export default function ScheduleNewPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
+    if (createSchedule.isPending) return
+    setError('')
+    const invalid = !form.title.trim() ? ['하루의 이름을 입력해 주세요.', 'schedule-title']
+      : !form.start_date ? ['시작일을 선택해 주세요.', 'schedule-start-date']
+        : !form.end_date ? ['종료일을 선택해 주세요.', 'schedule-end-date']
+          : !TIME_OPTIONS.includes(form.start_time) ? ['시작 시간을 선택해 주세요.', 'schedule-start-time']
+            : !TIME_OPTIONS.includes(form.end_time) ? ['종료 시간을 선택해 주세요.', 'schedule-end-time'] : null
+    if (invalid) {
+      e.currentTarget.elements.namedItem(invalid[1])?.focus()
+      showSnackbar(invalid[0])
+      return
+    }
+    if (!Number.isFinite(Date.parse(`${form.start_date}T${form.start_time}:00+09:00`)) || !Number.isFinite(Date.parse(`${form.end_date}T${form.end_time}:00+09:00`))) {
+      showSnackbar('시작일과 종료일을 확인해 주세요.')
+      return
+    }
 
     const startAt = toUtcIso(form.start_date, form.start_time)
     const endAt = toUtcIso(form.end_date, form.end_time)
     // 서버도 같은 규칙으로 막지만(422), 화면에서 먼저 걸러 왕복을 줄인다.
     if (endAt <= startAt) {
-      setError('종료 날짜와 시간은 시작보다 뒤여야 합니다.')
+      showSnackbar('종료 날짜와 시간은 시작보다 뒤여야 합니다.')
       return
     }
 
-    setError('')
+    dismissSnackbar()
     try {
       const created = await createSchedule.mutateAsync({
         title: form.title.trim(),
@@ -86,7 +104,7 @@ export default function ScheduleNewPage() {
         <h1 className="snew-header__title">새 일정</h1>
       </div>
 
-      <form onSubmit={handleSubmit} className="snew-form">
+      <form onSubmit={handleSubmit} className="snew-form" noValidate>
         <div className="snew-form__intro">
           <span className="snew-form__eyebrow">NEW PLAN</span>
           <h2>어떤 하루를 보내고 싶나요?</h2>
@@ -207,6 +225,7 @@ export default function ScheduleNewPage() {
           {createSchedule.isPending ? '저장 중…' : '갈 곳 정하기 →'}
         </button>
       </form>
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </div>
   )
 }

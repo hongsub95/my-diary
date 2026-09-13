@@ -5,6 +5,7 @@ import mapPinRaw from '../../assets/icons/map-pin.svg?raw'
 import { useSchedule, useSchedulePlaceMutations } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import PlacePicker from './PlacePicker'
+import KakaoMap from '../../shared/map/KakaoMap'
 import './schedules.css'
 
 /**
@@ -50,8 +51,9 @@ export default function SchedulePlanPage() {
       </header>
 
       <div className="splan-page__body">
-        {/* 검색과 직접 입력을 함께 둔다. 지도 공급자가 아직 mock이라 검색만으로는
-            실제로 쓸 수 없고, 붙은 뒤에도 검색에 안 나오는 장소가 있다. */}
+        {/* 검색과 직접 입력을 함께 둔다. 검색에 안 나오는 장소는 직접 넣어야 한다.
+            이미 담은 장소가 있으면 마지막 장소를 지도 중심으로 넘겨, 다음 장소를
+            그 근처에서 찾게 한다. */}
         <PlacePicker mutation={add} initialCenter={(() => {
           const last = [...places].reverse().find(place => place.latitude != null && place.longitude != null)
           return last ? { latitude: Number(last.latitude), longitude: Number(last.longitude) } : undefined
@@ -65,32 +67,38 @@ export default function SchedulePlanPage() {
           {places.length === 0 ? (
             <p className="splan-picked__empty">아직 담은 장소가 없어요.</p>
           ) : (
-            <ol className="splan-picked__list">
-              {places.map((place, index) => (
-                <li key={place.id} className="splan-picked__item">
-                  {/* 화면에는 방문 차례를 1부터 보여준다. sort_order는 0부터 시작하는 내부 값이다. */}
-                  <span className="splan-picked__order">{index + 1}</span>
-                  <span className="splan-picked__info">
-                    <strong>{place.name}</strong>
-                    {place.address && <em>{place.address}</em>}
-                  </span>
-                  <button
-                    type="button"
-                    className="splan-picked__remove"
-                    onClick={() => handleRemove(place.id)}
-                    disabled={remove.isPending}
-                    aria-label={`${place.name} 빼기`}
-                  >
-                    ×
-                  </button>
-                </li>
-              ))}
-            </ol>
+            <>
+              {/* 목록 위에 지도를 둔다. 마커 번호가 아래 순번과 같아서 "몇 번째로
+                  어디를 가는지"를 지도에서 바로 읽을 수 있다. 일정 상세와 같은 구성이다. */}
+              <KakaoMap places={places} />
+
+              <ol className="splan-picked__list">
+                {places.map((place, index) => (
+                  <li key={place.id} className="splan-picked__item">
+                    {/* 화면에는 방문 차례를 1부터 보여준다. sort_order는 0부터 시작하는 내부 값이다. */}
+                    <span className="splan-picked__order">{index + 1}</span>
+                    <span className="splan-picked__info">
+                      <strong>{place.name}</strong>
+                      {place.address && <em>{place.address}</em>}
+                    </span>
+                    <button
+                      type="button"
+                      className="splan-picked__remove"
+                      onClick={() => handleRemove(place.id)}
+                      disabled={remove.isPending}
+                      aria-label={`${place.name} 빼기`}
+                    >
+                      ×
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </>
           )}
         </section>
 
-        {/* 지도는 공급자 연동 전까지 자리를 비워둔다. 가짜 지도를 그리면 실제 위치로
-            오해할 수 있어, 담은 장소를 순서대로 보여주는 것으로 대신한다. */}
+        {/* 지도와 별개로 이름만 이어 붙인 한 줄도 남긴다. 좌표가 없어 지도에 못 찍는
+            장소(직접 입력)도 여기에는 순서대로 보이기 때문이다. */}
         {places.length > 0 && (
           <p className="splan-page__flow">
             <Icon raw={mapPinRaw} size={13} />
