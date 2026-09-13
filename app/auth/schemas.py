@@ -74,6 +74,15 @@ def validate_password_rules(value: str) -> str:
     return value
 
 
+# 동의를 안 했을 때 화면에 띄울 문구. 어느 항목이 빠졌는지 바로 알 수 있어야
+# 사용자가 고칠 수 있다.
+_CONSENT_MESSAGES = {
+    "agreed_terms": "서비스 이용약관에 동의해 주세요.",
+    "agreed_privacy": "개인정보 처리방침에 동의해 주세요.",
+    "is_over_14": "만 14세 이상만 가입할 수 있습니다.",
+}
+
+
 class RegisterRequest(BaseModel):
     """회원가입 요청 본문."""
 
@@ -87,6 +96,27 @@ class RegisterRequest(BaseModel):
     password: str = Field(
         description=f"{MIN_PASSWORD_LENGTH}자 이상이며 영문, 숫자, 특수문자를 각각 1개 이상 포함",
     )
+
+    # 동의 값은 모두 True여야 가입된다. 기본값을 두지 않는 이유: 안 보내면 동의한
+    # 것으로 처리되는 길이 생기면 안 된다. 받지 않았으면 422로 거절해야 한다.
+    agreed_terms: bool = Field(description="서비스 이용약관 동의. True여야 한다")
+    agreed_privacy: bool = Field(description="개인정보 처리방침 동의. True여야 한다")
+    is_over_14: bool = Field(description="만 14세 이상 확인. True여야 한다")
+
+    @field_validator("agreed_terms", "agreed_privacy", "is_over_14")
+    @classmethod
+    def validate_required_consent(cls, value: bool, info) -> bool:
+        """필수 동의를 확인한다.
+
+        :param value: 화면에서 체크한 값
+        :raises ValueError: 체크하지 않았을 때. 문구는 화면에 그대로 노출된다
+
+        셋 다 선택이 아니라 가입 조건이다. 「개인정보 보호법」상 필수 동의이고, 만 14세
+        확인은 서비스 이용약관 제4조가 정한 가입 자격이다.
+        """
+        if not value:
+            raise ValueError(_CONSENT_MESSAGES[info.field_name])
+        return value
 
     @field_validator("password")
     @classmethod

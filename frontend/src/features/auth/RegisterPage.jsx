@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { LEGAL_DOCUMENTS } from '../../shared/api/legal'
 import { useAuth } from '../../shared/contexts/AuthContext'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import './auth.css'
@@ -19,6 +20,9 @@ export default function RegisterPage() {
   const { register } = useAuth()
   const navigate = useNavigate()
   const [form, setForm] = useState({ nickname: '', email: '', password: '', confirm: '' })
+  // 동의는 셋 다 필수다. 서버도 같은 규칙으로 막지만(app/auth/schemas.py) 화면에서
+  // 먼저 걸러 왕복을 줄인다.
+  const [consent, setConsent] = useState({ terms: false, privacy: false, age: false })
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
@@ -37,6 +41,10 @@ export default function RegisterPage() {
       setError('비밀번호가 일치하지 않아요.')
       return
     }
+    if (!allAgreed) {
+      setError('필수 항목에 모두 동의해 주세요.')
+      return
+    }
 
     setError('')
     setSubmitting(true)
@@ -46,6 +54,7 @@ export default function RegisterPage() {
         email: form.email.trim(),
         nickname: form.nickname.trim(),
         password: form.password,
+        consent,
       })
       navigate('/', { replace: true })
     } catch (caught) {
@@ -56,6 +65,8 @@ export default function RegisterPage() {
   }
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
+  const toggle = (key) => setConsent((c) => ({ ...c, [key]: !c[key] }))
+  const allAgreed = consent.terms && consent.privacy && consent.age
 
   return (
     <div className="auth-page">
@@ -114,8 +125,45 @@ export default function RegisterPage() {
             placeholder="비밀번호 다시 입력"
           />
         </div>
+        {/* 약관은 새 창으로 연다. 가입 도중 같은 창에서 나가면 입력한 값이 사라진다. */}
+        <fieldset className="auth-consent">
+          <legend className="auth-consent__legend">필수 동의</legend>
+
+          <label className="auth-consent__item">
+            <input type="checkbox" checked={consent.age} onChange={() => toggle('age')} />
+            <span>만 14세 이상입니다</span>
+          </label>
+
+          <label className="auth-consent__item">
+            <input type="checkbox" checked={consent.terms} onChange={() => toggle('terms')} />
+            <span>
+              <Link to={`/legal/${LEGAL_DOCUMENTS.terms}`} target="_blank" className="auth-page__link">
+                서비스 이용약관
+              </Link>
+              에 동의합니다
+            </span>
+          </label>
+
+          <label className="auth-consent__item">
+            <input type="checkbox" checked={consent.privacy} onChange={() => toggle('privacy')} />
+            <span>
+              <Link to={`/legal/${LEGAL_DOCUMENTS.privacy}`} target="_blank" className="auth-page__link">
+                개인정보 처리방침
+              </Link>
+              에 동의합니다
+            </span>
+          </label>
+
+          {/* 탈퇴해도 함께 쓴 기록이 남는 것은 가입 전에 알아야 하는 내용이다
+              (app/legal/documents/terms-of-service.md 제7조). */}
+          <p className="auth-consent__notice">
+            함께 쓰는 공간에 올린 사진과 일기는 그 공간의 구성원이 볼 수 있고,
+            탈퇴해도 공간에 남습니다.
+          </p>
+        </fieldset>
+
         {error && <p className="auth-form__error" role="alert">{error}</p>}
-        <button type="submit" className="auth-form__submit" disabled={submitting}>
+        <button type="submit" className="auth-form__submit" disabled={submitting || !allAgreed}>
           {submitting ? '가입 중…' : '가입하기'}
         </button>
       </form>

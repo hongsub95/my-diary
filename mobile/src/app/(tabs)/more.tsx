@@ -1,4 +1,5 @@
 import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -6,6 +7,9 @@ import { useAuth } from '@/features/auth/auth-context';
 import { LEGAL_DOCUMENTS } from '@/features/legal/legal-api';
 import { colors, getPalette, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemeContext, useThemedStyles } from '@/shared/theme-context';
+import { useNavigableMenus } from '@/features/menus/menu-api';
+import { buildAllMenus } from '@/features/menus/all-menus';
+import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 
 type MoreMenuItem = {
   key: string;
@@ -55,6 +59,11 @@ export default function MoreScreen() {
   const { logout, user } = useAuth();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
+  const menuQuery = useNavigableMenus();
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
+  useEffect(() => {
+    if (menuQuery.error) showSnackbar('메뉴를 불러오지 못했어요. 다시 시도해 주세요.');
+  }, [menuQuery.error, showSnackbar]);
   // 들어가 보지 않아도 지금 어떤 색인지 알 수 있어야 한다 (docs/DESIGN_SPEC.md 3절).
   const { activeKey } = useThemeContext();
 
@@ -76,6 +85,20 @@ export default function MoreScreen() {
             <Text style={styles.nickname}>{user?.nickname}</Text>
             <Text style={styles.email}>{user?.email}</Text>
           </View>
+        </View>
+
+        <View style={styles.group}>
+          <Text style={styles.groupTitle}>전체 메뉴</Text>
+          <View style={styles.menuGrid}>
+            {buildAllMenus(menuQuery.data ?? []).map(menu => (
+              <Pressable accessibilityRole="button" key={menu.code} onPress={() => router.navigate(menu.href)} style={({ pressed }) => [styles.menuTile, pressed && styles.pressed]}>
+                <Text style={styles.menuIcon} accessible={false}>{menu.icon}</Text>
+                <Text style={styles.menuLabel}>{menu.name}</Text>
+              </Pressable>
+            ))}
+          </View>
+          {menuQuery.isPending && <Text style={styles.rowValueText}>메뉴를 불러오고 있어요.</Text>}
+          {menuQuery.isError && <Pressable accessibilityRole="button" onPress={() => menuQuery.refetch()} style={styles.row}><Text>메뉴 다시 불러오기</Text></Pressable>}
         </View>
 
         {MENU_GROUPS.map((group) => {
@@ -135,12 +158,17 @@ export default function MoreScreen() {
           </Pressable>
         </View>
       </ScrollView>
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
   );
 }
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
+  menuGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  menuTile: { width: '31%', flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 12, minHeight: 100, padding: 12, borderRadius: 18, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
+  menuIcon: { color: palette.primary, fontSize: 26 },
+  menuLabel: { color: colors.text, fontSize: 14, fontWeight: '700' },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
   title: { color: colors.text, fontSize: 28, fontWeight: '800', marginBottom: spacing.xl },
   profile: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, flexDirection: 'row', padding: spacing.lg },

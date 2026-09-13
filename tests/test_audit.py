@@ -14,6 +14,10 @@ PAYLOAD = {
     "email": "audit@example.com",
     "nickname": "감사테스트",
     "password": "Password1234!",
+    # 가입 조건이라 셋 다 True여야 통과한다 (app/auth/schemas.py).
+    "agreed_terms": True,
+    "agreed_privacy": True,
+    "is_over_14": True,
 }
 
 

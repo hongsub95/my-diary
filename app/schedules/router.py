@@ -10,7 +10,7 @@
 """
 
 from datetime import date
-from typing import Annotated
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, Query, Request, status
 
@@ -23,6 +23,7 @@ from app.schedules.schemas import (
     SCHEDULE_STATUSES,
     ScheduleCreateRequest,
     ScheduleListResponse,
+    CollectionResponse,
     ScheduleResponse,
     ScheduleUpdateRequest,
 )
@@ -47,6 +48,21 @@ IncludeQuery = Annotated[
         ),
     ),
 ]
+
+
+@space_schedules_router.get("/collection", response_model=CollectionResponse)
+def get_collection(
+    context: MemberContext,
+    db: DbSession,
+    kind: Literal["schedules", "records"] = "schedules",
+    q: Annotated[str, Query(max_length=100)] = "",
+    from_date: Annotated[date | None, Query(alias="from")] = None,
+    to_date: Annotated[date | None, Query(alias="to")] = None,
+    cursor: Annotated[str | None, Query(max_length=200)] = None,
+    limit: Annotated[int, Query(ge=1, le=50)] = 24,
+) -> CollectionResponse:
+    """모아보기. 생략한 날짜 경계는 제한하지 않고 일정 시작일 최신순으로 조회한다."""
+    return service.list_collection(db, context.space, kind, q, from_date, to_date, cursor, limit)
 
 StatusQuery = Annotated[
     str | None,

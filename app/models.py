@@ -13,6 +13,7 @@ Schedule을 import할 이유가 없어 "failed to locate a name ('Schedule')" �
 
 from app.audit.models import AuditLog
 from app.diaries.models import DiaryEntry, DiaryPhoto
+from app.legal.models import UserConsent
 from app.menus.models import Menu
 from app.places.models import Place, SchedulePlace
 from app.schedules.models import Schedule, ScheduleParticipant, ShareLink
@@ -32,4 +33,5 @@ __all__ = [
     "Space",
     "SpaceMember",
     "User",
+    "UserConsent",
 ]

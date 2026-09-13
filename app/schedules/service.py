@@ -8,13 +8,13 @@
 from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, tuple_
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.core.config import get_settings
 from app.diaries.models import DiaryEntry, DiaryPhoto, DiaryTimelineItem
 from app.places import service as places_service
-from app.places.models import SchedulePlace
+from app.places.models import Place, SchedulePlace
 from app.places.schemas import SchedulePlaceResponse
 from app.schedules.errors import (
     InvalidDateRangeError,
@@ -28,12 +28,67 @@ from app.schedules.schemas import (
     DiaryRecordSummaryResponse,
     ScheduleAuthorResponse,
     ScheduleResponse,
+    CollectionResponse,
 )
 from app.schedules.models import Schedule
 from app.spaces.models import SPACE_ROLE_OWNER, Space, SpaceMember
 from app.users.models import User
 
 settings = get_settings()
+
+
+def list_collection(
+    db: Session, space: Space, kind: str, query: str,
+    from_date: date | None, to_date: date | None, cursor: str | None, limit: int,
+) -> CollectionResponse:
+    """날짜·검색 조건을 먼저 적용한 뒤 커서로 그리드 한 페이지를 읽는다."""
+    from app.diaries.feed_service import (
+        _has_content_condition, _past_or_completed_condition, decode_cursor, encode_cursor,
+    )
+    from app.diaries.errors import InvalidDiaryCursorError
+
+    if from_date and to_date and from_date > to_date:
+        raise InvalidDateRangeError()
+    conditions = [Schedule.space_id == space.id]
+    if kind == "records":
+        conditions.extend([*_past_or_completed_condition(), _has_content_condition()])
+    tz = _service_timezone()
+    if from_date:
+        conditions.append(Schedule.start_at >= datetime.combine(from_date, time.min, tzinfo=tz))
+    if to_date:
+        # 날짜 최댓값에서도 다음 날 계산이 넘치지 않게 해당 날짜의 끝으로 비교한다.
+        conditions.append(Schedule.start_at <= datetime.combine(to_date, time.max, tzinfo=tz))
+    query = query.strip()
+    if query:
+        matches = [
+            Schedule.title.icontains(query, autoescape=True),
+            Schedule.description.icontains(query, autoescape=True),
+            select(SchedulePlace.id).join(Place, SchedulePlace.place_id == Place.id)
+            .where(SchedulePlace.schedule_id == Schedule.id,
+                   Place.name.icontains(query, autoescape=True)).exists(),
+        ]
+        if kind == "records":
+            matches.append(select(DiaryEntry.id).where(
+                DiaryEntry.schedule_id == Schedule.id,
+                DiaryEntry.content.icontains(query, autoescape=True),
+            ).exists())
+        conditions.append(or_(*matches))
+    if cursor:
+        cursor_at, cursor_id = decode_cursor(cursor)
+        if cursor_at.tzinfo is None or cursor_id < 1:
+            raise InvalidDiaryCursorError()
+        conditions.append(tuple_(Schedule.start_at, Schedule.id) < tuple_(cursor_at, cursor_id))
+    rows = db.execute(
+        select(Schedule, _place_count_column(), *_SUMMARY_COLUMNS)
+        .options(joinedload(Schedule.space), joinedload(Schedule.created_by_user))
+        .where(*conditions).order_by(Schedule.start_at.desc(), Schedule.id.desc()).limit(limit + 1)
+    ).all()
+    page = rows[:limit]
+    return CollectionResponse(
+        items=[to_response(row[0], row[1], row[2:]) for row in page],
+        next_cursor=encode_cursor(page[-1][0].start_at, page[-1][0].id)
+        if len(rows) > limit else None,
+    )
 
 
 def _service_timezone() -> ZoneInfo:

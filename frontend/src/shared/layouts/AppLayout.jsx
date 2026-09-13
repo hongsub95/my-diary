@@ -4,7 +4,7 @@ import './AppLayout.css'
 
 export default function AppLayout() {
   const { pathname } = useLocation()
-  const isWideLayout = pathname === '/home'
+  const isWideLayout = pathname === '/home' || pathname === '/more/collection'
 
   return (
     <div className={`app-layout${isWideLayout ? ' app-layout--wide' : ''}`}>

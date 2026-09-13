@@ -150,3 +150,8 @@ class ScheduleListResponse(BaseModel):
     """
 
     items: list[ScheduleResponse]
+
+
+class CollectionResponse(BaseModel):
+    items: list[ScheduleResponse]
+    next_cursor: str | None

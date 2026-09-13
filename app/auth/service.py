@@ -20,6 +20,13 @@ from app.spaces.models import (
     Space,
     SpaceMember,
 )
+from app.legal import service as legal
+from app.legal.models import (
+    CONSENT_AGE_OVER_14,
+    CONSENT_PRIVACY,
+    CONSENT_TERMS,
+    UserConsent,
+)
 from app.users.models import USER_IN_USE, User
 
 
@@ -97,6 +104,27 @@ def get_user_by_id(db: Session, user_id: int) -> User | None:
     return user if user is not None and user.use == USER_IN_USE else None
 
 
+def _record_consents(db: Session, user_id: int) -> None:
+    """가입 시 받은 동의를 남긴다.
+
+    :param user_id: flush로 id가 확보된 사용자
+
+    **동의한 문서의 개정일을 함께 남긴다.** 약관이 바뀌면 "이 사람이 어느 판본에
+    동의했는가"를 알아야 재동의 대상을 고를 수 있다. 만 14세 확인은 문서가 아니라
+    가입 자격이라 개정일이 없다.
+
+    가입과 같은 트랜잭션에 넣는다. 사용자만 만들어지고 동의 기록이 빠지면, 동의를
+    받았는지 입증할 수 없는 계정이 생긴다.
+    """
+    revisions = {
+        CONSENT_TERMS: legal.get_document(CONSENT_TERMS).updated_at,
+        CONSENT_PRIVACY: legal.get_document(CONSENT_PRIVACY).updated_at,
+        CONSENT_AGE_OVER_14: None,
+    }
+    for code, revision in revisions.items():
+        db.add(UserConsent(user_id=user_id, code=code, document_revision=revision))
+
+
 def register_user(
     db: Session, email: str, nickname: str, password: str, request: Request | None = None
 ) -> User:
@@ -152,6 +180,10 @@ def register_user(
 
     # 사용자가 따로 지정하기 전까지는 개인 스페이스가 앱 실행 시 열리는 기본 스페이스다.
     user.default_space_id = personal_space.id
+
+    # 동의 값은 스키마(RegisterRequest)가 이미 전부 True인지 확인했다. 여기서는
+    # 받은 사실을 남기기만 한다.
+    _record_consents(db, user.id)
 
     # commit=False로 회원가입과 같은 트랜잭션에 합류시킨다. 가입이 롤백되면
     # "가입했다"는 기록도 함께 사라져야 사실과 어긋나지 않는다.

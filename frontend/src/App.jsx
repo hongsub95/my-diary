@@ -11,6 +11,7 @@ import ScheduleDetailPage from './features/schedules/ScheduleDetailPage'
 import ScheduleNewPage from './features/schedules/ScheduleNewPage'
 import SchedulePlanPage from './features/schedules/SchedulePlanPage'
 import MorePage from './features/more/MorePage'
+import CollectionPage from './features/collection/CollectionPage'
 import ProfileEditPage from './features/more/ProfileEditPage'
 import PasswordChangePage from './features/more/PasswordChangePage'
 import AccountDeletePage from './features/more/AccountDeletePage'
@@ -41,6 +42,10 @@ export default function App() {
       <Route path="/prototype" element={<PrototypeLab />} />
       <Route path="/login" element={<PublicOnlyRoute><LoginPage /></PublicOnlyRoute>} />
       <Route path="/register" element={<PublicOnlyRoute><RegisterPage /></PublicOnlyRoute>} />
+      {/* 약관은 로그인 밖에 둔다. 가입 화면의 동의 링크로 들어오는 사람은 아직 회원이
+          아니라, PrivateRoute 안에 두면 약관을 읽지 못하고 로그인으로 튕긴다.
+          문서마다 화면을 만들지 않고 코드로 갈라 쓴다 — 문서가 늘어도 경로는 그대로다. */}
+      <Route path="/legal/:code" element={<LegalPage />} />
       {/* 하루 만들기는 하단 탭 밖에 둔다. 작성 중에는 탭을 숨긴다는 요구사항
           (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 3.2절)에 따른 것이다. 탭이 보이면
           작성 도중 다른 화면으로 새어 나가 입력이 사라진다. */}
@@ -62,6 +67,7 @@ export default function App() {
         <Route path="schedules/:id" element={<ScheduleDetailPage />} />
         <Route path="records" element={<RecordsPage />} />
         <Route path="more" element={<MorePage />} />
+        <Route path="more/collection" element={<CollectionPage />} />
         {/* 더보기 하위 화면은 탭 안에 둔다. 짧은 설정 폼이라 작성 도중 빠져나갈 위험이
             적고, 탭이 남아 있어야 돌아나가는 길이 하나 더 생긴다. 탭을 숨기는 것은
             하루 만들기처럼 긴 작성 흐름에만 적용한다
@@ -70,8 +76,6 @@ export default function App() {
         <Route path="more/password" element={<PasswordChangePage />} />
         <Route path="more/theme" element={<ThemePage />} />
         <Route path="more/delete" element={<AccountDeletePage />} />
-        {/* 문서마다 화면을 만들지 않고 코드로 갈라 쓴다. 문서가 늘어도 경로만 추가하면 된다. */}
-        <Route path="more/legal/:code" element={<LegalPage />} />
         {/* 설정은 더보기로 흡수됐다. 예전 주소나 북마크로 들어와도 끊기지 않도록
             당분간 리다이렉트로 남겨둔다 (docs/BOTTOM_NAVIGATION_SPEC.md 5.1절). */}
         <Route path="settings" element={<Navigate to="/more" replace />} />

@@ -35,11 +35,21 @@ export async function webLogin({ email, password }) {
 /**
  * 회원가입한다. 가입 직후 바로 로그인 상태가 되므로 따로 로그인할 필요가 없다.
  *
- * @param {{email: string, nickname: string, password: string}} form
+ * @param {{email: string, nickname: string, password: string,
+ *   consent: {terms: boolean, privacy: boolean, age: boolean}}} form
  * @returns {Promise<object>} 가입한 사용자 정보
+ * @throws 동의 항목이 하나라도 빠지면 422. message에 어느 항목인지 담겨 온다
  */
-export async function webRegister({ email, nickname, password }) {
-  const { data } = await apiClient.post('/auth/web/register', { email, nickname, password })
+export async function webRegister({ email, nickname, password, consent }) {
+  const { data } = await apiClient.post('/auth/web/register', {
+    email,
+    nickname,
+    password,
+    // 서버가 셋 다 true인지 확인한다. 기본값을 두지 않아서, 안 보내면 422가 난다.
+    agreed_terms: consent.terms,
+    agreed_privacy: consent.privacy,
+    is_over_14: consent.age,
+  })
   return data
 }
 
