@@ -3,7 +3,7 @@
 from datetime import time
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 # 장소 출처. 모델의 CHECK 제약(ck_places_provider)과 같은 값이어야 한다.
 PROVIDER_MANUAL = "manual"
@@ -26,10 +26,16 @@ class PlaceInput(BaseModel):
 
     name: str = Field(min_length=1, max_length=200)
     address: str | None = Field(default=None, max_length=500)
-    latitude: Decimal | None = None
-    longitude: Decimal | None = None
+    latitude: Decimal | None = Field(default=None, allow_inf_nan=False)
+    longitude: Decimal | None = Field(default=None, allow_inf_nan=False)
     provider: str = Field(default=PROVIDER_MANUAL, pattern=f"^({'|'.join(PROVIDERS)})$")
     provider_place_id: str | None = Field(default=None, max_length=200)
+
+    @model_validator(mode="after")
+    def validate_coordinate_pair(self) -> "PlaceInput":
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("위도와 경도는 함께 입력해야 합니다.")
+        return self
 
     @field_validator("name")
     @classmethod
@@ -55,7 +61,16 @@ class PlaceInput(BaseModel):
         return value
 
 
-class SchedulePlaceCreateRequest(PlaceInput):
+class AddressDetailInput(BaseModel):
+    address_detail: str | None = Field(default=None, max_length=200)
+
+    @field_validator("address_detail")
+    @classmethod
+    def normalize_address_detail(cls, value: str | None) -> str | None:
+        return value.strip() or None if value is not None else None
+
+
+class SchedulePlaceCreateRequest(PlaceInput, AddressDetailInput):
     """일정에 장소를 추가하는 요청.
 
     장소 정보(PlaceInput)에 이 일정에서만 의미 있는 값들을 더한다.
@@ -67,7 +82,7 @@ class SchedulePlaceCreateRequest(PlaceInput):
     memo: str | None = None
 
 
-class SchedulePlaceUpdateRequest(BaseModel):
+class SchedulePlaceUpdateRequest(AddressDetailInput):
     """일정 속 장소의 메모·예정시각·방문여부 수정. 보낸 필드만 변경된다.
 
     장소 자체(이름, 좌표)는 여기서 바꾸지 않는다. 같은 Place를 다른 일정도 참조하고
@@ -116,6 +131,7 @@ class SchedulePlaceResponse(BaseModel):
     planned_time: time | None
     memo: str | None
     visited: bool
+    address_detail: str | None = None
 
 
 class SchedulePlaceListResponse(BaseModel):

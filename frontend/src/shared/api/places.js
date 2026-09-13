@@ -20,6 +20,23 @@ export async function searchPlaces(query) {
   return data
 }
 
+export async function searchMapPlaces(query) {
+  const [places, addresses] = await Promise.allSettled([
+    searchPlaces(query), apiClient.get('/places/geocode', { params: { query } }),
+  ])
+  if (places.status === 'rejected' && addresses.status === 'rejected') throw places.reason
+  if (places.status === 'fulfilled' && places.value.provider === 'mock' && addresses.status === 'rejected') throw addresses.reason
+  return { provider: 'kakao', items: [
+    ...(places.status === 'fulfilled' && places.value.provider !== 'mock' ? places.value.items : []),
+    ...(addresses.status === 'fulfilled' ? addresses.value.data.items.map(item => ({ ...item, name: item.address, provider: 'manual', provider_place_id: null })) : []),
+  ] }
+}
+
+export async function reverseAddress(point) {
+  const { data } = await apiClient.get('/places/reverse-geocode', { params: point })
+  return data.address
+}
+
 /**
  * 일정에 장소를 추가한다. 항상 맨 뒤에 붙는다.
  *
@@ -32,6 +49,7 @@ export async function addSchedulePlace({ scheduleId, place, memo }) {
   const { data } = await apiClient.post(`/schedules/${scheduleId}/places`, {
     name: place.name,
     address: place.address || null,
+    address_detail: place.address_detail || null,
     latitude: place.latitude ?? null,
     longitude: place.longitude ?? null,
     // 검색 결과에서 온 값이면 출처를 함께 보내야 서버가 같은 장소를 재사용한다.

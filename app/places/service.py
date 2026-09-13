@@ -46,6 +46,7 @@ def to_response(schedule_place: SchedulePlace) -> SchedulePlaceResponse:
         planned_time=schedule_place.planned_time,
         memo=schedule_place.memo,
         visited=schedule_place.visited,
+        address_detail=schedule_place.address_detail,
     )
 
 
@@ -136,6 +137,7 @@ def add_place(
     provider_place_id: str | None,
     planned_time: time | None,
     memo: str | None,
+    address_detail: str | None = None,
 ) -> SchedulePlace:
     """일정 맨 뒤에 장소를 추가한다.
 
@@ -161,6 +163,7 @@ def add_place(
         sort_order=next_order,
         planned_time=planned_time,
         memo=memo,
+        address_detail=address_detail,
     )
     db.add(schedule_place)
     db.commit()

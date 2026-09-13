@@ -81,6 +81,7 @@ export type Place = {
 
 /** 일정에 담긴 장소 하나. id는 Place가 아니라 이 항목의 id다 (API_SPEC 6.1절). */
 export type SchedulePlace = {
+  address_detail: string | null;
   id: number;
   place: Place;
   sort_order: number;
@@ -98,7 +99,8 @@ export type DiaryRecordSummary = {
   has_diary_text: boolean;
   photo_count: number;
   timeline_count: number;
-  // 썸네일을 아직 만들지 않아 당분간 원본 URL이 온다. 화면은 이 값만 보면 된다.
+  // 썸네일 URL. 서버가 썸네일을 만들지 못한 사진이면 원본 URL이 온다.
+  // 화면은 이 값 하나만 보면 된다.
   cover_thumbnail_url: string | null;
   diary_excerpt: string | null;
 };

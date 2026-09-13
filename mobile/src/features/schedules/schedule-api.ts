@@ -87,6 +87,7 @@ export async function createSchedule(input: CreateScheduleInput): Promise<Schedu
 }
 
 export type AddSchedulePlaceInput = {
+  address_detail?: string | null;
   name: string;
   address?: string | null;
   latitude?: string | null;
@@ -111,6 +112,7 @@ export async function addSchedulePlace(
   const response = await apiClient.post<SchedulePlace>(`/schedules/${scheduleId}/places`, {
     name: input.name,
     address: input.address ?? null,
+    address_detail: input.address_detail ?? null,
     latitude: input.latitude ?? null,
     longitude: input.longitude ?? null,
     provider: input.provider ?? 'manual',

@@ -153,13 +153,16 @@ export default function NewScheduleScreen() {
 
               {/* 일정 상세와 같은 패널을 쓴다. 담는 곳만 다르다 — 여기서는 저장 전
                   목록에 쌓고, 상세에서는 서버에 바로 담는다. */}
-              <PlacePicker onPick={addPlace} />
+              <PlacePicker onPick={addPlace} busy={submitting} initialCenter={(() => {
+                const last = [...places].reverse().find(item => item.place.latitude != null && item.place.longitude != null)?.place;
+                return last ? { latitude: Number(last.latitude), longitude: Number(last.longitude) } : undefined;
+              })()} />
 
               <View style={styles.placeList}>
                 {places.length ? places.map((place, index) => (
                   <View key={place.id} style={styles.placeRow}>
                     <View style={styles.placeNumber}><Text style={styles.placeNumberText}>{index + 1}</Text></View>
-                    <View style={styles.placeCopy}><Text style={styles.placeName}>{place.place.name}</Text><Text style={styles.placeMeta}>{place.place.address ?? '상세 주소와 시간은 나중에 추가할 수 있어요.'}</Text></View>
+                    <View style={styles.placeCopy}><Text style={styles.placeName}>{place.place.name}</Text>{place.place.address ? <Text style={styles.placeMeta}>{[place.place.address, place.place.address_detail].filter(Boolean).join(' ')}</Text> : null}</View>
                     <Pressable onPress={() => setPlaces((current) => current.filter((item) => item.id !== place.id))}><Text style={styles.remove}>×</Text></Pressable>
                   </View>
                 )) : (

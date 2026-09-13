@@ -52,7 +52,10 @@ export default function SchedulePlanPage() {
       <div className="splan-page__body">
         {/* 검색과 직접 입력을 함께 둔다. 지도 공급자가 아직 mock이라 검색만으로는
             실제로 쓸 수 없고, 붙은 뒤에도 검색에 안 나오는 장소가 있다. */}
-        <PlacePicker mutation={add} />
+        <PlacePicker mutation={add} initialCenter={(() => {
+          const last = [...places].reverse().find(place => place.latitude != null && place.longitude != null)
+          return last ? { latitude: Number(last.latitude), longitude: Number(last.longitude) } : undefined
+        })()} />
 
         {error && <p className="splan-page__error" role="alert">{error}</p>}
 

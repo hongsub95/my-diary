@@ -15,7 +15,7 @@ from typing import Annotated
 from fastapi import APIRouter, Query, status
 
 from app.auth.dependencies import CurrentUser, DbSession
-from app.places import service
+from app.places import service, geocoding
 from app.places.schemas import (
     PlaceSearchResponse,
     SchedulePlaceCreateRequest,
@@ -28,6 +28,25 @@ from app.schedules.dependencies import ScheduleMemberContext
 
 schedule_places_router = APIRouter(prefix="/schedules/{schedule_id}/places", tags=["places"])
 places_router = APIRouter(prefix="/places", tags=["places"])
+
+
+@places_router.get("/geocode", response_model=geocoding.AddressSearchResponse)
+def geocode(
+    current_user: CurrentUser,
+    query: Annotated[str, Query(min_length=1, max_length=100, pattern=r"\S")],
+) -> geocoding.AddressSearchResponse:
+    """주소 검색. 공급자 키를 클라이언트에 노출하지 않는다."""
+    return geocoding.search_addresses(query.strip())
+
+
+@places_router.get("/reverse-geocode", response_model=geocoding.ReverseAddressResponse)
+def reverse_geocode(
+    current_user: CurrentUser,
+    latitude: Annotated[float, Query(ge=-90, le=90, allow_inf_nan=False)],
+    longitude: Annotated[float, Query(ge=-180, le=180, allow_inf_nan=False)],
+) -> geocoding.ReverseAddressResponse:
+    """선택 좌표의 도로명/지번 주소를 조회한다."""
+    return geocoding.reverse_address(latitude, longitude)
 
 
 @schedule_places_router.get(
@@ -69,6 +88,7 @@ def add_place(
         provider_place_id=payload.provider_place_id,
         planned_time=payload.planned_time,
         memo=payload.memo,
+        address_detail=payload.address_detail,
     )
     return service.to_response(schedule_place)
 

@@ -41,7 +41,7 @@ function toPlaceView(item) {
     id: item.id,
     placeId: item.place.id,
     name: item.place.name,
-    address: item.place.address,
+    address: [item.place.address, item.address_detail].filter(Boolean).join(' ') || null,
     // 좌표는 정밀도 손실을 막으려고 문자열로 온다(API_SPEC 6.2). 지도에 찍을 때 숫자로 바꾼다.
     latitude: item.place.latitude,
     longitude: item.place.longitude,

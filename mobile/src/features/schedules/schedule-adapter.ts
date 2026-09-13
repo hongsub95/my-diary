@@ -49,7 +49,7 @@ function toPlaceView(item: SchedulePlace): SchedulePlaceView {
     id: item.id,
     placeId: item.place.id,
     name: item.place.name,
-    address: item.place.address,
+    address: [item.place.address, item.address_detail].filter(Boolean).join(' ') || null,
     latitude: item.place.latitude,
     longitude: item.place.longitude,
     sortOrder: item.sort_order,

@@ -30,3 +30,19 @@ export async function searchPlaces(query: string): Promise<PlaceSearchResponse> 
   });
   return response.data;
 }
+
+export async function searchMapPlaces(query: string): Promise<PlaceSearchResponse> {
+  const [places, addresses] = await Promise.allSettled([
+    searchPlaces(query),
+    apiClient.get<{ items: { address: string; latitude: string; longitude: string }[] }>('/places/geocode', { params: { query } }),
+  ]);
+  if (places.status === 'rejected' && addresses.status === 'rejected') throw places.reason;
+  if (places.status === 'fulfilled' && places.value.provider === 'mock' && addresses.status === 'rejected') throw addresses.reason;
+  const items = places.status === 'fulfilled' && places.value.provider !== 'mock' ? places.value.items : [];
+  return { provider: 'kakao', items: [...items, ...(addresses.status === 'fulfilled' ? addresses.value.data.items.map(item => ({ ...item, name: item.address, provider: 'manual', provider_place_id: null, category: null, phone: null })) : [])] };
+}
+
+export async function reverseAddress(latitude: number, longitude: number): Promise<string | null> {
+  const response = await apiClient.get<{ address: string | null }>('/places/reverse-geocode', { params: { latitude, longitude } });
+  return response.data.address;
+}

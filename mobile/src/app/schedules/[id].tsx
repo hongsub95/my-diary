@@ -142,7 +142,7 @@ export default function ScheduleDetailScreen() {
         <>
           <PlacePicker
             busy={addPlace.isPending}
-            onPick={(place) => run(() => addPlace.mutateAsync(place))}
+            onPick={(place) => addPlace.mutateAsync(place)}
           />
           <Pressable onPress={() => setPicking(false)} style={styles.closePicker}>
             <Text style={styles.action}>닫기</Text>

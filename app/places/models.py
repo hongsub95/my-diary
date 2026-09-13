@@ -46,6 +46,7 @@ class SchedulePlace(Base):
     sort_order: Mapped[int] = mapped_column(nullable=False, server_default="0")
     planned_time: Mapped[time | None] = mapped_column()
     memo: Mapped[str | None] = mapped_column(Text)
+    address_detail: Mapped[str | None] = mapped_column(String(200))
     visited: Mapped[bool] = mapped_column(nullable=False, server_default="false")
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
