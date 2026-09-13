@@ -27,6 +27,14 @@ class FileStorage(Protocol):
         """키에 해당하는 위치에 파일을 쓴다. 같은 키가 있으면 덮어쓴다."""
         ...
 
+    def read(self, key: str) -> bytes:
+        """저장된 파일을 읽는다. 없으면 FileNotFoundError.
+
+        업로드 경로에는 필요 없다. 이미 올라간 사진에서 썸네일을 만드는 백필
+        (scripts/backfill_thumbnails.py)처럼 저장된 원본을 다시 봐야 할 때 쓴다.
+        """
+        ...
+
     def delete(self, key: str) -> None:
         """파일을 지운다. 이미 없으면 조용히 넘어간다.
 
@@ -51,6 +59,9 @@ class LocalFileStorage:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(content)
 
+    def read(self, key: str) -> bytes:
+        return self._path(key).read_bytes()
+
     def delete(self, key: str) -> None:
         self._path(key).unlink(missing_ok=True)
 
@@ -58,11 +69,15 @@ class LocalFileStorage:
 class S3FileStorage:
     """AWS S3에 저장한다. 실서버용이며 아직 구현하지 않았다.
 
-    붙일 때 할 일: boto3를 requirements에 추가하고 save/delete를 put_object/delete_object로
-    구현한다. 라우터와 서비스는 이 인터페이스만 알고 있어 고칠 필요가 없다.
+    붙일 때 할 일: boto3를 requirements에 추가하고 save/read/delete를
+    put_object/get_object/delete_object로 구현한다. 라우터와 서비스는 이 인터페이스만
+    알고 있어 고칠 필요가 없다.
     """
 
     def save(self, key: str, content: bytes) -> None:
+        raise NotImplementedError("S3 저장소는 아직 구현되지 않았습니다. STORAGE_BACKEND=local을 사용하세요.")
+
+    def read(self, key: str) -> bytes:
         raise NotImplementedError("S3 저장소는 아직 구현되지 않았습니다. STORAGE_BACKEND=local을 사용하세요.")
 
     def delete(self, key: str) -> None:
@@ -83,11 +98,12 @@ def get_storage() -> FileStorage:
 def build_media_url(key: str | None) -> str | None:
     """저장 키를 클라이언트가 바로 쓸 수 있는 URL로 바꾼다.
 
-    :param key: DB에 저장된 키. 썸네일처럼 아직 없는 값이면 None
+    :param key: DB에 저장된 키. 썸네일을 만들지 못한 사진이면 None
     :return: 전체 URL. key가 None이면 None
 
-    None을 그대로 돌려주는 이유: 썸네일은 아직 생성하지 않아 항상 비어 있다. 화면은
-    thumbnail_url이 null이면 원본(file_url)을 대신 쓰기로 되어 있다.
+    None을 그대로 돌려주는 이유: 썸네일은 만들 수 없는 경우가 있다(HEIC 등,
+    app/core/images.py 참고). 화면은 thumbnail_url이 null이면 원본(file_url)을
+    대신 쓰기로 되어 있다.
     """
     if key is None:
         return None

@@ -12,6 +12,7 @@ import uuid as uuid_module
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.images import make_thumbnail, thumbnail_key_for
 from app.core.storage import get_storage
 from app.diaries.errors import (
     FileTooLargeError,
@@ -118,12 +119,22 @@ def add_photos(
 
     for index, (key, content) in enumerate(prepared):
         storage.save(key, content)
+
+        # 썸네일은 만들 수 있으면 만들고, 안 되면 넘어간다. HEIC처럼 못 읽는 형식이나
+        # 이미 충분히 작은 사진은 None이 오고, 그때는 응답이 원본 URL을 대신 담는다.
+        # 원본 저장이 끝난 뒤에 만드는 이유: 썸네일에서 무슨 일이 나도 사진 자체는
+        # 이미 안전하게 올라가 있어야 한다.
+        thumbnail_key: str | None = None
+        thumbnail = make_thumbnail(content)
+        if thumbnail is not None:
+            thumbnail_key = thumbnail_key_for(key)
+            storage.save(thumbnail_key, thumbnail)
+
         photo = DiaryPhoto(
             schedule_id=schedule.id,
             uploader_id=user.id,
             storage_key=key,
-            # 썸네일은 아직 만들지 않는다. 화면은 이 값이 비어 있으면 원본을 쓴다.
-            thumbnail_key=None,
+            thumbnail_key=thumbnail_key,
             sort_order=sort_order + index,
         )
         db.add(photo)
@@ -157,10 +168,17 @@ def delete_photo(db: Session, photo: DiaryPhoto) -> None:
     없는" 상태가 되어 화면에 깨진 이미지가 남는다. 반대 순서면 최악의 경우 주인 없는
     파일이 남을 뿐이라 사용자에게 보이지 않는다.
     """
-    key = photo.storage_key
+    keys = [photo.storage_key]
+    # 썸네일도 함께 지운다. 빠뜨리면 원본만 사라지고 주인 없는 썸네일이 쌓인다.
+    if photo.thumbnail_key:
+        keys.append(photo.thumbnail_key)
+
     db.delete(photo)
     db.commit()
-    get_storage().delete(key)
+
+    storage = get_storage()
+    for key in keys:
+        storage.delete(key)
 
 
 def list_photos(db: Session, schedule: Schedule) -> list[DiaryPhoto]:
