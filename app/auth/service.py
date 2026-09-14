@@ -4,6 +4,8 @@
 "이메일이 중복인가", "개인 스페이스를 같이 만들어야 하는가" 같은 규칙은 전부 여기 모은다.
 """
 
+from datetime import datetime, timedelta, timezone
+
 from fastapi import Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -27,7 +29,25 @@ from app.legal.models import (
     CONSENT_TERMS,
     UserConsent,
 )
-from app.users.models import USER_IN_USE, User
+from app.users.models import (
+    LOGIN_ALLOWED_STATUSES,
+    USER_IN_USE,
+    USER_STATUS_ACTIVE,
+    USER_STATUS_LOCKED,
+    User,
+)
+
+
+# 로그인 잠금 정책.
+#
+# 연속 실패가 이 횟수에 닿으면 계정이 잠기고, 잠금 시각이 지나면 다음 로그인 시도
+# 때 저절로 풀린다. 풀어주는 별도 작업을 돌리지 않아도 되게 한 구조다.
+#
+# 계정 단위로 세기 때문에, 남의 이메일로 일부러 5번 틀려 그 사람을 잠글 수 있다.
+# 잠금이 5분으로 짧아 실제 피해는 작지만, 이 한계를 알고 고른 값이다. 더 막으려면
+# IP 단위 제한을 함께 둬야 한다.
+MAX_LOGIN_ATTEMPTS = 5
+LOCKOUT_MINUTES = 5
 
 
 class EmailAlreadyExistsError(AppError):
@@ -69,6 +89,48 @@ class InvalidCredentialsError(AppError):
         )
 
 
+class AccountLockedError(AppError):
+    """연속 로그인 실패로 계정이 잠긴 경우.
+
+    로그인 실패(401)와 다른 코드를 쓴다. 비밀번호를 더 눌러봐야 소용없다는 것을
+    사용자가 알아야 하고, 클라이언트도 "다시 입력해 보세요"가 아니라 기다리라는
+    안내를 띄워야 한다.
+
+    **남은 시간을 알려준다.** 얼마나 기다려야 하는지 모르면 계속 시도하게 되고,
+    그 시도가 잠금을 연장하는지 아닌지도 알 수 없어 불안해진다.
+
+    이 문구는 "이 이메일이 존재한다"는 사실을 드러낸다. 로그인 실패를 한 문구로
+    합쳐 계정 열거를 막아둔 것과 상충하지만, 5회를 틀려야 도달하는 상태이고
+    기다리라는 안내를 못 하면 사용자가 고장으로 오해한다. 열거 비용(5회 시도)과
+    안내 가치를 견줘 안내를 택했다.
+    """
+
+    def __init__(self, minutes: int) -> None:
+        super().__init__(
+            code="ACCOUNT_LOCKED",
+            message=(
+                f"로그인 시도가 {MAX_LOGIN_ATTEMPTS}회 실패해 계정이 잠겼습니다. "
+                f"{minutes}분 뒤에 다시 시도해 주세요."
+            ),
+            status_code=status.HTTP_423_LOCKED,
+        )
+
+
+class AccountUnavailableError(AppError):
+    """휴면 등으로 로그인할 수 없는 상태인 경우.
+
+    잠금과 달리 시간이 지나도 풀리지 않는다. 해제 절차가 생기기 전까지는 문의하도록
+    안내한다.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            code="ACCOUNT_UNAVAILABLE",
+            message="사용할 수 없는 계정입니다. 고객센터로 문의해 주세요.",
+            status_code=status.HTTP_403_FORBIDDEN,
+        )
+
+
 class InvalidRefreshTokenError(AppError):
     """refresh token이 만료됐거나 위조된 경우. 클라이언트는 재로그인을 유도해야 한다."""
 
@@ -94,14 +156,25 @@ def get_user_by_email(db: Session, email: str) -> User | None:
 
 
 def get_user_by_id(db: Session, user_id: int) -> User | None:
-    """id로 사용 중인 사용자를 찾는다. 없거나 탈퇴했으면 None.
+    """id로 지금 쓸 수 있는 사용자를 찾는다. 없거나 쓸 수 없으면 None.
 
     탈퇴한 계정을 여기서 걸러야 이미 발급된 access token이 더 이상 통하지 않는다.
     JWT는 무상태라 서버가 회수할 수 없어서, 매 요청 이 조회에서 막는 것이 유일한
     차단 지점이다. 세션 쿠키 쪽은 탈퇴 시 Redis에서 지우지만 그것만 믿지 않는다.
+
+    휴면(10)도 같이 막는다. 계정을 잠재우는 목적이 "지금 쓰지 못하게" 하는 것이므로
+    이미 열려 있는 세션도 끊겨야 한다.
+
+    **잠금(11)은 막지 않는다.** 로그인 잠금은 비밀번호를 눌러보는 것을 늦추는 장치이지
+    세션을 끊는 장치가 아니다. 여기서 막으면 남의 이메일로 일부러 5번 틀리는 것만으로
+    그 사람을 쓰던 기기에서 쫓아낼 수 있다 (authenticate_user의 잠금 정책 주석 참고).
     """
     user = db.get(User, user_id)
-    return user if user is not None and user.use == USER_IN_USE else None
+    if user is None or user.use != USER_IN_USE:
+        return None
+    if user.status not in (*LOGIN_ALLOWED_STATUSES, USER_STATUS_LOCKED):
+        return None
+    return user
 
 
 def _record_consents(db: Session, user_id: int) -> None:
@@ -202,6 +275,75 @@ def register_user(
     return user
 
 
+def _lock_remaining_minutes(user: User) -> int | None:
+    """잠금이 풀리기까지 남은 분. 잠겨 있지 않으면 None.
+
+    올림해서 돌려준다. 30초 남았을 때 "0분 뒤"라고 하면 지금 되는 줄 알고 다시
+    시도하게 된다.
+    """
+    if user.status != USER_STATUS_LOCKED or user.locked_until is None:
+        return None
+    remaining = user.locked_until - datetime.now(timezone.utc)
+    if remaining.total_seconds() <= 0:
+        return None
+    return max(1, -(-int(remaining.total_seconds()) // 60))
+
+
+def _release_lock_if_expired(db: Session, user: User) -> None:
+    """잠금 시각이 지났으면 풀어준다.
+
+    별도 배치를 돌리지 않고 다음 로그인 시도 때 푸는 이유: 잠긴 계정은 본인이 다시
+    시도할 때만 의미가 있고, 그 순간에 풀면 충분하다. 배치를 두면 그것이 멈췄을 때
+    아무도 모르게 계정이 계속 잠겨 있는다.
+    """
+    if user.status != USER_STATUS_LOCKED or user.locked_until is None:
+        return
+    if user.locked_until > datetime.now(timezone.utc):
+        return
+
+    user.status = USER_STATUS_ACTIVE
+    user.login_failed_count = 0
+    user.locked_until = None
+    db.commit()
+
+
+def _count_failure(db: Session, user: User, request: Request | None) -> None:
+    """실패를 세고, 한도에 닿으면 계정을 잠근다.
+
+    감사 로그를 남기는 것까지 여기서 한다. 세는 곳과 남기는 곳이 갈리면 한쪽만
+    고쳐져 기록과 상태가 어긋난다.
+    """
+    user.login_failed_count += 1
+    locked = user.login_failed_count >= MAX_LOGIN_ATTEMPTS
+
+    if locked:
+        user.status = USER_STATUS_LOCKED
+        user.locked_until = datetime.now(timezone.utc) + timedelta(minutes=LOCKOUT_MINUTES)
+
+    # 상태 변경과 감사 로그를 한 트랜잭션에 묶는다. 잠갔는데 기록이 없으면 나중에
+    # "왜 잠겼는지"를 설명할 수 없다.
+    audit.record(
+        db,
+        AuditAction.LOGIN_FAILED,
+        user_id=user.id,
+        actor_email=user.email,
+        request=request,
+        detail={"reason": "WRONG_PASSWORD", "failed_count": user.login_failed_count},
+        commit=False,
+    )
+    if locked:
+        audit.record(
+            db,
+            AuditAction.ACCOUNT_LOCKED,
+            user_id=user.id,
+            actor_email=user.email,
+            request=request,
+            detail={"minutes": LOCKOUT_MINUTES},
+            commit=False,
+        )
+    db.commit()
+
+
 def authenticate_user(
     db: Session, email: str, password: str, request: Request | None = None
 ) -> User:
@@ -229,15 +371,23 @@ def authenticate_user(
         )
         raise InvalidCredentialsError()
 
-    if not security.verify_password(password, user.password_hash):
+    # 비밀번호를 보기 전에 잠금부터 확인한다. 잠긴 동안의 시도는 검증조차 하지 않아야
+    # 무차별 대입이 실제로 느려진다. 시간이 지났으면 여기서 풀고 계속 진행한다.
+    _release_lock_if_expired(db, user)
+    remaining = _lock_remaining_minutes(user)
+    if remaining is not None:
         audit.record(
             db,
             AuditAction.LOGIN_FAILED,
             user_id=user.id,
             actor_email=email,
             request=request,
-            detail={"reason": "WRONG_PASSWORD"},
+            detail={"reason": "LOCKED"},
         )
+        raise AccountLockedError(remaining)
+
+    if not security.verify_password(password, user.password_hash):
+        _count_failure(db, user, request)
         raise InvalidCredentialsError()
 
     # 비밀번호가 맞아도 탈퇴한 계정은 들여보내지 않는다. 비밀번호를 확인한 뒤에 보는
@@ -257,6 +407,25 @@ def authenticate_user(
             detail={"reason": "DELETED_ACCOUNT"},
         )
         raise InvalidCredentialsError()
+
+    # 휴면 등 로그인할 수 없는 상태. 탈퇴와 달리 존재를 감추지 않는다 — 본인이
+    # 해제 절차를 밟아야 하는데 "비밀번호가 틀렸다"고만 하면 영영 못 들어온다.
+    if user.status not in LOGIN_ALLOWED_STATUSES:
+        audit.record(
+            db,
+            AuditAction.LOGIN_FAILED,
+            user_id=user.id,
+            actor_email=email,
+            request=request,
+            detail={"reason": "STATUS", "status": user.status},
+        )
+        raise AccountUnavailableError()
+
+    # 성공했으니 실패 기록을 지운다. 남겨두면 다음에 몇 번만 틀려도 잠긴다.
+    if user.login_failed_count or user.locked_until is not None:
+        user.login_failed_count = 0
+        user.locked_until = None
+        db.commit()
 
     audit.record(
         db,

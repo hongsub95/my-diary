@@ -30,6 +30,8 @@ class AuditAction:
     LOGOUT_ALL = "LOGOUT_ALL"
     REGISTER = "REGISTER"
     PASSWORD_CHANGED = "PASSWORD_CHANGED"
+    # 연속 실패로 계정이 잠긴 순간. 공격 시도를 알아채는 신호다.
+    ACCOUNT_LOCKED = "ACCOUNT_LOCKED"
 
     # 스페이스 (구현 시 사용)
     SPACE_CREATED = "SPACE_CREATED"

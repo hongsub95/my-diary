@@ -32,6 +32,31 @@ USER_ROLE_USER = 1
 USER_NOT_IN_USE = 0
 USER_IN_USE = 1
 
+# 계정 운영 상태.
+#
+# `use`와 역할이 다르다. **`use`는 "탈퇴했는가"**로 사용자가 스스로 내린 되돌릴 수 없는
+# 결정이고, **`status`는 "지금 쓸 수 있는 상태인가"**로 운영 중에 오갈 수 있는 값이다.
+# 둘을 한 컬럼에 합치지 않은 이유: 탈퇴는 90일 뒤 개인정보 파기 대상을 고르는 기준이라
+# (app/users/retention.py) 잠금·휴면과 섞이면 엉뚱한 계정이 파기된다.
+#
+# 값을 1, 2, 10, 11로 띄엄띄엄 둔 이유는 role과 같다. 나중에 비슷한 성격의 상태를
+# 끼워 넣을 때 기존 행의 값을 다시 매기지 않아도 된다.
+#
+# | 값 | 뜻 | 로그인 |
+# |---|---|---|
+# | 1 | 활성화 | 가능 |
+# | 2 | 임시 계정 | 가능. 아직 이 값을 만드는 경로는 없다 |
+# | 10 | 비활성화(휴면) | 불가 |
+# | 11 | 잠긴 계정 | 불가. 로그인 연속 실패로 걸리며 locked_until이 지나면 풀린다 |
+USER_STATUS_ACTIVE = 1
+USER_STATUS_PROVISIONAL = 2
+USER_STATUS_DORMANT = 10
+USER_STATUS_LOCKED = 11
+
+# 로그인할 수 있는 상태. 여기 없는 상태는 막는다. 목록으로 두는 이유는, 상태가 늘 때
+# "막아야 하는데 빠뜨리는" 실수보다 "열어줘야 하는데 안 열리는" 실수가 안전해서다.
+LOGIN_ALLOWED_STATUSES = (USER_STATUS_ACTIVE, USER_STATUS_PROVISIONAL)
+
 # 사용자가 고른 테마 색상 키.
 #
 # 서버는 키만 알고 실제 색상값은 모른다. 팔레트는 화면마다 표현이 달라(웹은 CSS 변수,
@@ -82,6 +107,20 @@ class User(Base):
     theme_key: Mapped[str] = mapped_column(
         String(20), nullable=False, server_default=DEFAULT_THEME_KEY
     )
+    # 계정 운영 상태. 위 USER_STATUS_* 표 참고.
+    # CHECK 제약은 role·use와 같은 이유로 걸지 않는다. 상태가 늘 때마다 마이그레이션을
+    # 새로 만들어야 하기 때문이다.
+    status: Mapped[int] = mapped_column(
+        nullable=False, server_default=str(USER_STATUS_ACTIVE)
+    )
+    # 연속 로그인 실패 횟수. 성공하면 0으로 돌아간다.
+    login_failed_count: Mapped[int] = mapped_column(nullable=False, server_default="0")
+    # 잠금이 풀리는 시각. status가 11일 때만 의미가 있다.
+    #
+    # 시각을 따로 두는 이유: 상태만 있으면 "언제 풀리는지"를 알 수 없어 사용자에게
+    # 남은 시간을 알려줄 수 없고, 풀어주려면 별도 작업이 돌아야 한다. 이 값을 두면
+    # 다음 로그인 시도 때 지났는지 보고 그 자리에서 풀 수 있다.
+    locked_until: Mapped[datetime | None] = mapped_column()
     # 사용 여부. 위 USER_IN_USE / USER_NOT_IN_USE 표 참고.
     # server_default를 두는 이유는 role과 같다. 이미 쌓여 있던 행도 마이그레이션 시점에
     # 사용 중으로 메워진다.
