@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: 120 },
   heading: { gap: spacing.sm, marginBottom: spacing.lg },
-  title: { color: colors.text, fontSize: 28, fontWeight: '800' },
+  title: { color: colors.text, fontSize: 18, fontWeight: '600' },
   description: { color: colors.muted, fontSize: 14 },
   list: { gap: spacing.md },
   recordsLink: { alignItems: 'center', borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', marginTop: spacing.lg, minHeight: 48 },

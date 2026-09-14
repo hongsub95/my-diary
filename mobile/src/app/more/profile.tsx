@@ -115,12 +115,12 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   // 터치 영역을 44px 이상으로 유지한다 (docs/BOTTOM_NAVIGATION_SPEC.md 7절).
   headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   back: { color: colors.text, fontSize: 28, lineHeight: 30 },
-  headerTitle: { color: colors.text, flex: 1, fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  headerTitle: { color: colors.text, flex: 1, fontSize: 18, fontWeight: '600', textAlign: 'center' },
   content: { gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xxl },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.lg, padding: spacing.lg },
   field: { gap: spacing.sm },
-  label: { color: colors.muted, fontSize: 13, fontWeight: '700' },
-  input: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 15, minHeight: 48, paddingHorizontal: spacing.md },
+  label: { color: colors.muted, fontSize: 14, fontWeight: '600' },
+  input: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 14, minHeight: 48, paddingHorizontal: spacing.md },
   // 바꿀 수 없는 값. 입력칸 모양은 유지해 무엇이 들어 있는지 읽히게 하되, 손댈 수
   // 없다는 것은 색으로 알린다. 아래 hint가 이유를 설명한다.
   inputReadonly: { color: colors.muted },
@@ -128,6 +128,6 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   error: { color: colors.danger, fontSize: 13, lineHeight: 19 },
   submit: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 16, justifyContent: 'center', minHeight: 52 },
   submitDisabled: { opacity: 0.45 },
-  submitText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  submitText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   pressed: { opacity: 0.85 },
 });

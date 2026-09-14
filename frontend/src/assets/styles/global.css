@@ -13,10 +13,16 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
   background-color: var(--color-bg);
   color: var(--color-text-primary);
-  font-size: 16px;
+  font-size: var(--font-size-body);
+  font-weight: var(--font-weight-regular);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6,
+strong, b {
+  font-weight: var(--font-weight-semibold);
 }
 
 button {

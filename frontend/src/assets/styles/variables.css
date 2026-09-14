@@ -53,4 +53,11 @@
 
   /* Safe area (for iOS notch/home bar) */
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Typography */
+  --font-size-body: 14px;
+  --font-size-emphasis: 16px;
+  --font-size-heading: 18px;
+  --font-weight-regular: 400;
+  --font-weight-semibold: 600;
 }

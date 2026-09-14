@@ -7,14 +7,15 @@
 .home-page__eyebrow {
   color: var(--color-primary-text);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.08em;
 }
 
 .home-page__title {
   margin-top: 6px;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 26px;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: -0.03em;
 }
 
@@ -70,7 +71,8 @@
 
 .home-card__title {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 27px;
+  font-size: var(--font-size-emphasis);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.2;
   letter-spacing: -0.03em;
 }
@@ -96,7 +98,7 @@
 
 .home-card__next strong {
   color: inherit;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .home-card__progress {
@@ -113,8 +115,8 @@
   border-radius: var(--radius-lg);
   background: var(--color-primary);
   color: #fff;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .home-card__action svg {

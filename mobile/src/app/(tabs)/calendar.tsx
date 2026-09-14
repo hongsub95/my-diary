@@ -133,8 +133,8 @@ export default function CalendarScreen() {
               arrowColor: palette.primary,
               dotColor: palette.primary,
               textMonthFontSize: 18,
-              textMonthFontWeight: '800',
-              textDayHeaderFontWeight: '700',
+        textMonthFontWeight: '600',
+        textDayHeaderFontWeight: '600',
             }}
           />
         </View>
@@ -182,8 +182,8 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { padding: spacing.lg, paddingBottom: 120 },
   heading: { gap: spacing.xs, marginBottom: spacing.lg },
-  eyebrow: { color: palette.primary, fontSize: 14, fontWeight: '700' },
-  title: { color: colors.text, fontSize: 28, fontWeight: '800' },
+  eyebrow: { color: palette.primary, fontSize: 14, fontWeight: '600' },
+  title: { color: colors.text, fontSize: 18, fontWeight: '600' },
   calendarCard: {
     backgroundColor: colors.surface,
     borderColor: colors.border,
@@ -203,7 +203,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
     marginBottom: spacing.md,
     marginTop: spacing.xl,
   },
-  sectionTitle: { color: colors.text, fontSize: 17, fontWeight: '800' },
-  sectionCount: { color: palette.primary, fontSize: 13, fontWeight: '700' },
+  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
+  sectionCount: { color: palette.primary, fontSize: 14, fontWeight: '600' },
   list: { gap: spacing.md },
 });

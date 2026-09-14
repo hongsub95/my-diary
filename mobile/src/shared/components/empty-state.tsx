@@ -45,9 +45,9 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   visualCompact: { borderRadius: 26, height: 52, width: 52 },
   icon: { fontSize: 29 },
   iconCompact: { fontSize: 24 },
-  title: { color: colors.text, fontSize: 15, fontWeight: '700', textAlign: 'center' },
+  title: { color: colors.text, fontSize: 16, fontWeight: '600', textAlign: 'center' },
   description: { color: colors.muted, fontSize: 12, lineHeight: 19, textAlign: 'center' },
   action: { backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', marginTop: spacing.sm, minHeight: 44, paddingHorizontal: spacing.lg },
-  actionText: { color: '#FFFFFF', fontSize: 13, fontWeight: '700' },
+  actionText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   pressed: { opacity: 0.82 },
 });

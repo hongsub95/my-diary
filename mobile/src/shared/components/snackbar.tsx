@@ -41,5 +41,5 @@ const styles = StyleSheet.create({
   snackbar: { position: 'absolute', left: 16, right: 16, bottom: 16, zIndex: 100, elevation: 8, borderRadius: 14, backgroundColor: '#30352f', flexDirection: 'row', alignItems: 'center', paddingLeft: 18, paddingRight: 6, paddingVertical: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.18, shadowRadius: 8 },
   message: { color: '#fff', flex: 1, fontSize: 14, lineHeight: 21, paddingVertical: 8 },
   close: { minWidth: 48, minHeight: 48, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
-  closeText: { color: '#d2e6ce', fontSize: 14, fontWeight: '700' },
+  closeText: { color: '#d2e6ce', fontSize: 14, fontWeight: '600' },
 });

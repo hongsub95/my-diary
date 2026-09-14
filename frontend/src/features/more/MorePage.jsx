@@ -105,15 +105,22 @@ export default function MorePage() {
 
         <section className="more-group" aria-labelledby="all-menu-title">
           <h2 id="all-menu-title" className="more-group__title">전체 메뉴</h2>
-          <div className="all-menu-grid">
-            {buildAllMenus(menuQuery.data ?? []).map(menu => (
-              <button type="button" key={menu.code} onClick={() => navigate(menu.path)} className="all-menu-item">
-                <span aria-hidden="true">{menu.icon}</span><strong>{menu.name}</strong>
+          <div className="all-menu-panel">
+            <div className="all-menu-grid">
+              {buildAllMenus(menuQuery.data ?? []).map(menu => (
+                <button type="button" key={menu.code} onClick={() => navigate(menu.path)} className="all-menu-item">
+                  <span className="all-menu-item__icon" aria-hidden="true">{menu.icon}</span>
+                  <strong className="all-menu-item__label">{menu.name}</strong>
+                </button>
+              ))}
+            </div>
+            {menuQuery.isPending && <p className="all-menu-status" role="status">메뉴를 불러오고 있어요.</p>}
+            {menuQuery.isError && (
+              <button className="all-menu-retry" type="button" onClick={() => menuQuery.refetch()}>
+                메뉴 다시 불러오기
               </button>
-            ))}
+            )}
           </div>
-          {menuQuery.isPending && <p role="status">메뉴를 불러오고 있어요.</p>}
-          {menuQuery.isError && <button type="button" onClick={() => menuQuery.refetch()}>메뉴 다시 불러오기</button>}
         </section>
 
         {MENU_GROUPS.map((group) => {

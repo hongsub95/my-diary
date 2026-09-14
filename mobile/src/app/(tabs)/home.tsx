@@ -256,8 +256,8 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   content: { padding: spacing.lg, paddingBottom: 120 },
   heading: { gap: 6 },
-  eyebrow: { color: palette.primary, fontSize: 12, fontWeight: '800' },
-  title: { color: colors.text, fontSize: 25, fontWeight: '800' },
+  eyebrow: { color: palette.primary, fontSize: 14, fontWeight: '600' },
+  title: { color: colors.text, fontSize: 18, fontWeight: '600' },
 
   // 홈은 여러 정보를 나열하지 않고 지금 할 일 하나만 크게 보여준다. 그래서 카드가
   // 하나뿐이고, 그 안의 주요 행동 버튼도 하나다.
@@ -267,17 +267,17 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   cardRecord: { backgroundColor: palette.primarySoft, borderColor: palette.primary },
 
   cardEyebrow: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  cardTitle: { color: colors.text, fontSize: 25, fontWeight: '800', lineHeight: 33 },
+  cardTitle: { color: colors.text, fontSize: 18, fontWeight: '600', lineHeight: 24 },
   cardLine: { color: colors.muted, fontSize: 13, lineHeight: 20 },
   cardMeta: { color: colors.muted, fontSize: 12 },
-  strong: { color: colors.text, fontWeight: '700' },
+  strong: { color: colors.text, fontWeight: '600' },
 
   onDark: { color: palette.primarySoft },
   titleOnDark: { color: '#FFFFFF' },
   lineOnDark: { color: '#DFD8D3' },
 
   primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', marginTop: spacing.sm, minHeight: 50, paddingHorizontal: spacing.xl },
-  primaryText: { color: '#FFFFFF', fontSize: 15, fontWeight: '700' },
+  primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   secondaryButton: { justifyContent: 'center', minHeight: 44 },
   secondaryText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
   pressed: { opacity: 0.85 },

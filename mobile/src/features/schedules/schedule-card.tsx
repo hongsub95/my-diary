@@ -31,10 +31,10 @@ export function ScheduleCard({ schedule }: { schedule: ScheduleView }) {
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, padding: spacing.lg },
   topRow: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  space: { color: palette.primary, fontSize: 13, fontWeight: '700' },
-  status: { backgroundColor: palette.primarySoft, borderRadius: 999, color: palette.primary, fontSize: 12, fontWeight: '700', overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 5 },
+  space: { color: palette.primary, fontSize: 14, fontWeight: '600' },
+  status: { backgroundColor: palette.primarySoft, borderRadius: 999, color: palette.primary, fontSize: 14, fontWeight: '600', overflow: 'hidden', paddingHorizontal: 10, paddingVertical: 5 },
   completed: { backgroundColor: '#E8F5EE', color: '#238257' },
-  title: { color: colors.text, fontSize: 19, fontWeight: '800', marginTop: spacing.md },
+  title: { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: spacing.md },
   date: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: spacing.sm },
   description: { color: colors.muted, fontSize: 14, marginTop: spacing.sm },
   meta: { color: colors.muted, fontSize: 12, marginTop: spacing.md },

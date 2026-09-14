@@ -116,13 +116,13 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   // 터치 영역을 44px 이상으로 유지한다 (docs/BOTTOM_NAVIGATION_SPEC.md 7절).
   headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   back: { color: colors.text, fontSize: 28, lineHeight: 30 },
-  headerTitle: { color: colors.text, flex: 1, fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  headerTitle: { color: colors.text, flex: 1, fontSize: 18, fontWeight: '600', textAlign: 'center' },
   content: { gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xxl },
   hint: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.md, padding: spacing.lg },
   updated: { borderBottomColor: colors.border, borderBottomWidth: 1, color: colors.muted, fontSize: 12, paddingBottom: spacing.sm },
-  heading: { color: colors.text, fontSize: 16, fontWeight: '800', marginTop: spacing.sm },
-  subHeading: { color: colors.text, fontSize: 14, fontWeight: '700', marginTop: spacing.xs },
+  heading: { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: spacing.sm },
+  subHeading: { color: colors.text, fontSize: 14, fontWeight: '600', marginTop: spacing.xs },
   paragraph: { color: colors.text, fontSize: 14, lineHeight: 23 },
   bullet: { color: colors.text, fontSize: 14, lineHeight: 23, paddingLeft: spacing.xs },
   // 꼭 읽어야 하는 주의사항. 본문과 같은 모양이면 그냥 지나친다.
@@ -130,9 +130,9 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   table: { gap: spacing.sm },
   tableRow: { backgroundColor: colors.background, borderRadius: 10, gap: 2, padding: spacing.md },
   tableCell: { color: colors.text, fontSize: 13, lineHeight: 20 },
-  tableLabel: { color: colors.muted, fontWeight: '700' },
+  tableLabel: { color: colors.muted, fontWeight: '600' },
   errorBox: { alignItems: 'flex-start', gap: spacing.sm },
   error: { color: colors.danger, fontSize: 13, lineHeight: 19 },
   retry: { backgroundColor: palette.primarySoft, borderRadius: 999, justifyContent: 'center', minHeight: 40, paddingHorizontal: spacing.md },
-  retryText: { color: palette.primaryDark, fontSize: 13, fontWeight: '700' },
+  retryText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
 });

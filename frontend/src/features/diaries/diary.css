@@ -19,7 +19,7 @@
   background: var(--color-primary);
   color: #fff;
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ── 사진 ── */
@@ -58,7 +58,7 @@
   background: var(--color-primary);
   color: #fff;
   font-size: 10px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .diary-photo__remove {
@@ -93,12 +93,12 @@
 .diary-entry__author {
   color: var(--color-primary-text);
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .diary-entry__mood {
   margin-bottom: 4px;
-  font-size: 15px;
+  font-size: 14px;
 }
 
 .diary-entry__content {

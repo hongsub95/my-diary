@@ -325,19 +325,19 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
 
   section: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.sm, padding: spacing.lg },
   sectionHead: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
-  sectionTitle: { color: colors.text, fontSize: 15, fontWeight: '800' },
-  action: { color: palette.primary, fontSize: 12, fontWeight: '700' },
+  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
+  action: { color: palette.primary, fontSize: 14, fontWeight: '600' },
   empty: { color: colors.muted, fontSize: 12, lineHeight: 19 },
   hint: { color: colors.muted, fontSize: 10 },
 
   photoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   photoBox: { borderRadius: 12, height: 96, overflow: 'hidden', width: 96 },
   photo: { height: '100%', width: '100%' },
-  coverBadge: { backgroundColor: palette.primary, borderRadius: 99, bottom: 5, color: '#FFFFFF', fontSize: 9, fontWeight: '800', left: 5, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2, position: 'absolute' },
+  coverBadge: { backgroundColor: palette.primary, borderRadius: 99, bottom: 5, color: '#FFFFFF', fontSize: 14, fontWeight: '600', left: 5, overflow: 'hidden', paddingHorizontal: 6, paddingVertical: 2, position: 'absolute' },
 
   prompt: { alignItems: 'flex-start', gap: spacing.sm },
   entry: { backgroundColor: colors.background, borderRadius: 14, gap: 4, marginTop: spacing.sm, padding: spacing.md },
-  author: { color: palette.primary, fontSize: 11, fontWeight: '700' },
+  author: { color: palette.primary, fontSize: 14, fontWeight: '600' },
   mood: { fontSize: 15 },
   entryContent: { color: colors.text, fontSize: 14, lineHeight: 23 },
   removeText: { color: colors.muted, fontSize: 11, marginTop: 6, textDecorationLine: 'underline' },
@@ -347,7 +347,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   contentInput: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 12, borderWidth: 1, color: colors.text, fontSize: 14, lineHeight: 23, minHeight: 110, padding: spacing.md, textAlignVertical: 'top' },
   editorActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end' },
   primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 12, minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.lg },
-  primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '700' },
+  primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   ghostButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 12, borderWidth: 1, minHeight: 44, justifyContent: 'center', paddingHorizontal: spacing.lg },
   ghostText: { color: colors.muted, fontSize: 14, fontWeight: '600' },
 
@@ -358,7 +358,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   chip: { borderColor: colors.border, borderRadius: 99, borderWidth: 1, paddingHorizontal: 12, paddingVertical: 7 },
   chipOn: { backgroundColor: palette.primarySoft, borderColor: palette.primary },
   chipText: { color: colors.muted, fontSize: 11 },
-  chipTextOn: { color: palette.primary, fontWeight: '700' },
+  chipTextOn: { color: palette.primary, fontWeight: '600' },
 
   timelineItem: { borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', gap: spacing.md, paddingVertical: spacing.md },
   timelineTime: { color: colors.muted, fontSize: 12, width: 46 },

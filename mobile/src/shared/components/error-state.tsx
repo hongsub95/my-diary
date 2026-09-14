@@ -20,5 +20,5 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   container: { alignItems: 'center', backgroundColor: colors.background, flex: 1, gap: spacing.md, justifyContent: 'center', padding: spacing.xl },
   message: { color: colors.muted, lineHeight: 22, textAlign: 'center' },
   button: { backgroundColor: palette.primary, borderRadius: 12, paddingHorizontal: spacing.lg, paddingVertical: spacing.sm },
-  buttonText: { color: '#FFFFFF', fontWeight: '700' },
+  buttonText: { color: '#FFFFFF', fontWeight: '600' },
 });

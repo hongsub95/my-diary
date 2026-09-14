@@ -29,6 +29,14 @@ export const spacing = {
   xxl: 40,
 };
 
+export const typography = {
+  body: 14,
+  emphasis: 16,
+  heading: 18,
+  regular: '400' as const,
+  semibold: '600' as const,
+};
+
 /** 테마 하나가 제공하는 색. 웹의 CSS 변수 네 개 중 hover를 뺀 셋과 같은 값이다. */
 export type ThemePalette = {
   label: string;

@@ -19,8 +19,8 @@
 
 .calendar-header__title {
   color: var(--color-text-primary);
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
 }
 
 .calendar-header__nav {
@@ -64,7 +64,7 @@
   border: 0 !important;
   color: var(--color-text-disabled) !important;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 400;
   padding: 4px 0 8px !important;
   text-align: center;
 }
@@ -201,7 +201,7 @@
   gap: 4px;
   color: var(--color-primary);
   font-size: 13px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .calendar-body__add-btn svg {
@@ -259,7 +259,7 @@
 .schedule-card__title {
   overflow: hidden;
   color: var(--color-text-primary);
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   text-overflow: ellipsis;
   white-space: nowrap;

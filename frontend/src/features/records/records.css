@@ -7,14 +7,15 @@
 .records-page__eyebrow {
   color: var(--color-primary-text);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.11em;
 }
 
 .records-page__title {
   margin-top: 6px;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 28px;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: -0.03em;
 }
 
@@ -102,13 +103,13 @@
 }
 
 .record-card__title {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .record-card--featured .record-card__title {
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 21px;
+  font-size: var(--font-size-emphasis);
   font-weight: 400;
 }
 

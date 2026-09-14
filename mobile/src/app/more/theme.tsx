@@ -120,19 +120,19 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   // 터치 영역을 44px 이상으로 유지한다 (docs/BOTTOM_NAVIGATION_SPEC.md 7절).
   headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   back: { color: colors.text, fontSize: 28, lineHeight: 30 },
-  headerTitle: { color: colors.text, flex: 1, fontSize: 16, fontWeight: '800', textAlign: 'center' },
+  headerTitle: { color: colors.text, flex: 1, fontSize: 18, fontWeight: '600', textAlign: 'center' },
   content: { gap: spacing.md, padding: spacing.lg, paddingBottom: spacing.xxl },
   hint: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
   option: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, minHeight: 56, paddingHorizontal: spacing.lg, paddingVertical: 14 },
   // 옅은 색 견본이 흰 카드에 묻히지 않도록 테두리를 둔다.
   swatch: { borderColor: 'rgba(0,0,0,0.08)', borderRadius: 12, borderWidth: 1, height: 24, width: 24 },
-  optionLabel: { color: colors.text, flex: 1, fontSize: 15 },
-  check: { color: palette.primary, fontSize: 16, fontWeight: '700' },
+  optionLabel: { color: colors.text, flex: 1, fontSize: 14 },
+  check: { color: palette.primary, fontSize: 16, fontWeight: '600' },
   divider: { backgroundColor: colors.border, height: 1, marginLeft: spacing.lg },
   errorBox: { alignItems: 'flex-start', gap: spacing.sm },
   error: { color: colors.danger, fontSize: 13, lineHeight: 19 },
   retry: { backgroundColor: palette.primarySoft, borderRadius: 999, minHeight: 40, justifyContent: 'center', paddingHorizontal: spacing.md },
-  retryText: { color: palette.primaryDark, fontSize: 13, fontWeight: '700' },
+  retryText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
   pressed: { opacity: 0.85 },
 });

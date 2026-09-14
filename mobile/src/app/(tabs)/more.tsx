@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { LEGAL_DOCUMENTS } from '@/features/legal/legal-api';
-import { colors, getPalette, spacing, type ThemePalette } from '@/shared/theme';
+import { colors, getPalette, spacing, typography, type ThemePalette } from '@/shared/theme';
 import { useThemeContext, useThemedStyles } from '@/shared/theme-context';
 import { useNavigableMenus } from '@/features/menus/menu-api';
 import { buildAllMenus } from '@/features/menus/all-menus';
@@ -89,16 +89,18 @@ export default function MoreScreen() {
 
         <View style={styles.group}>
           <Text style={styles.groupTitle}>전체 메뉴</Text>
-          <View style={styles.menuGrid}>
-            {buildAllMenus(menuQuery.data ?? []).map(menu => (
-              <Pressable accessibilityRole="button" key={menu.code} onPress={() => router.navigate(menu.href)} style={({ pressed }) => [styles.menuTile, pressed && styles.pressed]}>
-                <Text style={styles.menuIcon} accessible={false}>{menu.icon}</Text>
-                <Text style={styles.menuLabel}>{menu.name}</Text>
-              </Pressable>
-            ))}
+          <View style={styles.menuPanel}>
+            <View style={styles.menuGrid}>
+              {buildAllMenus(menuQuery.data ?? []).map(menu => (
+                <Pressable accessibilityRole="button" key={menu.code} onPress={() => router.navigate(menu.href)} style={({ pressed }) => [styles.menuTile, pressed && styles.pressed]}>
+                  <Text style={styles.menuIcon} accessible={false}>{menu.icon}</Text>
+                  <Text style={styles.menuLabel}>{menu.name}</Text>
+                </Pressable>
+              ))}
+            </View>
+            {menuQuery.isPending && <Text style={styles.rowValueText}>메뉴를 불러오고 있어요.</Text>}
+            {menuQuery.isError && <Pressable accessibilityRole="button" onPress={() => menuQuery.refetch()} style={styles.menuRetry}><Text style={styles.menuRetryText}>메뉴 다시 불러오기</Text></Pressable>}
           </View>
-          {menuQuery.isPending && <Text style={styles.rowValueText}>메뉴를 불러오고 있어요.</Text>}
-          {menuQuery.isError && <Pressable accessibilityRole="button" onPress={() => menuQuery.refetch()} style={styles.row}><Text>메뉴 다시 불러오기</Text></Pressable>}
         </View>
 
         {MENU_GROUPS.map((group) => {
@@ -165,35 +167,38 @@ export default function MoreScreen() {
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  menuGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  menuTile: { width: '31%', flexGrow: 1, alignItems: 'center', justifyContent: 'center', gap: 12, minHeight: 100, padding: 12, borderRadius: 18, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
-  menuIcon: { color: palette.primary, fontSize: 26 },
-  menuLabel: { color: colors.text, fontSize: 14, fontWeight: '700' },
+  menuPanel: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
+  menuGrid: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
+  menuTile: { alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 64, paddingHorizontal: 4, paddingVertical: 8, width: 56 },
+  menuIcon: { color: palette.primary, fontSize: 18 },
+  menuLabel: { color: colors.text, fontSize: typography.body, fontWeight: typography.regular, textAlign: 'center' },
+  menuRetry: { alignItems: 'center', minHeight: 44, justifyContent: 'center' },
+  menuRetryText: { color: palette.primary, fontSize: typography.body, fontWeight: typography.semibold },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  title: { color: colors.text, fontSize: 28, fontWeight: '800', marginBottom: spacing.xl },
+  title: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold, marginBottom: spacing.xl },
   profile: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, flexDirection: 'row', padding: spacing.lg },
   avatar: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: 24, height: 48, justifyContent: 'center', width: 48 },
-  avatarText: { color: palette.primary, fontSize: 20, fontWeight: '800' },
+  avatarText: { color: palette.primary, fontSize: typography.emphasis, fontWeight: typography.semibold },
   profileText: { gap: 3, marginLeft: spacing.md },
-  nickname: { color: colors.text, fontSize: 17, fontWeight: '700' },
-  email: { color: colors.muted, fontSize: 14 },
+  nickname: { color: colors.text, fontSize: typography.emphasis, fontWeight: typography.semibold },
+  email: { color: colors.muted, fontSize: typography.body, fontWeight: typography.regular },
   group: { gap: spacing.sm, marginTop: spacing.xl },
-  groupTitle: { color: colors.muted, fontSize: 13, fontWeight: '700', paddingLeft: spacing.xs },
+  groupTitle: { color: colors.muted, fontSize: typography.emphasis, fontWeight: typography.semibold, paddingLeft: spacing.xs },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
   // 터치 영역을 44px 이상으로 유지한다 (BOTTOM_NAVIGATION_SPEC.md 7절).
   row: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 52, paddingHorizontal: spacing.lg, paddingVertical: 14 },
-  rowLabel: { color: colors.text, fontSize: 15 },
+  rowLabel: { color: colors.text, fontSize: typography.body, fontWeight: typography.regular },
   // 항목 전체를 흐리게 하면 무엇이 준비 중인지 읽기 어려워진다. 글자색만 낮춘다.
   rowLabelMuted: { color: colors.muted },
   rowValue: { alignItems: 'center', flexDirection: 'row', gap: 8, marginRight: spacing.sm },
   rowSwatch: { borderColor: 'rgba(0,0,0,0.08)', borderRadius: 8, borderWidth: 1, height: 16, width: 16 },
-  rowValueText: { color: colors.muted, fontSize: 13 },
-  rowArrow: { color: colors.border, fontSize: 22, fontWeight: '700' },
-  badge: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 999, borderWidth: 1, color: colors.muted, fontSize: 11, fontWeight: '700', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 3 },
+  rowValueText: { color: colors.muted, fontSize: typography.body, fontWeight: typography.regular },
+  rowArrow: { color: colors.border, fontSize: 22, fontWeight: typography.semibold },
+  badge: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 999, borderWidth: 1, color: colors.muted, fontSize: 11, fontWeight: typography.semibold, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 3 },
   divider: { backgroundColor: colors.border, height: 1, marginLeft: spacing.lg },
   logoutButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, minHeight: 52, justifyContent: 'center', paddingVertical: 15 },
-  logoutText: { color: colors.danger, fontSize: 15, fontWeight: '700' },
+  logoutText: { color: colors.danger, fontSize: typography.body, fontWeight: typography.semibold },
   withdrawButton: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 52, paddingHorizontal: spacing.lg, paddingVertical: 14 },
-  withdrawText: { color: colors.muted, fontSize: 14 },
+  withdrawText: { color: colors.muted, fontSize: typography.body, fontWeight: typography.regular },
   pressed: { opacity: 0.65 },
 });

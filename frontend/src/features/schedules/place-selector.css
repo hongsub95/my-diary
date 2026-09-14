@@ -1,14 +1,14 @@
 .place-selector__choices{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .place-selector__choices button{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:20px;border:1px solid #e4ded4;border-radius:18px;background:#fffdf8;text-align:left;color:#373e36;cursor:pointer;min-height:145px}
 .place-selector__choices button:hover{border-color:#416a53;background:#f3f6ef}
-.place-selector__choices strong{font-size:17px}.place-selector__icon{color:#416a53;font-size:28px}
+.place-selector__choices strong{font-size:16px;font-weight:600}.place-selector__icon{color:#416a53;font-size:28px}
 .place-selector small,.place-selector__hint{font-size:12px;color:#736d62;line-height:1.6}
 .place-selector__dialog{border:0;border-radius:22px;padding:0;width:min(520px,calc(100vw - 24px));max-height:90dvh;background:#fffdf8;color:#373e36;box-shadow:0 20px 80px #0003}
 .place-selector__dialog--map{width:min(760px,calc(100vw - 24px))}
 .place-selector__dialog::backdrop{background:#20282088}
 .place-selector__dialog form{display:flex;flex-direction:column;max-height:90dvh}
 .place-selector__dialog header{display:flex;align-items:center;justify-content:space-between;padding:18px 22px;border-bottom:1px solid #e4ded4;gap:12px}
-.place-selector__dialog h2{font-size:20px;margin:0}.place-selector__dialog button{font:inherit;cursor:pointer}
+.place-selector__dialog h2{font-size:18px;font-weight:600;margin:0}.place-selector__dialog button{font:inherit;cursor:pointer}
 .place-selector__dialog header button,.place-selector__link{border:0;background:none;padding:10px;color:#416a53}
 .place-selector__body{padding:20px;overflow:auto;display:flex;flex-direction:column;gap:14px}
 .place-selector__body p{margin:0}.place-selector__body label{display:flex;flex-direction:column;gap:8px;font-size:14px;font-weight:600}
@@ -18,6 +18,6 @@
 .place-selector__results button{width:100%;display:flex;flex-direction:column;text-align:left;gap:5px;border:1px solid #ded8ce;background:white;border-radius:12px;padding:14px}
 .place-selector__results button[aria-pressed=true]{border:2px solid #416a53;background:#f0f5ef}
 .place-selector__dialog footer{padding:16px 20px;border-top:1px solid #e4ded4}
-.place-selector__dialog footer button{border:0;border-radius:13px;background:#416a53;color:white;padding:15px;width:100%;font-weight:700}
+.place-selector__dialog footer button{border:0;border-radius:13px;background:#416a53;color:white;padding:15px;width:100%;font-weight:600}
 .place-selector button:disabled{opacity:.45;cursor:default}.place-selector__error{color:#b42318}
 .place-selector button:focus-visible,.place-selector input:focus-visible{outline:3px solid #91bfa0;outline-offset:2px}

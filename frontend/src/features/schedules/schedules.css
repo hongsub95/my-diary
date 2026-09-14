@@ -14,8 +14,8 @@
 }
 
 .slist-page__heading {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
 }
 
 .slist-page__add-btn {
@@ -110,7 +110,7 @@
 }
 
 .slist-card__title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
   color: var(--color-text-primary);
   white-space: nowrap;
@@ -195,8 +195,8 @@
 
 .sdetail-header__title {
   flex: 1;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -249,7 +249,7 @@
 }
 
 .sdetail-section__title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 600;
 }
 
@@ -259,7 +259,7 @@
   gap: 4px;
   font-size: 12px;
   color: var(--color-primary);
-  font-weight: 500;
+  font-weight: 400;
 }
 .sdetail-section__edit svg { stroke: currentColor; }
 
@@ -284,7 +284,7 @@
   background: var(--color-primary-light);
   color: var(--color-primary-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -302,7 +302,7 @@
 
 .sdetail-place__name {
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
   color: var(--color-text-primary);
 }
 
@@ -342,7 +342,7 @@
 }
 
 .sdetail-diary__content {
-  font-size: 15px;
+  font-size: 14px;
   color: var(--color-text-primary);
   line-height: 1.7;
 }
@@ -385,8 +385,8 @@
 }
 
 .snew-header__title {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
 }
 
 .snew-form {
@@ -405,14 +405,15 @@
 .snew-form__eyebrow {
   color: var(--color-primary);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.12em;
 }
 
 .snew-form__intro h2 {
   margin-top: 8px;
   color: var(--color-text-primary);
-  font-size: clamp(24px, 5vw, 32px);
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.25;
   letter-spacing: -0.035em;
 }
@@ -450,8 +451,8 @@
 
 .snew-form__section-heading h3 {
   color: var(--color-text-primary);
-  font-size: 15px;
-  font-weight: 750;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .snew-form__section-heading p {
@@ -471,7 +472,7 @@
   background: var(--color-primary-light);
   color: var(--color-primary-text);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .snew-form__field {
@@ -488,7 +489,7 @@
 
 .snew-form__label {
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-primary);
 }
 
@@ -496,7 +497,7 @@
   margin-left: 4px;
   color: var(--color-primary);
   font-size: inherit;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .snew-form__input {
@@ -506,7 +507,7 @@
   border-radius: var(--radius-lg);
   border: 1.5px solid var(--color-border);
   background: var(--color-surface);
-  font-size: 15px;
+  font-size: 14px;
   outline: none;
   transition: border-color 0.15s;
 }
@@ -811,14 +812,15 @@
 .splan-page__step {
   color: var(--color-primary-text);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0.08em;
 }
 
 .splan-page__title {
   margin-top: 6px;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 24px;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
   letter-spacing: -0.03em;
 }
 
@@ -856,7 +858,7 @@
 
 .splan-picked__title {
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   color: var(--color-text-secondary);
 }
 
@@ -893,7 +895,7 @@
   background: var(--color-primary-light);
   color: var(--color-primary-text);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .splan-picked__info {
@@ -936,8 +938,8 @@
 .splan-page__submit {
   min-height: 50px;
   border-radius: var(--radius-lg);
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 /* 장소 없이 끝내기는 허용하되 기본 경로로 강조하지 않는다 (IA 3.2절). */
@@ -970,13 +972,14 @@
 .sdetail-next__label {
   color: var(--color-primary-light);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .sdetail-next__name {
   margin-top: 4px;
   font-family: Georgia, 'Times New Roman', serif;
-  font-size: 24px;
+  font-size: 16px;
+  font-weight: 600;
 }
 
 .sdetail-next__progress {
@@ -993,7 +996,7 @@
   border-radius: var(--radius-lg);
   color: var(--color-primary-text);
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .sdetail-place__visit:disabled {
@@ -1014,8 +1017,8 @@
   border-radius: var(--radius-lg);
   background: var(--color-primary);
   color: #fff;
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 600;
 }
 
 .sdetail-complete:disabled {
