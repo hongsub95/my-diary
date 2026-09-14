@@ -1,12 +1,10 @@
 import { useMemo, useState } from 'react';
-import { useRouter } from 'expo-router';
 import { Calendar, LocaleConfig, type DateData } from 'react-native-calendars';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
-import { ScheduleFab } from '@/shared/components/schedule-fab';
 import { EmptyState } from '@/shared/components/empty-state';
 import { colors, spacing, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
@@ -51,7 +49,6 @@ export default function CalendarScreen() {
   const palette = useTheme();
   const styles = useThemedStyles(createStyles);
   const DOT_COLORS = useMemo(() => dotColors(palette), [palette]);
-  const router = useRouter();
   const [selectedDate, setSelectedDate] = useState(() => localDateKey());
 
   // 달을 넘기면 handleMonthChange가 selectedDate를 그 달 1일로 옮기므로, 선택 날짜의
@@ -167,13 +164,10 @@ export default function CalendarScreen() {
             compact
             icon="📅"
             title="이날은 예정된 하루가 없어요"
-            description="새로운 하루를 계획해 보세요."
+            description="다른 날짜를 선택해 보세요."
           />
         )}
       </ScrollView>
-      <ScheduleFab
-        onPress={() => router.push({ pathname: '/schedules/new', params: { date: selectedDate } })}
-      />
     </SafeAreaView>
   );
 }

@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import homeRaw from '../../assets/icons/home.svg?raw'
 import calendarRaw from '../../assets/icons/calendar.svg?raw'
 import listRaw from '../../assets/icons/list.svg?raw'
-import bookOpenRaw from '../../assets/icons/book-open.svg?raw'
+import notebookPencilRaw from '../../assets/icons/notebook-pencil.svg?raw'
 import ellipsisHorizontalRaw from '../../assets/icons/ellipsis-horizontal.svg?raw'
 import settingsRaw from '../../assets/icons/settings.svg?raw'
 import mapPinRaw from '../../assets/icons/map-pin.svg?raw'
@@ -17,9 +17,9 @@ const ICONS = {
   home: homeRaw,
   calendar: calendarRaw,
   list: listRaw,
-  book: bookOpenRaw,
-  'book-open': bookOpenRaw,
-  records: bookOpenRaw,
+  book: notebookPencilRaw,
+  'book-open': notebookPencilRaw,
+  records: notebookPencilRaw,
   more: ellipsisHorizontalRaw,
   'more-horizontal': ellipsisHorizontalRaw,
   settings: settingsRaw,

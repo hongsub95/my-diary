@@ -96,8 +96,9 @@ class AccountLockedError(AppError):
     사용자가 알아야 하고, 클라이언트도 "다시 입력해 보세요"가 아니라 기다리라는
     안내를 띄워야 한다.
 
-    **남은 시간을 알려준다.** 얼마나 기다려야 하는지 모르면 계속 시도하게 되고,
-    그 시도가 잠금을 연장하는지 아닌지도 알 수 없어 불안해진다.
+    **남은 시간은 알려주지 않는다.** 정확한 해제 시각을 주면 공격자가 그 시점에 맞춰
+    다음 묶음을 던지도록 자동화하기 쉬워진다. 사용자에게도 "잠시 후"면 충분하다 —
+    5분이라 다시 확인하러 오는 사이에 대개 풀려 있다.
 
     이 문구는 "이 이메일이 존재한다"는 사실을 드러낸다. 로그인 실패를 한 문구로
     합쳐 계정 열거를 막아둔 것과 상충하지만, 5회를 틀려야 도달하는 상태이고
@@ -105,12 +106,12 @@ class AccountLockedError(AppError):
     안내 가치를 견줘 안내를 택했다.
     """
 
-    def __init__(self, minutes: int) -> None:
+    def __init__(self) -> None:
         super().__init__(
             code="ACCOUNT_LOCKED",
             message=(
                 f"로그인 시도가 {MAX_LOGIN_ATTEMPTS}회 실패해 계정이 잠겼습니다. "
-                f"{minutes}분 뒤에 다시 시도해 주세요."
+                "잠시 후 다시 시도해 주세요."
             ),
             status_code=status.HTTP_423_LOCKED,
         )
@@ -275,18 +276,16 @@ def register_user(
     return user
 
 
-def _lock_remaining_minutes(user: User) -> int | None:
-    """잠금이 풀리기까지 남은 분. 잠겨 있지 않으면 None.
+def _is_locked(user: User) -> bool:
+    """지금 잠겨 있는가.
 
-    올림해서 돌려준다. 30초 남았을 때 "0분 뒤"라고 하면 지금 되는 줄 알고 다시
-    시도하게 된다.
+    `_release_lock_if_expired`가 먼저 돌아 만료된 잠금을 풀어두므로, 여기까지
+    잠긴 채로 오는 것은 아직 시간이 남은 경우뿐이다. 그래도 시각을 한 번 더 보는
+    이유는 이 함수만 따로 불러도 답이 맞아야 하기 때문이다.
     """
     if user.status != USER_STATUS_LOCKED or user.locked_until is None:
-        return None
-    remaining = user.locked_until - datetime.now(timezone.utc)
-    if remaining.total_seconds() <= 0:
-        return None
-    return max(1, -(-int(remaining.total_seconds()) // 60))
+        return False
+    return user.locked_until > datetime.now(timezone.utc)
 
 
 def _release_lock_if_expired(db: Session, user: User) -> None:
@@ -374,8 +373,7 @@ def authenticate_user(
     # 비밀번호를 보기 전에 잠금부터 확인한다. 잠긴 동안의 시도는 검증조차 하지 않아야
     # 무차별 대입이 실제로 느려진다. 시간이 지났으면 여기서 풀고 계속 진행한다.
     _release_lock_if_expired(db, user)
-    remaining = _lock_remaining_minutes(user)
-    if remaining is not None:
+    if _is_locked(user):
         audit.record(
             db,
             AuditAction.LOGIN_FAILED,
@@ -384,7 +382,7 @@ def authenticate_user(
             request=request,
             detail={"reason": "LOCKED"},
         )
-        raise AccountLockedError(remaining)
+        raise AccountLockedError()
 
     if not security.verify_password(password, user.password_hash):
         _count_failure(db, user, request)

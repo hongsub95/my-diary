@@ -12,7 +12,6 @@ import { EmptyState } from '../../shared/components/EmptyState'
 import calendarRaw from '../../assets/icons/calendar.svg?raw'
 import chevronLeftRaw from '../../assets/icons/chevron-left.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
-import plusRaw from '../../assets/icons/plus.svg?raw'
 import { useSchedules } from '../../shared/api/queries'
 import './calendar.css'
 
@@ -196,14 +195,6 @@ export default function CalendarPage() {
           <span className="calendar-body__date-label">
             {selectedMonth}월 {selectedDay}일
           </span>
-          <button
-            type="button"
-            onClick={() => navigate('/schedules/new')}
-            className="calendar-body__add-btn"
-          >
-            <Icon raw={plusRaw} size={16} />
-            새 일정
-          </button>
         </div>
 
         {selectedSchedules.length === 0 ? (
@@ -211,7 +202,7 @@ export default function CalendarPage() {
             compact
             icon={calendarRaw}
             title="이날은 예정된 하루가 없어요"
-            description="새로운 하루를 계획해 보세요."
+            description="다른 날짜를 선택해 보세요."
           />
         ) : (
           <div className="schedule-list">

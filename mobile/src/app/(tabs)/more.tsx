@@ -9,6 +9,7 @@ import { colors, getPalette, spacing, typography, type ThemePalette } from '@/sh
 import { useThemeContext, useThemedStyles } from '@/shared/theme-context';
 import { useNavigableMenus } from '@/features/menus/menu-api';
 import { buildAllMenus } from '@/features/menus/all-menus';
+import { MenuIcon } from '@/features/menus/menu-icon';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 
 type MoreMenuItem = {
@@ -93,7 +94,7 @@ export default function MoreScreen() {
             <View style={styles.menuGrid}>
               {buildAllMenus(menuQuery.data ?? []).map(menu => (
                 <Pressable accessibilityRole="button" key={menu.code} onPress={() => router.navigate(menu.href)} style={({ pressed }) => [styles.menuTile, pressed && styles.pressed]}>
-                  <Text style={styles.menuIcon} accessible={false}>{menu.icon}</Text>
+                  <MenuIcon name={menu.code} size={20} color={getPalette(activeKey).primary} />
                   <Text style={styles.menuLabel}>{menu.name}</Text>
                 </Pressable>
               ))}
@@ -168,10 +169,9 @@ export default function MoreScreen() {
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   menuPanel: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
-  menuGrid: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', gap: 9 },
-  menuTile: { alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 64, paddingHorizontal: 4, paddingVertical: 8, width: 56 },
-  menuIcon: { color: palette.primary, fontSize: 18 },
-  menuLabel: { color: colors.text, fontSize: typography.body, fontWeight: typography.regular, textAlign: 'center' },
+  menuGrid: { alignItems: 'flex-start', columnGap: 8, flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
+  menuTile: { alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 64, paddingHorizontal: 6, paddingVertical: 10, width: '31%' },
+  menuLabel: { color: colors.text, fontSize: 12, fontWeight: typography.regular, textAlign: 'center' },
   menuRetry: { alignItems: 'center', minHeight: 44, justifyContent: 'center' },
   menuRetryText: { color: palette.primary, fontSize: typography.body, fontWeight: typography.semibold },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl },

@@ -4,6 +4,11 @@ import { Icon } from '../../shared/components/Icon'
 import userRaw from '../../assets/icons/user.svg?raw'
 import logoutRaw from '../../assets/icons/logout.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
+import homeRaw from '../../assets/icons/home.svg?raw'
+import calendarRaw from '../../assets/icons/calendar.svg?raw'
+import listRaw from '../../assets/icons/list.svg?raw'
+import notebookPencilRaw from '../../assets/icons/notebook-pencil.svg?raw'
+import squaresRaw from '../../assets/icons/squares.svg?raw'
 import { useAuth } from '../../shared/contexts/AuthContext'
 import { getPalette } from '../../shared/theme/palettes'
 import { LEGAL_DOCUMENTS } from '../../shared/api/legal'
@@ -44,6 +49,14 @@ const MENU_GROUPS = [
     ],
   },
 ]
+
+const ALL_MENU_ICONS = {
+  home: homeRaw,
+  calendar: calendarRaw,
+  schedules: listRaw,
+  records: notebookPencilRaw,
+  collection: squaresRaw,
+}
 
 /**
  * 더보기 탭. 프로필 요약과 저빈도 관리 기능을 모아둔 화면이다.
@@ -109,7 +122,7 @@ export default function MorePage() {
             <div className="all-menu-grid">
               {buildAllMenus(menuQuery.data ?? []).map(menu => (
                 <button type="button" key={menu.code} onClick={() => navigate(menu.path)} className="all-menu-item">
-                  <span className="all-menu-item__icon" aria-hidden="true">{menu.icon}</span>
+                  <Icon raw={ALL_MENU_ICONS[menu.code] ?? squaresRaw} size={20} className="all-menu-item__icon" />
                   <strong className="all-menu-item__label">{menu.name}</strong>
                 </button>
               ))}
