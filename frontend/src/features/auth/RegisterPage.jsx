@@ -85,7 +85,7 @@ export default function RegisterPage() {
             value={form.nickname}
             onChange={(e) => set('nickname', e.target.value)}
             className="auth-form__input"
-            placeholder="닉네임을 입력하세요"
+            placeholder="닉네임을 입력해주세요"
           />
         </div>
         <div className="auth-form__field">
@@ -97,7 +97,7 @@ export default function RegisterPage() {
             value={form.email}
             onChange={(e) => set('email', e.target.value)}
             className="auth-form__input"
-            placeholder="example@email.com"
+            placeholder="이메일을 입력해주세요"
           />
         </div>
         <div className="auth-form__field">
@@ -109,7 +109,7 @@ export default function RegisterPage() {
             value={form.password}
             onChange={(e) => set('password', e.target.value)}
             className="auth-form__input"
-            placeholder="비밀번호"
+            placeholder="비밀번호를 입력해주세요"
           />
           <p className="auth-form__hint">9자 이상 · 영문, 숫자, 특수문자 포함</p>
         </div>
@@ -122,7 +122,7 @@ export default function RegisterPage() {
             value={form.confirm}
             onChange={(e) => set('confirm', e.target.value)}
             className="auth-form__input"
-            placeholder="비밀번호 다시 입력"
+            placeholder="비밀번호를 다시 입력해주세요"
           />
         </div>
         {/* 약관은 새 창으로 연다. 가입 도중 같은 창에서 나가면 입력한 값이 사라진다. */}

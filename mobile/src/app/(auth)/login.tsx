@@ -47,7 +47,7 @@ export default function LoginScreen() {
             autoComplete="email"
             keyboardType="email-address"
             onChangeText={setEmail}
-            placeholder="name@example.com"
+            placeholder="이메일을 입력해주세요"
             style={styles.input}
             value={email}
           />
@@ -56,7 +56,7 @@ export default function LoginScreen() {
             autoComplete="password"
             onChangeText={setPassword}
             onSubmitEditing={handleLogin}
-            placeholder="비밀번호를 입력하세요"
+            placeholder="비밀번호를 입력해주세요"
             secureTextEntry
             style={styles.input}
             value={password}

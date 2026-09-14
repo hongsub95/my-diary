@@ -76,15 +76,15 @@ export default function RegisterScreen() {
           <Text style={styles.description}>계정을 만들면 개인 일정 공간이 함께 생성됩니다.</Text>
 
           <Text style={styles.label}>이메일</Text>
-          <TextInput autoCapitalize="none" keyboardType="email-address" onChangeText={setEmail} style={styles.input} value={email} />
+          <TextInput autoCapitalize="none" keyboardType="email-address" onChangeText={setEmail} placeholder="이메일을 입력해주세요" style={styles.input} value={email} />
           {fieldErrors.email ? <Text style={styles.error}>{fieldErrors.email}</Text> : null}
 
           <Text style={styles.label}>닉네임</Text>
-          <TextInput maxLength={50} onChangeText={setNickname} style={styles.input} value={nickname} />
+          <TextInput maxLength={50} onChangeText={setNickname} placeholder="닉네임을 입력해주세요" style={styles.input} value={nickname} />
           {fieldErrors.nickname ? <Text style={styles.error}>{fieldErrors.nickname}</Text> : null}
 
           <Text style={styles.label}>비밀번호</Text>
-          <TextInput onChangeText={setPassword} secureTextEntry style={styles.input} value={password} />
+          <TextInput onChangeText={setPassword} placeholder="비밀번호를 입력해주세요" secureTextEntry style={styles.input} value={password} />
           <Text style={styles.hint}>9자 이상 · 영문, 숫자, 특수문자 포함</Text>
           {fieldErrors.password ? <Text style={styles.error}>{fieldErrors.password}</Text> : null}
 

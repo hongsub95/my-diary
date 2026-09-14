@@ -53,7 +53,7 @@ export default function LoginPage() {
             value={form.email}
             onChange={(e) => set('email', e.target.value)}
             className="auth-form__input"
-            placeholder="example@email.com"
+            placeholder="이메일을 입력해주세요"
           />
         </div>
         <div className="auth-form__field">
@@ -65,7 +65,7 @@ export default function LoginPage() {
             value={form.password}
             onChange={(e) => set('password', e.target.value)}
             className="auth-form__input"
-            placeholder="비밀번호"
+            placeholder="비밀번호를 입력해주세요"
           />
         </div>
         {error && <p className="auth-form__error" role="alert">{error}</p>}
