@@ -42,6 +42,7 @@ export default function CalendarPage() {
   const calendarRef = useRef(null)
   const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(today))
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [viewDate, setViewDate] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   )
@@ -57,22 +58,17 @@ export default function CalendarPage() {
   //
   // 한 날짜에 여러 하루가 있으면 더 손이 가는 쪽을 남긴다. 기록 대기는 사용자가
   // 아직 할 일이 있다는 뜻이라 가장 앞에 둔다.
-  const dotByDate = useMemo(() => {
-    const priority = { pending: 3, planned: 2, recorded: 1 }
-    const marks = {}
-
-    for (const schedule of schedules) {
-      const kind =
-        schedule.experience_phase === 'record_pending'
-          ? 'pending'
-          : schedule.experience_phase === 'recorded'
-            ? 'recorded'
-            : 'planned'
-      const current = marks[schedule.date_key]
-      if (!current || priority[kind] > priority[current]) marks[schedule.date_key] = kind
-    }
-    return marks
-  }, [schedules])
+  const calendarEvents = useMemo(() => schedules.map((schedule) => ({
+    id: String(schedule.id),
+    title: schedule.title,
+    start: schedule.date_key,
+    allDay: true,
+    extendedProps: {
+      kind: schedule.experience_phase === 'record_pending'
+        ? 'pending'
+        : schedule.experience_phase === 'recorded' ? 'recorded' : 'planned',
+    },
+  })), [schedules])
   const selectedSchedules = useMemo(
     () => schedules.filter((schedule) => schedule.date_key === selectedDate),
     [schedules, selectedDate],
@@ -99,23 +95,20 @@ export default function CalendarPage() {
     }
   }
 
-  const renderDayCell = ({ date, dayNumberText, isOther }) => {
+  const renderDayCell = ({ dayNumberText, isOther }) => {
     if (isOther) return null
-
-    const dateKey = formatDateKey(date)
     return (
       <span className="product-calendar__day-content">
         <span className="product-calendar__day-number">
           {dayNumberText.replace('일', '')}
         </span>
-        <span
-          aria-hidden="true"
-          className={`product-calendar__schedule-dot${
-            dotByDate[dateKey] ? ` product-calendar__schedule-dot--${dotByDate[dateKey]}` : ''
-          }`}
-        />
       </span>
     )
+  }
+
+  const openDateDrawer = (dateKey) => {
+    setSelectedDate(dateKey)
+    setIsDrawerOpen(true)
   }
 
   const [, selectedMonth, selectedDay] = selectedDate.split('-').map(Number)
@@ -158,9 +151,17 @@ export default function CalendarPage() {
             headerToolbar={false}
             fixedWeekCount={false}
             showNonCurrentDates={false}
-            height="auto"
+            height="100%"
+            expandRows
+            dayMaxEvents={2}
+            moreLinkContent={() => '…'}
+            moreLinkClick={({ date }) => openDateDrawer(formatDateKey(date))}
             datesSet={handleDatesSet}
-            dateClick={({ dateStr }) => setSelectedDate(dateStr)}
+            dateClick={({ dateStr }) => openDateDrawer(dateStr)}
+            events={calendarEvents}
+            eventClick={({ event }) => openDateDrawer(event.startStr.slice(0, 10))}
+            eventClassNames={({ event }) => [`product-calendar__event--${event.extendedProps.kind}`]}
+            eventContent={({ event }) => <span title={event.title}>{event.title}</span>}
             dayHeaderContent={({ date }) => WEEKDAYS[date.getDay()]}
             dayHeaderClassNames={({ date }) => [
               'product-calendar__weekday',
@@ -182,52 +183,28 @@ export default function CalendarPage() {
           />
         </div>
 
-        {/* 색만으로는 무슨 점인지 알 수 없다. 범례를 함께 둔다. */}
-        <div className="calendar-legend">
-          <span><i className="product-calendar__schedule-dot--planned" />예정</span>
-          <span><i className="product-calendar__schedule-dot--pending" />기록 대기</span>
-          <span><i className="product-calendar__schedule-dot--recorded" />기록함</span>
-        </div>
       </section>
-
-      <div className="calendar-body">
-        <div className="calendar-body__header">
-          <span className="calendar-body__date-label">
-            {selectedMonth}월 {selectedDay}일
-          </span>
+      {isDrawerOpen && (
+        <div className="calendar-drawer-layer">
+          <button type="button" className="calendar-drawer-backdrop" aria-label="일정 목록 닫기" onClick={() => setIsDrawerOpen(false)} />
+          <aside className="calendar-drawer" role="dialog" aria-modal="true" aria-label={`${selectedMonth}월 ${selectedDay}일 일정`}>
+            <div className="calendar-drawer__header">
+              <div><strong>{selectedMonth}월 {selectedDay}일</strong><span>{selectedSchedules.length}개의 일정</span></div>
+              <button type="button" onClick={() => setIsDrawerOpen(false)} aria-label="닫기">×</button>
+            </div>
+            <div className="calendar-drawer__body">
+              {selectedSchedules.length === 0 ? <EmptyState compact icon={calendarRaw} title="이날은 일정이 없어요" description="다른 날짜를 선택해 보세요." /> : (
+                <div className="schedule-list">{selectedSchedules.map((schedule) => (
+                  <button type="button" key={schedule.id} onClick={() => navigate(`/schedules/${schedule.id}`)} className="schedule-card">
+                    <div className="schedule-card__content"><span className={`schedule-card__badge schedule-card__badge--${schedule.status}`}>{schedule.status === 'completed' ? '완료' : '예정'}</span><p className="schedule-card__title">{schedule.title}</p><p className="schedule-card__meta">{formatTime(schedule.start_at)} · {schedule.place_count}개 장소</p></div>
+                    <Icon raw={chevronRightRaw} size={16} className="schedule-card__arrow" />
+                  </button>
+                ))}</div>
+              )}
+            </div>
+          </aside>
         </div>
-
-        {selectedSchedules.length === 0 ? (
-          <EmptyState
-            compact
-            icon={calendarRaw}
-            title="이날은 예정된 하루가 없어요"
-            description="다른 날짜를 선택해 보세요."
-          />
-        ) : (
-          <div className="schedule-list">
-            {selectedSchedules.map((schedule) => (
-              <button
-                type="button"
-                key={schedule.id}
-                onClick={() => navigate(`/schedules/${schedule.id}`)}
-                className="schedule-card"
-              >
-                <div className="schedule-card__content">
-                  <span className={`schedule-card__badge schedule-card__badge--${schedule.status}`}>
-                    {schedule.status === 'completed' ? '완료' : '예정'}
-                  </span>
-                  <p className="schedule-card__title">{schedule.title}</p>
-                  <p className="schedule-card__meta">
-                    {formatTime(schedule.start_at)} · {schedule.place_count}개 장소
-                  </p>
-                </div>
-                <Icon raw={chevronRightRaw} size={16} className="schedule-card__arrow" />
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }

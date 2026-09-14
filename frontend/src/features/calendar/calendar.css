@@ -1,13 +1,18 @@
 .calendar-page {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
+  overflow: hidden;
 }
 
 .calendar-header {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
   background: var(--color-surface);
-  border-bottom: 1px solid var(--color-border-light);
-  padding: 48px 16px 12px;
+  padding: 48px 12px 12px;
 }
 
 .calendar-header__top {
@@ -51,6 +56,8 @@
 }
 
 .product-calendar {
+  flex: 1;
+  min-height: 0;
   --fc-classic-background: var(--color-surface);
   --fc-classic-border: transparent;
   --fc-classic-foreground: var(--color-text-primary);
@@ -59,6 +66,53 @@
   --fc-classic-primary: var(--color-primary);
   --fc-classic-today: transparent;
 }
+
+.product-calendar .fc,
+.product-calendar .fc-view-harness,
+.product-calendar .fc-view,
+.product-calendar table {
+  height: 100% !important;
+}
+
+.product-calendar .fc-daygrid-day-frame {
+  min-height: 0;
+  padding: 2px;
+}
+
+.product-calendar .fc-daygrid-day-events {
+  margin: 0 1px;
+}
+
+.product-calendar .fc-daygrid-event {
+  min-width: 0;
+  margin: 2px 0 0;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: 4px;
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.product-calendar .fc-daygrid-event span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-calendar .fc-daygrid-more-link {
+  display: block;
+  overflow: hidden;
+  padding: 0 4px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  line-height: 1;
+  text-align: center;
+}
+
+.product-calendar__event--planned { background: var(--color-primary-light); color: var(--color-primary-text); }
+.product-calendar__event--pending { background: var(--color-orange-light); color: var(--color-orange-text); }
+.product-calendar__event--recorded { background: #e8f5ee; color: #238257; }
 
 .product-calendar__weekday {
   border: 0 !important;
@@ -93,7 +147,7 @@
 
 .product-calendar__day-content {
   display: flex;
-  min-height: 44px;
+  min-height: 28px;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
@@ -102,8 +156,8 @@
 
 .product-calendar__day-number {
   display: flex;
-  width: 32px;
-  height: 32px;
+  width: 26px;
+  height: 26px;
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-full);
@@ -113,6 +167,50 @@
   line-height: 1;
   transition: background 0.15s, color 0.15s;
 }
+
+.calendar-drawer-layer {
+  position: absolute;
+  z-index: 20;
+  inset: 0;
+}
+
+.calendar-drawer-backdrop {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  background: rgb(28 25 23 / 35%);
+}
+
+.calendar-drawer {
+  position: absolute;
+  inset: 0 auto 0 0;
+  display: flex;
+  width: min(88%, 380px);
+  flex-direction: column;
+  background: var(--color-bg);
+  box-shadow: 12px 0 30px rgb(28 25 23 / 18%);
+  animation: calendar-drawer-enter 180ms ease-out;
+}
+
+@keyframes calendar-drawer-enter {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+.calendar-drawer__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 48px 20px 16px;
+  border-bottom: 1px solid var(--color-border-light);
+  background: var(--color-surface);
+}
+
+.calendar-drawer__header div { display: flex; flex-direction: column; gap: 4px; }
+.calendar-drawer__header strong { font-size: 18px; font-weight: 600; }
+.calendar-drawer__header span { color: var(--color-text-secondary); font-size: 12px; }
+.calendar-drawer__header button { width: 36px; height: 36px; font-size: 24px; color: var(--color-text-secondary); }
+.calendar-drawer__body { flex: 1; overflow-y: auto; padding: 16px; }
 
 .product-calendar__cell--sun .product-calendar__day-number {
   color: var(--color-sunday);
@@ -286,11 +384,4 @@
     padding-left: 24px;
   }
 
-  .calendar-body {
-    padding: 24px;
-  }
-
-  .product-calendar__day-content {
-    min-height: 56px;
-  }
 }

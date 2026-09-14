@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Calendar, LocaleConfig, type DateData } from 'react-native-calendars';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
+import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { EmptyState } from '@/shared/components/empty-state';
 import { colors, spacing, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
@@ -50,6 +51,9 @@ export default function CalendarScreen() {
   const styles = useThemedStyles(createStyles);
   const DOT_COLORS = useMemo(() => dotColors(palette), [palette]);
   const [selectedDate, setSelectedDate] = useState(() => localDateKey());
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const { width } = useWindowDimensions();
+  const [drawerX] = useState(() => new Animated.Value(-width));
 
   // 달을 넘기면 handleMonthChange가 selectedDate를 그 달 1일로 옮기므로, 선택 날짜의
   // 달이 곧 보고 있는 달이다. 장소는 쓰지 않으므로 include를 켜지 않는다.
@@ -59,45 +63,31 @@ export default function CalendarScreen() {
     to: lastDayOfMonth(visibleMonth),
   });
 
-  const markedDates = useMemo(() => {
-    const marks: Record<string, { marked?: boolean; dotColor?: string; selected?: boolean; selectedColor?: string }> = {};
-
-    // 한 날짜에 여러 하루가 있으면 더 손이 가는 쪽을 남긴다. 기록 대기는 사용자가
-    // 아직 할 일이 있다는 뜻이라 가장 앞에 둔다.
-    const priority: Record<string, number> = { pending: 3, planned: 2, recorded: 1 };
-    const kinds: Record<string, string> = {};
-
+  const schedulesByDate = useMemo(() => {
+    const grouped: Record<string, ScheduleView[]> = {};
     for (const schedule of schedules.data ?? []) {
-      // status가 아니라 experience_phase로 가른다. status만 보면 지난주에 다녀왔지만
-      // 완료를 안 누른 하루가 예정으로 남는다.
-      const kind =
-        schedule.experience_phase === 'record_pending'
-          ? 'pending'
-          : schedule.experience_phase === 'recorded'
-            ? 'recorded'
-            : 'planned';
-      const current = kinds[schedule.dateKey];
-      if (!current || priority[kind] > priority[current]) kinds[schedule.dateKey] = kind;
+      (grouped[schedule.dateKey] ??= []).push(schedule);
     }
-
-    for (const [dateKey, kind] of Object.entries(kinds)) {
-      marks[dateKey] = { ...marks[dateKey], marked: true, dotColor: DOT_COLORS[kind] };
-    }
-
-    marks[selectedDate] = {
-      ...marks[selectedDate],
-      selected: true,
-      selectedColor: palette.primary,
-    };
-    return marks;
-  }, [schedules.data, selectedDate, DOT_COLORS, palette.primary]);
+    return grouped;
+  }, [schedules.data]);
 
   const selectedSchedules = useMemo(
     () => (schedules.data ?? []).filter((schedule) => schedule.dateKey === selectedDate),
     [schedules.data, selectedDate],
   );
 
-  const handleDayPress = (day: DateData) => setSelectedDate(day.dateString);
+  useEffect(() => {
+    if (!drawerOpen) return;
+    drawerX.setValue(-width);
+    Animated.timing(drawerX, { duration: 180, toValue: 0, useNativeDriver: true }).start();
+  }, [drawerOpen, drawerX, width]);
+
+  const handleDayPress = (day: DateData) => {
+    setSelectedDate(day.dateString);
+    setDrawerOpen(true);
+  };
+  const closeDrawer = () => Animated.timing(drawerX, { duration: 160, toValue: -width, useNativeDriver: true })
+    .start(() => setDrawerOpen(false));
   const handleMonthChange = (monthData: DateData) => {
     setSelectedDate(`${monthData.dateString.slice(0, 7)}-01`);
   };
@@ -105,7 +95,7 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.content}>
         <View style={styles.heading}>
           <Text style={styles.eyebrow}>나의 일정</Text>
           <Text style={styles.title}>캘린더</Text>
@@ -114,11 +104,24 @@ export default function CalendarScreen() {
         <View style={styles.calendarCard}>
           <Calendar
             current={selectedDate}
-            markedDates={markedDates}
             onDayPress={handleDayPress}
             onMonthChange={handleMonthChange}
             enableSwipeMonths
             firstDay={0}
+            dayComponent={({ date, state }) => {
+              const items = schedulesByDate[date?.dateString ?? ''] ?? [];
+              const selected = date?.dateString === selectedDate;
+              return (
+                <Pressable onPress={() => date && handleDayPress(date)} style={[styles.dayCell, selected && styles.dayCellSelected]}>
+                  <Text style={[styles.dayNumber, state === 'disabled' && styles.dayDisabled, selected && styles.dayNumberSelected]}>{date?.day}</Text>
+                  {items.slice(0, 2).map((item) => {
+                    const kind = item.experience_phase === 'record_pending' ? 'pending' : item.experience_phase === 'recorded' ? 'recorded' : 'planned';
+                    return <View key={item.id} style={[styles.eventChip, { backgroundColor: DOT_COLORS[kind] }]}><Text numberOfLines={1} ellipsizeMode="tail" style={styles.eventChipText}>{item.title}</Text></View>;
+                  })}
+                  {items.length > 2 && <Text style={styles.moreEvents}>…</Text>}
+                </Pressable>
+              );
+            }}
             theme={{
               calendarBackground: colors.surface,
               selectedDayBackgroundColor: palette.primary,
@@ -136,45 +139,30 @@ export default function CalendarScreen() {
           />
         </View>
 
-        {/* 색만으로는 무슨 점인지 알 수 없다. 범례를 함께 둔다. */}
-        <View style={styles.legend}>
-          {[
-            { kind: 'planned', label: '예정' },
-            { kind: 'pending', label: '기록 대기' },
-            { kind: 'recorded', label: '기록함' },
-          ].map((item) => (
-            <View key={item.kind} style={styles.legendItem}>
-              <View style={[styles.legendDot, { backgroundColor: DOT_COLORS[item.kind] }]} />
-              <Text style={styles.legendText}>{item.label}</Text>
-            </View>
-          ))}
+      </View>
+      <Modal visible={drawerOpen} transparent animationType="none" onRequestClose={closeDrawer}>
+        <View style={styles.drawerLayer}>
+          <Pressable accessibilityLabel="일정 목록 닫기" onPress={closeDrawer} style={styles.backdrop} />
+          <Animated.View style={[styles.drawer, { width: Math.min(width * 0.88, 380), transform: [{ translateX: drawerX }] }]}>
+            <SafeAreaView edges={['top', 'bottom']} style={styles.drawerSafeArea}>
+              <View style={styles.drawerHeader}>
+                <View><Text style={styles.drawerTitle}>{month}월 {day}일</Text><Text style={styles.drawerCount}>{selectedSchedules.length}개의 일정</Text></View>
+                <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={closeDrawer} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable>
+              </View>
+              <ScrollView contentContainerStyle={styles.drawerBody}>
+                {selectedSchedules.length > 0 ? <View style={styles.list}>{selectedSchedules.map((schedule) => <ScheduleCard key={schedule.id} schedule={schedule} />)}</View> : <EmptyState compact icon="📅" title="이날은 일정이 없어요" description="다른 날짜를 선택해 보세요." />}
+              </ScrollView>
+            </SafeAreaView>
+          </Animated.View>
         </View>
-
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{month}월 {day}일 일정</Text>
-          <Text style={styles.sectionCount}>{selectedSchedules.length}개</Text>
-        </View>
-
-        {selectedSchedules.length > 0 ? (
-          <View style={styles.list}>
-            {selectedSchedules.map((schedule) => <ScheduleCard key={schedule.id} schedule={schedule} />)}
-          </View>
-        ) : (
-          <EmptyState
-            compact
-            icon="📅"
-            title="이날은 예정된 하루가 없어요"
-            description="다른 날짜를 선택해 보세요."
-          />
-        )}
-      </ScrollView>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: 120 },
+  content: { flex: 1, padding: spacing.lg, paddingBottom: spacing.md },
   heading: { gap: spacing.xs, marginBottom: spacing.lg },
   eyebrow: { color: palette.primary, fontSize: 14, fontWeight: '600' },
   title: { color: colors.text, fontSize: 18, fontWeight: '600' },
@@ -184,8 +172,17 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
     borderRadius: 20,
     borderWidth: 1,
     overflow: 'hidden',
-    padding: spacing.sm,
+    flex: 1,
+    padding: spacing.xs,
   },
+  dayCell: { alignItems: 'stretch', minHeight: 68, paddingHorizontal: 2, paddingTop: 3 },
+  dayCellSelected: { backgroundColor: palette.primarySoft, borderRadius: 8 },
+  dayNumber: { color: colors.text, fontSize: 12, marginBottom: 3, textAlign: 'center' },
+  dayNumberSelected: { color: palette.primary, fontWeight: '600' },
+  dayDisabled: { color: colors.border },
+  eventChip: { borderRadius: 3, marginBottom: 2, minWidth: 0, paddingHorizontal: 3, paddingVertical: 2 },
+  eventChipText: { color: '#FFFFFF', fontSize: 8, lineHeight: 10 },
+  moreEvents: { color: colors.muted, fontSize: 10, lineHeight: 10, textAlign: 'center' },
   legend: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md, paddingHorizontal: 4 },
   legendItem: { alignItems: 'center', flexDirection: 'row', gap: 5 },
   legendDot: { borderRadius: 3, height: 6, width: 6 },
@@ -200,4 +197,14 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
   sectionCount: { color: palette.primary, fontSize: 14, fontWeight: '600' },
   list: { gap: spacing.md },
+  drawerLayer: { flex: 1 },
+  backdrop: { backgroundColor: 'rgba(28, 25, 23, 0.35)', bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
+  drawer: { bottom: 0, left: 0, position: 'absolute', top: 0 },
+  drawerSafeArea: { backgroundColor: colors.background, flex: 1 },
+  drawerHeader: { alignItems: 'center', backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
+  drawerTitle: { color: colors.text, fontSize: 18, fontWeight: '600' },
+  drawerCount: { color: colors.muted, fontSize: 12, marginTop: 3 },
+  closeButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
+  closeText: { color: colors.muted, fontSize: 28 },
+  drawerBody: { flexGrow: 1, padding: spacing.lg },
 });
