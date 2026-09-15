@@ -8,6 +8,7 @@ import {
   listSchedulePlaces,
   listSchedules,
   removeSchedulePlace,
+  reorderSchedulePlaces,
   setPlaceVisited,
   type AddSchedulePlaceInput,
 } from './schedule-api';
@@ -107,5 +108,13 @@ export function useScheduleActions(scheduleId: number) {
     onSuccess: invalidate,
   });
 
-  return { complete, toggleVisited, addPlace, removePlace };
+  // 순서는 전체 목록을 한 번에 보낸다. 화면이 위·아래로 한 칸씩 옮기더라도 서버에는
+  // 바뀐 전체 배열이 간다 (API_SPEC 6.4절).
+  const reorderPlaces = useMutation({
+    mutationFn: (schedulePlaceIds: number[]) =>
+      reorderSchedulePlaces(scheduleId, schedulePlaceIds),
+    onSuccess: invalidate,
+  });
+
+  return { complete, toggleVisited, addPlace, removePlace, reorderPlaces };
 }

@@ -6,6 +6,7 @@ import { useSchedule, useSchedulePlaceMutations } from '../../shared/api/queries
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import PlacePicker from './PlacePicker'
 import KakaoMap from '../../shared/map/KakaoMap'
+import { moveItem } from '../../shared/utils/reorder'
 import './schedules.css'
 
 /**
@@ -22,11 +23,32 @@ export default function SchedulePlanPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data: schedule, isPending } = useSchedule(id)
-  const { add, remove } = useSchedulePlaceMutations(id)
+  const { add, remove, reorder } = useSchedulePlaceMutations(id)
   const [error, setError] = useState('')
 
   const places = schedule?.places ?? []
   const done = () => navigate(`/schedules/${id}`, { replace: true })
+
+  /**
+   * 장소를 한 칸 옮긴다.
+   *
+   * @param {number} index 옮길 자리
+   * @param {number} step -1이면 위로, 1이면 아래로
+   *
+   * 서버에는 바뀐 **전체 순서**를 보낸다. 한 칸씩 옮기는 화면이라도 API는 전체를
+   * 받기 때문이다(API_SPEC 6.4절). 끝에서 더 못 가면 요청하지 않는다.
+   */
+  const handleMove = async (index, step) => {
+    const next = moveItem(places, index, step)
+    if (next === places) return
+
+    setError('')
+    try {
+      await reorder.mutateAsync(next.map((place) => place.id))
+    } catch (caught) {
+      setError(getApiErrorMessage(caught))
+    }
+  }
 
   const handleRemove = async (schedulePlaceId) => {
     setError('')
@@ -81,11 +103,33 @@ export default function SchedulePlanPage() {
                       <strong>{place.name}</strong>
                       {place.address && <em>{place.address}</em>}
                     </span>
+                    {/* 위·아래 한 칸씩 옮긴다. 드래그 대신 버튼을 쓰는 이유는
+                        shared/utils/reorder.js에 적어 두었다. */}
+                    <span className="splan-picked__moves">
+                      <button
+                        type="button"
+                        className="splan-picked__move"
+                        onClick={() => handleMove(index, -1)}
+                        disabled={index === 0 || reorder.isPending}
+                        aria-label={`${place.name} 순서 올리기`}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="splan-picked__move"
+                        onClick={() => handleMove(index, 1)}
+                        disabled={index === places.length - 1 || reorder.isPending}
+                        aria-label={`${place.name} 순서 내리기`}
+                      >
+                        ↓
+                      </button>
+                    </span>
                     <button
                       type="button"
                       className="splan-picked__remove"
                       onClick={() => handleRemove(place.id)}
-                      disabled={remove.isPending}
+                      disabled={remove.isPending || reorder.isPending}
                       aria-label={`${place.name} 빼기`}
                     >
                       ×

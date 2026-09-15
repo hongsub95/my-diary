@@ -11,6 +11,7 @@ import {
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import PlacePicker from './PlacePicker'
 import KakaoMap from '../../shared/map/KakaoMap'
+import { moveItem } from '../../shared/utils/reorder'
 import DiarySection from '../diaries/DiarySection'
 import './schedules.css'
 
@@ -43,10 +44,11 @@ function formatTime(dateStr) {
  * @param {object} props
  * @param {Array} props.places 담은 장소들
  * @param {boolean} props.checkable 방문 체크를 쓸 수 있는지. 당일에만 켠다
+ * @param {boolean} props.reorderable 순서를 바꿀 수 있는지. 아직 오지 않은 하루에만 켠다
  * @param {object} props.mutations useSchedulePlaceMutations
  * @param {(message: string) => void} props.onError 실패 문구 전달
  */
-function PlaceList({ places, checkable, mutations, onError }) {
+function PlaceList({ places, checkable, reorderable, mutations, onError }) {
   const act = async (run) => {
     onError('')
     try {
@@ -54,6 +56,18 @@ function PlaceList({ places, checkable, mutations, onError }) {
     } catch (caught) {
       onError(getApiErrorMessage(caught))
     }
+  }
+
+  /**
+   * 장소를 한 칸 옮긴다. 서버에는 바뀐 전체 순서를 보낸다(API_SPEC 6.4절).
+   *
+   * @param {number} index 옮길 자리
+   * @param {number} step -1이면 위로, 1이면 아래로
+   */
+  const move = (index, step) => {
+    const next = moveItem(places, index, step)
+    if (next === places) return
+    act(() => mutations.reorder.mutateAsync(next.map((place) => place.id)))
   }
 
   return (
@@ -77,6 +91,31 @@ function PlaceList({ places, checkable, mutations, onError }) {
             {place.address && <p className="sdetail-place__address">{place.address}</p>}
             {place.memo && <p className="sdetail-place__memo">{place.memo}</p>}
           </div>
+
+          {/* 순서 바꾸기는 아직 오지 않은 하루에만 둔다. 당일이나 끝난 하루의 순서를
+              바꾸는 것은 기록을 고치는 일이라 뜻이 다르다. */}
+          {reorderable && (
+            <span className="sdetail-place__moves">
+              <button
+                type="button"
+                className="sdetail-place__move"
+                onClick={() => move(index, -1)}
+                disabled={index === 0 || mutations.reorder.isPending}
+                aria-label={`${place.name} 순서 올리기`}
+              >
+                ↑
+              </button>
+              <button
+                type="button"
+                className="sdetail-place__move"
+                onClick={() => move(index, 1)}
+                disabled={index === places.length - 1 || mutations.reorder.isPending}
+                aria-label={`${place.name} 순서 내리기`}
+              >
+                ↓
+              </button>
+            </span>
+          )}
 
           {checkable ? (
             <button
@@ -163,6 +202,7 @@ export default function ScheduleDetailPage() {
         <PlaceList
           places={schedule.places}
           checkable={isToday}
+          reorderable={!isToday && !isDone}
           mutations={mutations}
           onError={setError}
         />

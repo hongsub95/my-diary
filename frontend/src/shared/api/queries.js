@@ -13,6 +13,7 @@ import { toScheduleDetailView, toScheduleView } from './scheduleAdapter'
 import {
   addSchedulePlace,
   removeSchedulePlace,
+  reorderSchedulePlaces,
   searchPlaces,
   updateSchedulePlace,
 } from './places'
@@ -176,7 +177,14 @@ export function useSchedulePlaceMutations(scheduleId) {
     onSuccess: invalidate,
   })
 
-  return { add, remove, toggleVisited }
+  // 순서는 전체 목록을 한 번에 보낸다. 화면이 위·아래로 한 칸씩 옮기더라도 서버에는
+  // 바뀐 전체 배열이 간다 (API_SPEC 6.4절).
+  const reorder = useMutation({
+    mutationFn: (schedulePlaceIds) => reorderSchedulePlaces({ scheduleId, schedulePlaceIds }),
+    onSuccess: invalidate,
+  })
+
+  return { add, remove, toggleVisited, reorder }
 }
 
 /**

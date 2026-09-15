@@ -89,3 +89,22 @@ export async function updateSchedulePlace({ scheduleId, schedulePlaceId, changes
   )
   return data
 }
+
+/**
+ * 일정 속 장소 순서를 한 번에 바꾼다.
+ *
+ * @param {object} params
+ * @param {number|string} params.scheduleId 일정 id
+ * @param {number[]} params.schedulePlaceIds 원하는 순서대로 담은 **전체** 목록
+ * @returns {Promise<Array<object>>} 바뀐 전체 목록. 다시 조회할 필요가 없다
+ *
+ * **일부만 보내면 422다.** 그 일정의 장소를 빠짐없이 보내야 한다. 하나씩 sort_order를
+ * 고치는 방식이 아닌 이유는 API_SPEC 6.4절에 있다 — 중간 상태가 꼬이고, 빠진 장소를
+ * 앞뒤 어디에 둘지 정할 근거가 없다.
+ */
+export async function reorderSchedulePlaces({ scheduleId, schedulePlaceIds }) {
+  const { data } = await apiClient.patch(`/schedules/${scheduleId}/places/reorder`, {
+    schedule_place_ids: schedulePlaceIds,
+  })
+  return data.items
+}

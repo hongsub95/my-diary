@@ -165,3 +165,24 @@ export async function removeSchedulePlace(
 ): Promise<void> {
   await apiClient.delete(`/schedules/${scheduleId}/places/${schedulePlaceId}`);
 }
+
+/**
+ * 일정 속 장소 순서를 한 번에 바꾼다.
+ *
+ * @param schedulePlaceIds 원하는 순서대로 담은 **전체** 목록
+ * @returns 바뀐 전체 목록. 다시 조회할 필요가 없다
+ *
+ * **일부만 보내면 422다.** 하나씩 sort_order를 고치는 방식이 아닌 이유는
+ * API_SPEC 6.4절에 있다 — 중간 상태가 꼬이고, 빠진 장소를 앞뒤 어디에 둘지
+ * 정할 근거가 없다.
+ */
+export async function reorderSchedulePlaces(
+  scheduleId: number,
+  schedulePlaceIds: number[],
+): Promise<SchedulePlace[]> {
+  const response = await apiClient.patch<SchedulePlaceListResponse>(
+    `/schedules/${scheduleId}/places/reorder`,
+    { schedule_place_ids: schedulePlaceIds },
+  );
+  return response.data.items;
+}

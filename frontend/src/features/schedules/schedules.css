@@ -1046,3 +1046,41 @@
   border-color: var(--color-primary);
   background: var(--color-primary-light);
 }
+
+/* ── 장소 순서 바꾸기 ─────────────────────────────── */
+
+/* 위·아래 버튼을 세로로 붙여 하나의 조작 묶음으로 보이게 한다. 떨어뜨려 놓으면
+   어느 항목의 버튼인지 헷갈린다. */
+.splan-picked__moves,
+.sdetail-place__moves {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+
+.splan-picked__move,
+.sdetail-place__move {
+  /* 세로로 두 개를 쌓아야 해서 44px을 다 주면 행이 너무 높아진다. 대신 좌우를 넓혀
+     누르기 쉬운 면적을 확보한다. */
+  min-width: 32px;
+  padding: 3px 8px;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+}
+
+.splan-picked__move:hover:not(:disabled),
+.sdetail-place__move:hover:not(:disabled) {
+  background: var(--color-surface-hover);
+  color: var(--color-primary);
+}
+
+/* 맨 위·맨 아래에서는 누를 수 없다. 버튼을 감추지 않고 흐리게만 두는 이유는,
+   사라지면 행마다 버튼 수가 달라져 목록이 들쭉날쭉해 보이기 때문이다. */
+.splan-picked__move:disabled,
+.sdetail-place__move:disabled {
+  opacity: 0.3;
+  cursor: default;
+}

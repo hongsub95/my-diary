@@ -14,6 +14,7 @@ import {
   type AddSchedulePlaceInput,
 } from '@/features/schedules/schedule-api';
 import { getApiError } from '@/shared/api/api-error';
+import { moveItem } from '@/shared/utils/reorder';
 import { colors, spacing, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
@@ -183,6 +184,24 @@ export default function NewScheduleScreen() {
                   <View key={place.id} style={styles.placeRow}>
                     <View style={styles.placeNumber}><Text style={styles.placeNumberText}>{index + 1}</Text></View>
                     <View style={styles.placeCopy}><Text style={styles.placeName}>{place.place.name}</Text>{place.place.address ? <Text style={styles.placeMeta}>{[place.place.address, place.place.address_detail].filter(Boolean).join(' ')}</Text> : null}</View>
+                    {/* 아직 저장 전이라 서버에 보낼 것이 없다. 배열만 바꾸면 되고,
+                        저장할 때 이 순서대로 담긴다. */}
+                    <View style={styles.moves}>
+                      <Pressable
+                        accessibilityLabel={`${place.place.name} 순서 올리기`}
+                        disabled={index === 0}
+                        onPress={() => setPlaces((current) => moveItem(current, index, -1))}
+                        style={styles.moveButton}>
+                        <Text style={[styles.moveMark, index === 0 && styles.moveMarkOff]}>↑</Text>
+                      </Pressable>
+                      <Pressable
+                        accessibilityLabel={`${place.place.name} 순서 내리기`}
+                        disabled={index === places.length - 1}
+                        onPress={() => setPlaces((current) => moveItem(current, index, 1))}
+                        style={styles.moveButton}>
+                        <Text style={[styles.moveMark, index === places.length - 1 && styles.moveMarkOff]}>↓</Text>
+                      </Pressable>
+                    </View>
                     <Pressable onPress={() => setPlaces((current) => current.filter((item) => item.id !== place.id))}><Text style={styles.remove}>×</Text></Pressable>
                   </View>
                 )) : (
@@ -370,6 +389,12 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   placeCopy: { flex: 1, marginLeft: 12 },
   placeName: { color: colors.text, fontSize: 14, fontWeight: '600' },
   placeMeta: { color: colors.muted, fontSize: 9, marginTop: 4 },
+  // 위·아래 버튼을 세로로 붙여 하나의 조작 묶음으로 보이게 한다.
+  moves: { flexDirection: 'column' },
+  moveButton: { alignItems: 'center', justifyContent: 'center', minWidth: 30, paddingVertical: 3 },
+  moveMark: { color: colors.muted, fontSize: 14, lineHeight: 16 },
+  // 끝에서는 감추지 않고 흐리게만 둔다. 사라지면 행마다 버튼 수가 달라 보인다.
+  moveMarkOff: { opacity: 0.3 },
   remove: { color: colors.muted, fontSize: 22, padding: 8 },
   emptyPlaces: { alignItems: 'center', paddingHorizontal: 15, paddingVertical: 28 },
   emptyPlacesIcon: { color: palette.primary, fontSize: 31 },

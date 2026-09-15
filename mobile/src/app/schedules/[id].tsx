@@ -9,6 +9,7 @@ import { KakaoMap } from '@/features/places/kakao-map';
 import { useSchedule, useScheduleActions } from '@/features/schedules/schedule-queries';
 import type { SchedulePlaceView } from '@/features/schedules/schedule-adapter';
 import { getApiError } from '@/shared/api/api-error';
+import { moveItem } from '@/shared/utils/reorder';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { colors, spacing, type ThemePalette } from '@/shared/theme';
@@ -33,15 +34,20 @@ function PlaceList({
   places,
   checkable,
   removable,
+  reorderable,
   onToggle,
   onRemove,
+  onMove,
   busy,
 }: {
   places: SchedulePlaceView[];
   checkable: boolean;
   removable: boolean;
+  /** 순서를 바꿀 수 있는지. 아직 오지 않은 하루에만 켠다 */
+  reorderable: boolean;
   onToggle: (place: SchedulePlaceView) => void;
   onRemove: (place: SchedulePlaceView) => void;
+  onMove: (index: number, step: number) => void;
   busy: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
@@ -59,6 +65,30 @@ function PlaceList({
             </Text>
             {place.address ? <Text style={styles.placeAddress}>{place.address}</Text> : null}
           </View>
+          {/* 순서 바꾸기는 아직 오지 않은 하루에만 둔다. 당일이나 끝난 하루의 순서를
+              바꾸는 것은 기록을 고치는 일이라 뜻이 다르다. */}
+          {reorderable ? (
+            <View style={styles.moves}>
+              <Pressable
+                accessibilityLabel={`${place.name} 순서 올리기`}
+                disabled={busy || index === 0}
+                onPress={() => onMove(index, -1)}
+                style={styles.moveButton}>
+                <Text style={[styles.moveMark, index === 0 && styles.moveMarkOff]}>↑</Text>
+              </Pressable>
+              <Pressable
+                accessibilityLabel={`${place.name} 순서 내리기`}
+                disabled={busy || index === places.length - 1}
+                onPress={() => onMove(index, 1)}
+                style={styles.moveButton}>
+                <Text
+                  style={[styles.moveMark, index === places.length - 1 && styles.moveMarkOff]}>
+                  ↓
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
+
           {checkable ? (
             <Pressable onPress={() => onToggle(place)} disabled={busy} style={styles.visitButton}>
               <Text style={styles.visitText}>{place.visited ? '취소' : '다녀왔어요'}</Text>
@@ -95,7 +125,8 @@ export default function ScheduleDetailScreen() {
   const scheduleId = Number(rawId);
 
   const schedule = useSchedule(scheduleId);
-  const { complete, toggleVisited, addPlace, removePlace } = useScheduleActions(scheduleId);
+  const { complete, toggleVisited, addPlace, removePlace, reorderPlaces } =
+    useScheduleActions(scheduleId);
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
 
@@ -161,13 +192,21 @@ export default function ScheduleDetailScreen() {
           // 방문 체크가 켜진 당일에는 빼기 버튼을 두지 않는다. 두 버튼이 같은 자리에
           // 겹치면 다녀온 곳을 지우려다 잘못 누르기 쉽다.
           removable={!isDone && !isToday}
-          busy={toggleVisited.isPending || removePlace.isPending}
+          reorderable={!isDone && !isToday}
+          busy={toggleVisited.isPending || removePlace.isPending || reorderPlaces.isPending}
           onToggle={(place) =>
             run(() =>
               toggleVisited.mutateAsync({ schedulePlaceId: place.id, visited: !place.visited }),
             )
           }
           onRemove={(place) => run(() => removePlace.mutateAsync(place.id))}
+          onMove={(index, step) => {
+            // 서버에는 바뀐 전체 순서를 보낸다(API_SPEC 6.4절). 끝에서 더 못 가면
+            // moveItem이 원본을 그대로 돌려주므로 요청하지 않는다.
+            const next = moveItem(day.places, index, step);
+            if (next === day.places) return;
+            run(() => reorderPlaces.mutateAsync(next.map((place) => place.id)));
+          }}
         />
       ) : !picking ? (
         <Text style={styles.empty}>
@@ -279,6 +318,16 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
   action: { color: palette.primary, fontSize: 14, fontWeight: '600' },
   closePicker: { alignItems: 'flex-end' },
+  // 위·아래 버튼을 세로로 붙여 하나의 조작 묶음으로 보이게 한다. 떨어뜨려 놓으면
+  // 어느 항목의 버튼인지 헷갈린다.
+  moves: { flexDirection: 'column' },
+  // 세로로 두 개를 쌓아야 해서 44px을 다 주면 행이 너무 높아진다. 좌우를 넓혀 누를
+  // 면적을 확보한다.
+  moveButton: { alignItems: 'center', justifyContent: 'center', minWidth: 32, paddingVertical: 3 },
+  moveMark: { color: colors.muted, fontSize: 14, lineHeight: 16 },
+  // 맨 위·맨 아래에서는 누를 수 없다. 감추지 않고 흐리게만 두는 이유는, 사라지면
+  // 행마다 버튼 수가 달라져 목록이 들쭉날쭉해 보이기 때문이다.
+  moveMarkOff: { opacity: 0.3 },
   removeMark: { color: colors.muted, fontSize: 20, paddingHorizontal: 6 },
   empty: { color: colors.muted, fontSize: 12 },
   memo: { color: colors.text, fontSize: 13, lineHeight: 21 },
