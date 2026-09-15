@@ -186,3 +186,33 @@ export async function reorderSchedulePlaces(
   );
   return response.data.items;
 }
+
+/** 순서 최적화 제안. 일정은 바뀌지 않는다. */
+export type OptimizationPreview = {
+  current: { schedule_place_ids: number[]; total_distance_m: number };
+  suggested: { schedule_place_ids: number[]; total_distance_m: number };
+  /** 줄어드는 직선거리(m). 제안하지 않을 때는 0 */
+  saved_distance_m: number;
+  /** 제안할 만한가. 100m 미만 차이면 false */
+  recommended: boolean;
+  /** 계산 근거. 지금은 직선거리뿐이다 */
+  basis: 'straight_line';
+  /** 좌표가 없어 계산에서 빠진 장소. 제안 목록에는 그대로 들어 있다 */
+  skipped_place_ids: number[];
+};
+
+/**
+ * 담은 장소를 가까운 순으로 다시 배열한 순서를 제안받는다. **일정은 바뀌지 않는다.**
+ *
+ * 적용하려면 `suggested.schedule_place_ids`를 그대로 `reorderSchedulePlaces`에 넘긴다.
+ *
+ * **직선거리 기준이다.** 실제 도로·도보 경로가 아니므로 화면에 근거를 함께 밝혀야 한다.
+ */
+export async function previewPlaceOptimization(
+  scheduleId: number,
+): Promise<OptimizationPreview> {
+  const response = await apiClient.post<OptimizationPreview>(
+    `/schedules/${scheduleId}/optimization-preview`,
+  );
+  return response.data;
+}

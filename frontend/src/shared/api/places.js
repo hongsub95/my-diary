@@ -108,3 +108,21 @@ export async function reorderSchedulePlaces({ scheduleId, schedulePlaceIds }) {
   })
   return data.items
 }
+
+/**
+ * 담은 장소를 가까운 순으로 다시 배열한 순서를 제안받는다. **일정은 바뀌지 않는다.**
+ *
+ * @param {object} params
+ * @param {number|string} params.scheduleId 일정 id
+ * @returns {Promise<object>} current / suggested / saved_distance_m / recommended / basis / skipped_place_ids
+ *
+ * 적용하려면 응답의 `suggested.schedule_place_ids`를 그대로 `reorderSchedulePlaces`에
+ * 넘긴다. 두 API가 같은 목록을 주고받도록 맞춰져 있다.
+ *
+ * **직선거리 기준이다.** 실제 도로·도보 경로가 아니므로 화면에 근거를 함께 밝혀야 한다.
+ * 응답의 `basis`가 그 값이며, 나중에 경로 API가 붙으면 값이 늘어난다.
+ */
+export async function previewPlaceOptimization({ scheduleId }) {
+  const { data } = await apiClient.post(`/schedules/${scheduleId}/optimization-preview`)
+  return data
+}

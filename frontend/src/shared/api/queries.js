@@ -13,6 +13,7 @@ import { toScheduleDetailView, toScheduleView } from './scheduleAdapter'
 import {
   addSchedulePlace,
   removeSchedulePlace,
+  previewPlaceOptimization,
   reorderSchedulePlaces,
   searchPlaces,
   updateSchedulePlace,
@@ -184,7 +185,13 @@ export function useSchedulePlaceMutations(scheduleId) {
     onSuccess: invalidate,
   })
 
-  return { add, remove, toggleVisited, reorder }
+  // 제안만 받아온다. 일정은 바뀌지 않으므로 목록을 다시 읽을 이유가 없다 —
+  // onSuccess에 invalidate를 두지 않는 이유다.
+  const optimize = useMutation({
+    mutationFn: () => previewPlaceOptimization({ scheduleId }),
+  })
+
+  return { add, remove, toggleVisited, reorder, optimize }
 }
 
 /**

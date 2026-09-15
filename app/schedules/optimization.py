@@ -64,13 +64,21 @@ def _nearest_neighbor(points: list[Point]) -> list[Point]:
 
 
 def _two_opt(points: list[Point]) -> list[Point]:
-    """구간을 뒤집어 보며 더 짧아지면 받아들인다.
+    """구간을 뒤집어 보며 더 짧아지면 받아들인다 (2-opt).
 
     가까운 곳만 따라가는 방식은 마지막에 멀리 떨어진 한 곳이 남아 되돌아가는 경로를
     자주 만든다. 구간 뒤집기로 그 교차를 펴 준다.
 
-    첫 장소는 여기서도 고정이라 i는 1부터 본다. 장소 수가 30개로 제한돼 있어
-    (MAX_PHOTOS_PER_SCHEDULE처럼 서비스 상한이 있다) 단순 반복으로 충분하다.
+    첫 장소는 여기서도 고정이라 i는 1부터 본다.
+
+    **전체 길이를 다시 재지 않고 바뀐 두 변만 본다.** 구간 [i, j]를 뒤집으면 실제로
+    달라지는 것은 (i-1, i)와 (j, j+1) 두 변뿐이다. 나머지는 순서만 뒤집힐 뿐 길이가
+    같다. 전체를 다시 재면 후보마다 O(n)이 붙어 한 번 훑는 데 O(n^3)이 되는데,
+    변 두 개만 보면 O(n^2)로 끝난다.
+
+    장소 수에 상한이 없어서(사진과 달리 개수 제한을 두지 않았다) 이 차이가 실제로
+    의미가 있다. 한 하루에 수십 곳을 담는 사람은 드물지만, 비용이 장소 수의 세제곱으로
+    늘어나는 코드를 열어 둘 이유는 없다.
     """
     best = points[:]
     improved = True
@@ -79,9 +87,18 @@ def _two_opt(points: list[Point]) -> list[Point]:
         improved = False
         for i in range(1, len(best) - 1):
             for j in range(i + 1, len(best)):
-                candidate = best[:i] + best[i : j + 1][::-1] + best[j + 1 :]
-                if total_distance_m(candidate) < total_distance_m(best) - 1e-9:
-                    best = candidate
+                before = best[i - 1]
+                first, last = best[i], best[j]
+                # 뒤집으면 (i-1 → i)가 (i-1 → j)로, (j → j+1)이 (i → j+1)로 바뀐다.
+                removed = distance_m(before, first)
+                added = distance_m(before, last)
+                if j + 1 < len(best):
+                    after = best[j + 1]
+                    removed += distance_m(last, after)
+                    added += distance_m(first, after)
+
+                if added < removed - 1e-9:
+                    best[i : j + 1] = best[i : j + 1][::-1]
                     improved = True
 
     return best
@@ -92,6 +109,20 @@ def optimize(points: list[Point]) -> list[Point]:
 
     :param points: 좌표가 있는 장소들. 원래 순서대로 들어온다
     :return: 다시 배열한 순서. 두 곳 이하면 바꿀 것이 없어 그대로 돌려준다
+
+    **외판원 문제(TSP)의 휴리스틱 두 가지를 이어 쓴다.** 최적해를 구하는 것이 아니라
+    충분히 짧은 순서를 빠르게 찾는다 — 최적해는 장소가 늘면 현실적인 시간에 못 구한다.
+
+    | 단계 | 이름 | 비용 |
+    |---|---|---|
+    | 만들기 | 최근접 이웃 (nearest neighbor) | O(n^2) |
+    | 다듬기 | 2-opt (한 번 훑을 때) | O(n^2) |
+
+    2-opt는 더 나아지지 않을 때까지 반복하므로 전체는 O(k · n^2)다. k는 개선이 일어난
+    횟수이고 이론상 상한이 크지만, 실제로는 몇 번 안에 멈춘다.
+
+    시작점을 돌아오지 않는 열린 경로(open path)로 푼다. 하루의 마지막 장소에서 집으로
+    돌아가는 거리는 사람마다 달라서 계산에 넣을 근거가 없다.
     """
     if len(points) <= 2:
         return points[:]

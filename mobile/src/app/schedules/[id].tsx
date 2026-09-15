@@ -6,6 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { DiarySection } from '@/features/diaries/diary-section';
 import { PlacePicker } from '@/features/places/place-picker';
 import { KakaoMap } from '@/features/places/kakao-map';
+import { OptimizeSuggestion } from '@/features/schedules/optimize-suggestion';
 import { useSchedule, useScheduleActions } from '@/features/schedules/schedule-queries';
 import type { SchedulePlaceView } from '@/features/schedules/schedule-adapter';
 import { getApiError } from '@/shared/api/api-error';
@@ -125,7 +126,7 @@ export default function ScheduleDetailScreen() {
   const scheduleId = Number(rawId);
 
   const schedule = useSchedule(scheduleId);
-  const { complete, toggleVisited, addPlace, removePlace, reorderPlaces } =
+  const { complete, toggleVisited, addPlace, removePlace, reorderPlaces, optimizePlaces } =
     useScheduleActions(scheduleId);
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
@@ -183,6 +184,17 @@ export default function ScheduleDetailScreen() {
 
       {day.places.length > 0 ? (
         <KakaoMap places={day.places.map(place => ({ ...place, id: String(place.id) }))} />
+      ) : null}
+
+      {/* 순서를 바꿀 수 있는 하루에만 둔다. 목록 바로 위에 두어 "아래 순서를 다듬는
+          버튼"이라는 것이 읽히게 한다. */}
+      {!isDone && !isToday && day.places.length > 0 ? (
+        <OptimizeSuggestion
+          places={day.places}
+          busy={optimizePlaces.isPending || reorderPlaces.isPending}
+          onRequest={() => optimizePlaces.mutateAsync()}
+          onApply={(schedulePlaceIds) => reorderPlaces.mutateAsync(schedulePlaceIds)}
+        />
       ) : null}
 
       {day.places.length > 0 ? (

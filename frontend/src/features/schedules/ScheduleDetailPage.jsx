@@ -12,6 +12,7 @@ import { getApiErrorMessage } from '../../shared/api/apiError'
 import PlacePicker from './PlacePicker'
 import KakaoMap from '../../shared/map/KakaoMap'
 import { moveItem } from '../../shared/utils/reorder'
+import OptimizeSuggestion from './OptimizeSuggestion'
 import DiarySection from '../diaries/DiarySection'
 import './schedules.css'
 
@@ -75,6 +76,16 @@ function PlaceList({ places, checkable, reorderable, mutations, onError }) {
       {/* 목록 위에 지도를 둔다. 마커 번호가 아래 목록의 순번과 같아서 "몇 번째로
           어디를 가는지"를 지도에서 바로 읽을 수 있다. */}
       <KakaoMap places={places} />
+
+      {/* 순서를 바꿀 수 있는 하루에만 둔다. 목록 바로 위에 두어 "아래 순서를 다듬는
+          버튼"이라는 것이 읽히게 한다. */}
+      {reorderable && (
+        <OptimizeSuggestion
+          places={places}
+          optimize={mutations.optimize}
+          reorder={mutations.reorder}
+        />
+      )}
 
       {places.map((place, index) => (
         <div key={place.id} className="sdetail-place">
