@@ -451,3 +451,53 @@ def delete_schedule(db: Session, schedule: Schedule) -> None:
     """
     db.delete(schedule)
     db.commit()
+
+
+def build_optimization_preview(schedule: Schedule) -> "OptimizationPreviewResponse":
+    """담은 장소의 순서를 거리 기준으로 다시 배열해 제안한다.
+
+    :param schedule: 장소가 함께 읽힌 일정
+    :return: 지금 순서와 제안 순서, 줄어드는 거리
+
+    좌표가 없는 장소(직접 입력)는 계산에서 빼고 **원래 순서를 유지한 채 뒤에 붙인다.**
+    빼버리면 제안을 적용했을 때 그 장소가 사라지고, 중간에 끼워 넣으면 거리 계산과
+    결과가 어긋난다.
+
+    계산 근거는 직선거리다. 한계는 app/schedules/optimization.py에 적어 두었다.
+    """
+    from app.schedules.optimization import Point, optimize, total_distance_m
+    from app.schedules.schemas import OptimizationOrder, OptimizationPreviewResponse
+
+    places = sorted(schedule.places, key=lambda item: (item.sort_order, item.id))
+
+    points: list[Point] = []
+    skipped: list[int] = []
+    for item in places:
+        if item.place.latitude is None or item.place.longitude is None:
+            skipped.append(item.id)
+            continue
+        points.append(Point(item.id, float(item.place.latitude), float(item.place.longitude)))
+
+    suggested_points = optimize(points)
+    current_total = total_distance_m(points)
+    suggested_total = total_distance_m(suggested_points)
+    saved = current_total - suggested_total
+
+    # 너무 작은 차이는 제안하지 않는다. 이유는 optimization.py의 MIN_IMPROVEMENT_M 참고.
+    from app.schedules.optimization import MIN_IMPROVEMENT_M
+
+    recommended = saved >= MIN_IMPROVEMENT_M
+
+    return OptimizationPreviewResponse(
+        current=OptimizationOrder(
+            schedule_place_ids=[point.place_id for point in points] + skipped,
+            total_distance_m=round(current_total),
+        ),
+        suggested=OptimizationOrder(
+            schedule_place_ids=[point.place_id for point in suggested_points] + skipped,
+            total_distance_m=round(suggested_total),
+        ),
+        saved_distance_m=round(saved) if recommended else 0,
+        recommended=recommended,
+        skipped_place_ids=skipped,
+    )

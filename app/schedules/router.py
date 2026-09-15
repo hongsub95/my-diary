@@ -20,10 +20,11 @@ from app.auth.dependencies import CurrentUser, DbSession
 from app.schedules import service
 from app.schedules.dependencies import ScheduleMemberContext
 from app.schedules.schemas import (
+    CollectionResponse,
+    OptimizationPreviewResponse,
     SCHEDULE_STATUSES,
     ScheduleCreateRequest,
     ScheduleListResponse,
-    CollectionResponse,
     ScheduleResponse,
     ScheduleUpdateRequest,
 )
@@ -210,6 +211,23 @@ def complete_schedule(context: ScheduleMemberContext, db: DbSession) -> Schedule
     """일정 완료 표시."""
     schedule = service.complete_schedule(db, context.schedule)
     return service.load_response(db, schedule)
+
+
+@schedules_router.post(
+    "/{schedule_id}/optimization-preview",
+    response_model=OptimizationPreviewResponse,
+    summary="장소 순서 최적화 미리보기",
+    description=(
+        "담은 장소를 가까운 순으로 다시 배열해 **제안만 한다.** 일정은 바뀌지 않으며, "
+        "적용하려면 응답의 `suggested.schedule_place_ids`를 순서 변경 API로 보낸다. "
+        "**직선거리 기준이다.** 실제 도로·도보 경로가 아니다. 그리고 거리만 보기 때문에 "
+        "'카페 → 저녁 → 술'처럼 순서에 뜻이 있는 하루를 뒤섞을 수 있어, 사람이 보고 "
+        "판단하도록 미리보기로 둔다. 첫 장소는 출발지로 보고 고정한다."
+    ),
+)
+def optimization_preview(context: ScheduleMemberContext) -> OptimizationPreviewResponse:
+    """장소 순서 최적화 미리보기."""
+    return service.build_optimization_preview(context.schedule)
 
 
 @schedules_router.delete(

@@ -2,6 +2,7 @@
 
 import uuid as uuid_module
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -155,3 +156,32 @@ class ScheduleListResponse(BaseModel):
 class CollectionResponse(BaseModel):
     items: list[ScheduleResponse]
     next_cursor: str | None
+
+
+class OptimizationOrder(BaseModel):
+    """한 가지 방문 순서와 그 거리."""
+
+    # 이 순서대로 돈다는 뜻. 화면은 이 값으로 reorder API를 그대로 부를 수 있다.
+    schedule_place_ids: list[int]
+    # 직선거리 합(m). 실제 도로 거리가 아니다.
+    total_distance_m: int
+
+
+class OptimizationPreviewResponse(BaseModel):
+    """순서 최적화 제안.
+
+    **바로 적용하지 않고 제안만 한다.** 거리만 보기 때문에 "카페 → 저녁 → 술"처럼
+    순서에 뜻이 있는 하루를 뒤섞을 수 있다. 사람이 보고 판단해야 한다.
+    """
+
+    current: OptimizationOrder
+    suggested: OptimizationOrder
+    # 줄어드는 직선거리(m). 제안하지 않을 때는 0이다.
+    saved_distance_m: int
+    # 제안할 만한지. 거리가 거의 같거나 더 길면 false이고, 화면은 그대로 두라고 안내한다.
+    recommended: bool
+    # 계산 근거. 지금은 직선거리뿐이다. 경로 API가 붙으면 값이 늘어난다.
+    basis: Literal["straight_line"] = "straight_line"
+    # 좌표가 없어 계산에서 빠진 장소들. 직접 입력한 장소가 여기 해당한다.
+    # 제안 순서에서는 원래 자리를 유지한 채 뒤에 붙는다.
+    skipped_place_ids: list[int]
