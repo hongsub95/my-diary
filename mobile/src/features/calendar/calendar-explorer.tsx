@@ -79,6 +79,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
       </View>
       {loading && <Text accessibilityLiveRegion="polite" style={s.status}>일정을 불러오는 중…</Text>}
       {failed && <Pressable accessibilityRole="button" onPress={retry}><Text style={s.status}>일정을 불러오지 못했어요. 다시 시도</Text></Pressable>}
+      {mode === 'month' && <View style={s.weekStrip}>{weekdays.map(day => <Text key={day} style={[s.weekDate, s.muted, { textAlign: 'center' }]}>{day}</Text>)}</View>}
       <View style={s.viewport} onLayout={event => setSize(event.nativeEvent.layout)}>
         {size.width > 0 && size.height > 0 && <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: size.width, y: 0 }} onMomentumScrollEnd={event => {
           const step = Math.round(event.nativeEvent.contentOffset.x / size.width) - 1;

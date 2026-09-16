@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarList, LocaleConfig, type DateData } from 'react-native-calendars';
+import { LocaleConfig } from 'react-native-calendars';
 import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,7 +8,10 @@ import { ScheduleCard } from '@/features/schedules/schedule-card';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { EmptyState } from '@/shared/components/empty-state';
 import { colors, spacing, type ThemePalette } from '@/shared/theme';
-import { useTheme, useThemedStyles } from '@/shared/theme-context';
+import { useThemedStyles } from '@/shared/theme-context';
+import { CalendarExplorer } from '@/features/calendar/calendar-explorer';
+import { moveDate } from '@/features/calendar/calendar-dates';
+import { seoulDateKey } from '@/shared/utils/date';
 
 LocaleConfig.locales.ko = {
   monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
@@ -18,21 +21,6 @@ LocaleConfig.locales.ko = {
   today: '오늘',
 };
 LocaleConfig.defaultLocale = 'ko';
-
-// react-native-calendars supports this runtime override, but its Theme type does not
-// expose the dotted key. Keeping it in a spread object preserves type checking for
-// all of the public theme properties below.
-const CALENDAR_FILL_THEME = {
-  'stylesheet.calendar.main': {
-    monthView: { flex: 1 },
-    week: {
-      flex: 1,
-      flexDirection: 'row',
-      justifyContent: 'space-around',
-      marginVertical: 0,
-    },
-  },
-};
 
 /** 'YYYY-MM'이 가리키는 달의 말일을 'YYYY-MM-DD'로 돌려준다. */
 function lastDayOfMonth(yearMonth: string) {
@@ -48,17 +36,6 @@ function shiftMonth(yearMonth: string, offset: number) {
   return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, '0')}`;
 }
 
-// 예정·기록 대기·기록됨을 색으로 구분한다. 예정과 기록을 같은 점으로 표시하면
-// 캘린더가 "무엇이 있었는지"를 알려주지 못한다
-// (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 6절).
-const dotColors = (palette: ThemePalette): Record<string, string> => ({
-  // 예정만 테마를 따른다. 기록 대기(오렌지)와 기록됨(세이지)은 뜻이 고정된 색이라
-  // 테마로 바뀌면 안 된다 (docs/DESIGN_SPEC.md 2.3절).
-  planned: palette.primary,
-  pending: colors.orange,
-  recorded: colors.sage,
-});
-
 function localDateKey(date = new Date()) {
   return [
     date.getFullYear(),
@@ -68,20 +45,14 @@ function localDateKey(date = new Date()) {
 }
 
 export default function CalendarScreen() {
-  const palette = useTheme();
   const styles = useThemedStyles(createStyles);
-  const DOT_COLORS = useMemo(() => dotColors(palette), [palette]);
   const [initialDate] = useState(() => localDateKey());
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { width } = useWindowDimensions();
   const [drawerX] = useState(() => new Animated.Value(-width));
-  const [calendarCardHeight, setCalendarCardHeight] = useState(0);
-  const calendarContentHeight = Math.max(0, calendarCardHeight - (spacing.xs * 2) - 2);
-  const calendarContentWidth = Math.max(1, width - (spacing.lg * 2) - (spacing.xs * 2) - 2);
 
-  // 달을 넘기면 handleMonthChange가 selectedDate를 그 달 1일로 옮기므로, 선택 날짜의
-  // 달이 곧 보고 있는 달이다. 장소는 쓰지 않으므로 include를 켜지 않는다.
+  // 옆 페이지를 미는 동안에도 일정이 보이도록 앞뒤 한 달을 함께 조회한다.
   const visibleMonth = selectedDate.slice(0, 7);
   const previousMonth = shiftMonth(visibleMonth, -1);
   const nextMonth = shiftMonth(visibleMonth, 1);
@@ -92,15 +63,19 @@ export default function CalendarScreen() {
 
   const schedulesByDate = useMemo(() => {
     const grouped: Record<string, ScheduleView[]> = {};
-    for (const schedule of schedules.data ?? []) {
-      (grouped[schedule.dateKey] ??= []).push(schedule);
+    for (const schedule of [...(schedules.data ?? [])].sort((a, b) => a.start_at.localeCompare(b.start_at) || a.id - b.id)) {
+      const start = schedule.dateKey > `${previousMonth}-01` ? schedule.dateKey : `${previousMonth}-01`;
+      const end = seoulDateKey(schedule.end_at) < lastDayOfMonth(nextMonth) ? seoulDateKey(schedule.end_at) : lastDayOfMonth(nextMonth);
+      for (let day = start; day <= end; day = moveDate(day, 'day', 1)) {
+        (grouped[day] ??= []).push(schedule);
+      }
     }
     return grouped;
-  }, [schedules.data]);
+  }, [schedules.data, previousMonth, nextMonth]);
 
   const selectedSchedules = useMemo(
-    () => (schedules.data ?? []).filter((schedule) => schedule.dateKey === selectedDate),
-    [schedules.data, selectedDate],
+    () => schedulesByDate[selectedDate] ?? [],
+    [schedulesByDate, selectedDate],
   );
 
   useEffect(() => {
@@ -109,82 +84,21 @@ export default function CalendarScreen() {
     Animated.timing(drawerX, { duration: 180, toValue: 0, useNativeDriver: true }).start();
   }, [drawerOpen, drawerX, width]);
 
-  const handleDayPress = (day: DateData) => {
-    setSelectedDate(day.dateString);
+  const handleDayPress = (dateString: string) => {
+    setSelectedDate(dateString);
     setDrawerOpen(true);
   };
   const closeDrawer = () => Animated.timing(drawerX, { duration: 160, toValue: -width, useNativeDriver: true })
     .start(() => setDrawerOpen(false));
-  const handleMonthChange = (monthData: DateData) => {
-    const nextVisibleMonth = monthData.dateString.slice(0, 7);
-    setSelectedDate(`${nextVisibleMonth}-01`);
-  };
   const [, month, day] = selectedDate.split('-').map(Number);
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.content}>
-        <View style={styles.heading}>
-          <Text style={styles.eyebrow}>나의 일정</Text>
-          <Text style={styles.title}>캘린더</Text>
-        </View>
-
-        <View
-          style={styles.calendarCard}
-          onLayout={({ nativeEvent }) => setCalendarCardHeight(nativeEvent.layout.height)}
-        >
-          {calendarContentHeight > 0 && (
-          <CalendarList
-            style={{ height: calendarContentHeight, width: calendarContentWidth }}
-            calendarHeight={calendarContentHeight}
-            calendarWidth={calendarContentWidth}
-            calendarStyle={{ height: calendarContentHeight, paddingLeft: 5, paddingRight: 5 }}
-            current={initialDate}
-            monthFormat="yyyy년 MM월"
-            onDayPress={handleDayPress}
-            onMonthChange={handleMonthChange}
-            horizontal
-            pagingEnabled
-            animateScroll
-            decelerationRate="fast"
-            disableIntervalMomentum
-            hideArrows={false}
-            showScrollIndicator={false}
-            pastScrollRange={24}
-            futureScrollRange={24}
-            firstDay={0}
-            dayComponent={({ date, state }) => {
-              const items = schedulesByDate[date?.dateString ?? ''] ?? [];
-              const selected = date?.dateString === selectedDate;
-              return (
-                <Pressable onPress={() => date && handleDayPress(date)} style={[styles.dayCell, selected && styles.dayCellSelected]}>
-                  <Text style={[styles.dayNumber, state === 'disabled' && styles.dayDisabled, selected && styles.dayNumberSelected]}>{date?.day}</Text>
-                  {items.slice(0, 2).map((item) => {
-                    const kind = item.experience_phase === 'record_pending' ? 'pending' : item.experience_phase === 'recorded' ? 'recorded' : 'planned';
-                    return <View key={item.id} style={[styles.eventChip, { backgroundColor: DOT_COLORS[kind] }]}><Text numberOfLines={1} ellipsizeMode="tail" style={styles.eventChipText}>{item.title}</Text></View>;
-                  })}
-                  {items.length > 2 && <Text style={styles.moreEvents}>…</Text>}
-                </Pressable>
-              );
-            }}
-            theme={{
-              calendarBackground: colors.surface,
-              selectedDayBackgroundColor: palette.primary,
-              selectedDayTextColor: '#FFFFFF',
-              todayTextColor: palette.primary,
-              dayTextColor: colors.text,
-              textDisabledColor: colors.border,
-              monthTextColor: colors.text,
-              arrowColor: palette.primary,
-              dotColor: palette.primary,
-              textMonthFontSize: 18,
-              textMonthFontWeight: '600',
-              textDayHeaderFontWeight: '600',
-              ...CALENDAR_FILL_THEME,
-            }}
-          />
-          )}
-        </View>
+        <CalendarExplorer selectedDate={selectedDate} onSelect={setSelectedDate}
+          onOpenDay={handleDayPress}
+          schedules={schedulesByDate} loading={schedules.isLoading} failed={schedules.isError}
+          retry={() => { void schedules.refetch(); }} />
 
       </View>
       <Modal visible={drawerOpen} transparent animationType="none" onRequestClose={closeDrawer}>
