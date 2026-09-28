@@ -508,9 +508,6 @@
   border-color: var(--color-primary);
 }
 
-.snew-form__select {
-  cursor: pointer;
-}
 
 .snew-timing-grid {
   overflow: hidden;
@@ -1304,4 +1301,44 @@
 .splace-note__save:disabled {
   opacity: 0.6;
   cursor: default;
+}
+/* ── 시각 고르는 칸 ────────────────────────────────── */
+
+/* 기본 화살표를 끄고 직접 그린다. 브라우저마다 모양과 크기가 달라서 그대로 두면
+   같은 화면이 크롬과 사파리에서 다르게 보인다.
+   **펼쳤을 때의 목록은 OS가 그리는 것이라 손댈 수 없다.** 닫힌 칸만 다듬는다. */
+.splace-note__time,
+.snew-form__select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 34px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'%3E%3Cpath d='M1 1.5 6 6.5 11 1.5' fill='none' stroke='%23756D68' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 13px center;
+  background-size: 11px 7px;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.splace-note__time:hover,
+.snew-form__select:hover {
+  border-color: var(--color-text-disabled);
+}
+
+/* 초점 테두리를 두 겹으로 둔다. 테두리 색만 바꾸면 얇아서 어디에 초점이 있는지
+   놓치기 쉽다. */
+.splace-note__time:focus-visible,
+.snew-form__select:focus-visible,
+.splace-note__memo:focus-visible {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-light);
+}
+
+.splace-note__memo {
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.splace-note__memo:hover {
+  border-color: var(--color-text-disabled);
 }
