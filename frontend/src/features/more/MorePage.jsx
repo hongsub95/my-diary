@@ -190,7 +190,6 @@ export default function MorePage() {
               요구하는 데이터 처리 안내와 재인증을 거쳐야 하기 때문이다. */}
           <button type="button" onClick={() => navigate('/more/delete')} className="more-withdraw">
             <span>계정 탈퇴</span>
-            <Icon raw={chevronRightRaw} size={16} className="more-menu__arrow" />
           </button>
         </section>
       </div>

@@ -157,7 +157,6 @@ export default function MoreScreen() {
             onPress={() => router.push('/more/delete')}
             style={({ pressed }) => [styles.withdrawButton, pressed && styles.pressed]}>
             <Text style={styles.withdrawText}>계정 탈퇴</Text>
-            <Text style={styles.rowArrow}>›</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -198,7 +197,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   divider: { backgroundColor: colors.border, height: 1, marginLeft: spacing.lg },
   logoutButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, minHeight: 52, justifyContent: 'center', paddingVertical: 15 },
   logoutText: { color: colors.danger, fontSize: typography.body, fontWeight: typography.semibold },
-  withdrawButton: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 52, paddingHorizontal: spacing.lg, paddingVertical: 14 },
-  withdrawText: { color: colors.muted, fontSize: typography.body, fontWeight: typography.regular },
+  withdrawButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: spacing.lg, paddingVertical: 14 },
+  withdrawText: { color: colors.danger, fontSize: typography.body, fontWeight: typography.semibold },
   pressed: { opacity: 0.65 },
 });

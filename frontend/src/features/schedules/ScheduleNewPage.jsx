@@ -5,13 +5,8 @@ import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
 import { useCreateSchedule } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
+import { TIME_OPTIONS } from '../../shared/utils/time'
 import './schedules.css'
-
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-  const hours = String(Math.floor(index / 2)).padStart(2, '0')
-  const minutes = index % 2 === 0 ? '00' : '30'
-  return `${hours}:${minutes}`
-})
 
 const serviceDateFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Seoul',

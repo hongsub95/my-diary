@@ -13,6 +13,7 @@ import PlacePicker from './PlacePicker'
 import KakaoMap from '../../shared/map/KakaoMap'
 import { moveItem } from '../../shared/utils/reorder'
 import OptimizeSuggestion from './OptimizeSuggestion'
+import PlaceNoteEditor from './PlaceNoteEditor'
 import DiarySection from '../diaries/DiarySection'
 import './schedules.css'
 
@@ -46,10 +47,11 @@ function formatTime(dateStr) {
  * @param {Array} props.places 담은 장소들
  * @param {boolean} props.checkable 방문 체크를 쓸 수 있는지. 당일에만 켠다
  * @param {boolean} props.reorderable 순서를 바꿀 수 있는지. 아직 오지 않은 하루에만 켠다
+ * @param {boolean} props.editable 예정시각·메모를 고칠 수 있는지. 끝난 하루에서는 보여주기만 한다
  * @param {object} props.mutations useSchedulePlaceMutations
  * @param {(message: string) => void} props.onError 실패 문구 전달
  */
-function PlaceList({ places, checkable, reorderable, mutations, onError }) {
+function PlaceList({ places, checkable, reorderable, editable, mutations, onError }) {
   const act = async (run) => {
     onError('')
     try {
@@ -100,7 +102,16 @@ function PlaceList({ places, checkable, reorderable, mutations, onError }) {
               {place.visited && <span className="sdetail-place__check">✓</span>}
             </div>
             {place.address && <p className="sdetail-place__address">{place.address}</p>}
-            {place.memo && <p className="sdetail-place__memo">{place.memo}</p>}
+            <PlaceNoteEditor
+              placeName={place.name}
+              plannedTime={place.planned_time}
+              memo={place.memo}
+              editable={editable}
+              busy={mutations.updateNote.isPending}
+              onSave={(changes) =>
+                mutations.updateNote.mutateAsync({ schedulePlaceId: place.id, changes })
+              }
+            />
           </div>
 
           {/* 순서 바꾸기는 아직 오지 않은 하루에만 둔다. 당일이나 끝난 하루의 순서를
@@ -214,6 +225,7 @@ export default function ScheduleDetailPage() {
           places={schedule.places}
           checkable={isToday}
           reorderable={!isToday && !isDone}
+          editable={!isDone}
           mutations={mutations}
           onError={setError}
         />

@@ -178,6 +178,13 @@ export function useSchedulePlaceMutations(scheduleId) {
     onSuccess: invalidate,
   })
 
+  // 예정시각·메모 저장. 보낸 필드만 바뀌므로 null을 넣으면 지워진다(API_SPEC 6.5절).
+  const updateNote = useMutation({
+    mutationFn: ({ schedulePlaceId, changes }) =>
+      updateSchedulePlace({ scheduleId, schedulePlaceId, changes }),
+    onSuccess: invalidate,
+  })
+
   // 순서는 전체 목록을 한 번에 보낸다. 화면이 위·아래로 한 칸씩 옮기더라도 서버에는
   // 바뀐 전체 배열이 간다 (API_SPEC 6.4절).
   const reorder = useMutation({
@@ -191,7 +198,7 @@ export function useSchedulePlaceMutations(scheduleId) {
     mutationFn: () => previewPlaceOptimization({ scheduleId }),
   })
 
-  return { add, remove, toggleVisited, reorder, optimize }
+  return { add, remove, toggleVisited, updateNote, reorder, optimize }
 }
 
 /**

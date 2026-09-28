@@ -7,6 +7,7 @@ import { DiarySection } from '@/features/diaries/diary-section';
 import { PlacePicker } from '@/features/places/place-picker';
 import { KakaoMap } from '@/features/places/kakao-map';
 import { OptimizeSuggestion } from '@/features/schedules/optimize-suggestion';
+import { PlaceNoteEditor } from '@/features/schedules/place-note-editor';
 import { useSchedule, useScheduleActions } from '@/features/schedules/schedule-queries';
 import type { SchedulePlaceView } from '@/features/schedules/schedule-adapter';
 import { getApiError } from '@/shared/api/api-error';
@@ -36,9 +37,11 @@ function PlaceList({
   checkable,
   removable,
   reorderable,
+  editable,
   onToggle,
   onRemove,
   onMove,
+  onSaveNote,
   busy,
 }: {
   places: SchedulePlaceView[];
@@ -46,9 +49,15 @@ function PlaceList({
   removable: boolean;
   /** 순서를 바꿀 수 있는지. 아직 오지 않은 하루에만 켠다 */
   reorderable: boolean;
+  /** 예정시각·메모를 고칠 수 있는지. 끝난 하루에서는 보여주기만 한다 */
+  editable: boolean;
   onToggle: (place: SchedulePlaceView) => void;
   onRemove: (place: SchedulePlaceView) => void;
   onMove: (index: number, step: number) => void;
+  onSaveNote: (
+    place: SchedulePlaceView,
+    note: { plannedTime: string | null; memo: string | null },
+  ) => Promise<unknown>;
   busy: boolean;
 }) {
   const styles = useThemedStyles(createStyles);
@@ -65,6 +74,14 @@ function PlaceList({
               {place.name}
             </Text>
             {place.address ? <Text style={styles.placeAddress}>{place.address}</Text> : null}
+            <PlaceNoteEditor
+              placeName={place.name}
+              plannedTime={place.plannedTime}
+              memo={place.memo}
+              editable={editable}
+              busy={busy}
+              onSave={(note) => onSaveNote(place, note)}
+            />
           </View>
           {/* 순서 바꾸기는 아직 오지 않은 하루에만 둔다. 당일이나 끝난 하루의 순서를
               바꾸는 것은 기록을 고치는 일이라 뜻이 다르다. */}
@@ -126,8 +143,15 @@ export default function ScheduleDetailScreen() {
   const scheduleId = Number(rawId);
 
   const schedule = useSchedule(scheduleId);
-  const { complete, toggleVisited, addPlace, removePlace, reorderPlaces, optimizePlaces } =
-    useScheduleActions(scheduleId);
+  const {
+    complete,
+    toggleVisited,
+    addPlace,
+    removePlace,
+    updatePlaceNote,
+    reorderPlaces,
+    optimizePlaces,
+  } = useScheduleActions(scheduleId);
   const [error, setError] = useState<string | null>(null);
   const [picking, setPicking] = useState(false);
 
@@ -205,13 +229,24 @@ export default function ScheduleDetailScreen() {
           // 겹치면 다녀온 곳을 지우려다 잘못 누르기 쉽다.
           removable={!isDone && !isToday}
           reorderable={!isDone && !isToday}
-          busy={toggleVisited.isPending || removePlace.isPending || reorderPlaces.isPending}
+          // 순서와 달리 시각·메모는 당일에도 고친다. "5시로 미뤘다" 같은 변경이 가장
+          // 자주 일어나는 날이 바로 그날이다.
+          editable={!isDone}
+          busy={
+            toggleVisited.isPending ||
+            removePlace.isPending ||
+            reorderPlaces.isPending ||
+            updatePlaceNote.isPending
+          }
           onToggle={(place) =>
             run(() =>
               toggleVisited.mutateAsync({ schedulePlaceId: place.id, visited: !place.visited }),
             )
           }
           onRemove={(place) => run(() => removePlace.mutateAsync(place.id))}
+          onSaveNote={(place, note) =>
+            updatePlaceNote.mutateAsync({ schedulePlaceId: place.id, ...note })
+          }
           onMove={(index, step) => {
             // 서버에는 바뀐 전체 순서를 보낸다(API_SPEC 6.4절). 끝에서 더 못 가면
             // moveItem이 원본을 그대로 돌려주므로 요청하지 않는다.
@@ -345,7 +380,8 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   memo: { color: colors.text, fontSize: 13, lineHeight: 21 },
 
   placeList: { gap: spacing.sm },
-  place: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
+  // 위쪽 정렬이다. 메모가 붙어 가운데 칸이 길어져도 번호와 버튼이 이름 줄에 맞는다.
+  place: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md },
   placeOrder: { backgroundColor: palette.primarySoft, borderRadius: 13, color: palette.primary, fontSize: 14, fontWeight: '600', height: 26, lineHeight: 26, textAlign: 'center', width: 26 },
   placeOrderDone: { backgroundColor: colors.sage, color: '#FFFFFF' },
   placeBody: { flex: 1, gap: 2 },

@@ -155,6 +155,27 @@ export async function setPlaceVisited(
 }
 
 /**
+ * 일정 속 장소의 예정시각과 메모를 저장한다.
+ *
+ * @param schedulePlaceId 바꿀 항목의 id. 장소 자체의 id가 아니다
+ * @param note 보낼 값. null을 넣으면 그 값이 지워진다(API_SPEC 6.5절)
+ *
+ * 예정시각과 메모를 함께 보내는 이유: 화면에서 둘을 한 판에 놓고 고치기 때문에,
+ * 따로 보내면 하나만 저장되고 다른 하나가 남는 중간 상태가 생긴다.
+ */
+export async function setPlaceNote(
+  scheduleId: number,
+  schedulePlaceId: number,
+  note: { plannedTime: string | null; memo: string | null },
+): Promise<SchedulePlace> {
+  const response = await apiClient.patch<SchedulePlace>(
+    `/schedules/${scheduleId}/places/${schedulePlaceId}`,
+    { planned_time: note.plannedTime, memo: note.memo },
+  );
+  return response.data;
+}
+
+/**
  * 일정에서 장소를 뺀다.
  *
  * @param schedulePlaceId 뺄 항목의 id. 장소 자체의 id가 아니다(API_SPEC 6.1절)

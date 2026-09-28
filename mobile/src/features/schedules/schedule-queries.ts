@@ -10,6 +10,7 @@ import {
   previewPlaceOptimization,
   removeSchedulePlace,
   reorderSchedulePlaces,
+  setPlaceNote,
   setPlaceVisited,
   type AddSchedulePlaceInput,
 } from './schedule-api';
@@ -109,6 +110,19 @@ export function useScheduleActions(scheduleId: number) {
     onSuccess: invalidate,
   });
 
+  // 예정시각·메모 저장. 목록의 요약 줄도 함께 달라지므로 같은 캐시를 무효화한다.
+  const updatePlaceNote = useMutation({
+    mutationFn: ({
+      schedulePlaceId,
+      ...note
+    }: {
+      schedulePlaceId: number;
+      plannedTime: string | null;
+      memo: string | null;
+    }) => setPlaceNote(scheduleId, schedulePlaceId, note),
+    onSuccess: invalidate,
+  });
+
   // 순서는 전체 목록을 한 번에 보낸다. 화면이 위·아래로 한 칸씩 옮기더라도 서버에는
   // 바뀐 전체 배열이 간다 (API_SPEC 6.4절).
   const reorderPlaces = useMutation({
@@ -123,5 +137,13 @@ export function useScheduleActions(scheduleId: number) {
     mutationFn: () => previewPlaceOptimization(scheduleId),
   });
 
-  return { complete, toggleVisited, addPlace, removePlace, reorderPlaces, optimizePlaces };
+  return {
+    complete,
+    toggleVisited,
+    addPlace,
+    removePlace,
+    updatePlaceNote,
+    reorderPlaces,
+    optimizePlaces,
+  };
 }

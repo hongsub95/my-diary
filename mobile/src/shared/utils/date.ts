@@ -28,3 +28,35 @@ export function seoulDateKey(utcIsoString: string): string {
     day: '2-digit',
   }).format(new Date(utcIsoString));
 }
+
+/**
+ * 서버의 `HH:MM:SS`를 화면 문구로 바꾼다.
+ *
+ * @param value 예: `14:00:00`
+ * @returns 예: `오후 2:00`. 값이 없으면 빈 문자열
+ *
+ * 날짜가 없는 값이라 Intl.DateTimeFormat에 그대로 넣을 수 없다. 오늘 날짜를 붙여
+ * Date로 만들면 기기 시간대에 따라 시각이 밀리므로, 문자열을 그대로 쪼갠다.
+ * 웹의 shared/utils/time.js와 같은 규칙이다.
+ */
+export function formatPlannedTime(value: string | null): string {
+  if (!value) return '';
+  const [rawHour, minute] = value.split(':');
+  const hour = Number(rawHour);
+  return `${hour < 12 ? '오전' : '오후'} ${hour % 12 || 12}:${minute}`;
+}
+
+/**
+ * 서버 값을 시각 선택기가 쓰는 `HH:MM`으로 줄인다. 값이 없으면 빈 문자열이다.
+ */
+export function toTimeOption(value: string | null): string {
+  return value ? value.slice(0, 5) : '';
+}
+
+/**
+ * 시각 선택기의 `HH:MM`을 서버가 받는 `HH:MM:SS`로 늘린다.
+ * 빈 값은 null이라 예정시각이 지워진다.
+ */
+export function toApiTime(value: string): string | null {
+  return value ? `${value}:00` : null;
+}

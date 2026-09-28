@@ -5,6 +5,7 @@ import mapPinRaw from '../../assets/icons/map-pin.svg?raw'
 import { useSchedule, useSchedulePlaceMutations } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import PlacePicker from './PlacePicker'
+import PlaceNoteEditor from './PlaceNoteEditor'
 import KakaoMap from '../../shared/map/KakaoMap'
 import { moveItem } from '../../shared/utils/reorder'
 import './schedules.css'
@@ -23,7 +24,7 @@ export default function SchedulePlanPage() {
   const { id } = useParams()
   const navigate = useNavigate()
   const { data: schedule, isPending } = useSchedule(id)
-  const { add, remove, reorder } = useSchedulePlaceMutations(id)
+  const { add, remove, reorder, updateNote } = useSchedulePlaceMutations(id)
   const [error, setError] = useState('')
 
   const places = schedule?.places ?? []
@@ -99,10 +100,22 @@ export default function SchedulePlanPage() {
                   <li key={place.id} className="splan-picked__item">
                     {/* 화면에는 방문 차례를 1부터 보여준다. sort_order는 0부터 시작하는 내부 값이다. */}
                     <span className="splan-picked__order">{index + 1}</span>
-                    <span className="splan-picked__info">
+                    <div className="splan-picked__info">
                       <strong>{place.name}</strong>
                       {place.address && <em>{place.address}</em>}
-                    </span>
+                      {/* 시각과 메모는 계획을 세우는 지금 가장 많이 적는다. 상세로
+                          넘어가서 다시 열지 않아도 되도록 여기에 둔다. */}
+                      <PlaceNoteEditor
+                        placeName={place.name}
+                        plannedTime={place.planned_time}
+                        memo={place.memo}
+                        editable
+                        busy={updateNote.isPending}
+                        onSave={(changes) =>
+                          updateNote.mutateAsync({ schedulePlaceId: place.id, changes })
+                        }
+                      />
+                    </div>
                     {/* 위·아래 한 칸씩 옮긴다. 드래그 대신 버튼을 쓰는 이유는
                         shared/utils/reorder.js에 적어 두었다. */}
                     <span className="splan-picked__moves">

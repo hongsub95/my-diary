@@ -322,14 +322,6 @@
   margin-top: 2px;
 }
 
-.sdetail-place__memo {
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--color-text-secondary);
-  background: var(--color-bg);
-  border-radius: var(--radius-sm);
-  padding: 6px 10px;
-}
 
 /* Diary */
 .sdetail-diary {
@@ -877,8 +869,8 @@
 
 .splan-picked__item {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) 32px;
-  align-items: center;
+  grid-template-columns: 28px minmax(0, 1fr) auto 32px;
+  align-items: start;
   gap: 10px;
   padding: 12px;
   border: 1px solid var(--color-border-light);
@@ -1207,6 +1199,109 @@
 }
 
 .sopt__apply:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+/* ── 장소별 예정시각·메모 ──────────────────────────── */
+
+/* 값이 보이는 자리를 그대로 누르게 한다. 오른쪽 버튼 줄에 하나를 더 붙이면 좁은
+   화면에서 순서·빼기와 겹친다. */
+.splace-note__trigger,
+.splace-note__text {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 5px 9px;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  color: var(--color-text-secondary);
+  background: var(--color-bg);
+  border-radius: var(--radius-sm);
+  word-break: break-word;
+}
+
+.splace-note__trigger:hover {
+  color: var(--color-primary-text);
+  background: var(--color-primary-light);
+}
+
+/* 아직 아무것도 없을 때. 적을 수 있다는 것만 알리고 시선을 끌지는 않는다. */
+.splace-note__trigger--empty {
+  color: var(--color-text-disabled);
+  background: none;
+  border: 1px dashed var(--color-border);
+}
+
+.splace-note {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: 8px;
+  padding: var(--space-3);
+  background: var(--color-bg);
+  border-radius: var(--radius-md);
+}
+
+.splace-note__label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text-secondary);
+}
+
+.splace-note__time,
+.splace-note__memo {
+  padding: 8px 10px;
+  font-size: 13px;
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.splace-note__memo {
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.splace-note__error {
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.splace-note__actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.splace-note__cancel,
+.splace-note__save {
+  flex: 1;
+  padding: 8px;
+  font-size: 13px;
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-sm);
+}
+
+.splace-note__cancel {
+  color: var(--color-text-secondary);
+  background: var(--color-surface);
+}
+
+.splace-note__save {
+  color: #fff;
+  background: var(--color-primary);
+}
+
+.splace-note__save:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.splace-note__save:disabled {
   opacity: 0.6;
   cursor: default;
 }

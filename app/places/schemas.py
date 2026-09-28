@@ -16,6 +16,10 @@ PROVIDERS = (PROVIDER_MANUAL, PROVIDER_KAKAO, PROVIDER_NAVER, PROVIDER_GOOGLE)
 MAX_LATITUDE = Decimal("90")
 MAX_LONGITUDE = Decimal("180")
 
+# 장소 메모 길이 상한. 일기 본문과 달리 "예약 필요", "2층 안쪽" 같은 짧은 쪽지다.
+# 상한이 없으면 목록 화면이 감당 못 할 길이가 그대로 들어온다.
+MAX_MEMO_LENGTH = 500
+
 
 class PlaceInput(BaseModel):
     """일정에 추가할 장소의 정보.
@@ -70,7 +74,25 @@ class AddressDetailInput(BaseModel):
         return value.strip() or None if value is not None else None
 
 
-class SchedulePlaceCreateRequest(PlaceInput, AddressDetailInput):
+class PlaceNoteInput(BaseModel):
+    """일정 속 장소에 붙이는 예정시각과 메모.
+
+    장소가 아니라 **이 일정에서만** 의미 있는 값이다. 같은 카페라도 이번 하루에는
+    "2시, 디저트 먼저"이고 다음 하루에는 아무 말도 없을 수 있다. 그래서 Place가 아니라
+    SchedulePlace에 붙는다.
+    """
+
+    planned_time: time | None = None
+    memo: str | None = Field(default=None, max_length=MAX_MEMO_LENGTH)
+
+    @field_validator("memo")
+    @classmethod
+    def normalize_memo(cls, value: str | None) -> str | None:
+        """공백만 남은 메모는 없는 것으로 본다. address_detail과 같은 규칙이다."""
+        return value.strip() or None if value is not None else None
+
+
+class SchedulePlaceCreateRequest(PlaceInput, AddressDetailInput, PlaceNoteInput):
     """일정에 장소를 추가하는 요청.
 
     장소 정보(PlaceInput)에 이 일정에서만 의미 있는 값들을 더한다.
@@ -78,19 +100,14 @@ class SchedulePlaceCreateRequest(PlaceInput, AddressDetailInput):
     그래야 "추가하면서 동시에 순서를 끼워 넣는" 요청이 만들어내는 충돌이 없다.
     """
 
-    planned_time: time | None = None
-    memo: str | None = None
 
-
-class SchedulePlaceUpdateRequest(AddressDetailInput):
+class SchedulePlaceUpdateRequest(AddressDetailInput, PlaceNoteInput):
     """일정 속 장소의 메모·예정시각·방문여부 수정. 보낸 필드만 변경된다.
 
     장소 자체(이름, 좌표)는 여기서 바꾸지 않는다. 같은 Place를 다른 일정도 참조하고
     있어서, 한 일정에서 고치면 남의 기록까지 바뀐다.
     """
 
-    planned_time: time | None = None
-    memo: str | None = None
     visited: bool | None = None
 
 

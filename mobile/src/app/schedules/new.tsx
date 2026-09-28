@@ -13,6 +13,8 @@ import {
   createSchedule,
   type AddSchedulePlaceInput,
 } from '@/features/schedules/schedule-api';
+import { PlaceNoteEditor } from '@/features/schedules/place-note-editor';
+import { SelectButton, TIME_PATTERN, TimeSelect } from '@/features/schedules/time-select';
 import { getApiError } from '@/shared/api/api-error';
 import { moveItem } from '@/shared/utils/reorder';
 import { colors, spacing, type ThemePalette } from '@/shared/theme';
@@ -21,12 +23,6 @@ import { seoulDateKey } from '@/shared/utils/date';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d$/;
-const TIME_OPTIONS = Array.from({ length: 48 }, (_, index) => {
-  const hours = String(Math.floor(index / 2)).padStart(2, '0');
-  const minutes = index % 2 === 0 ? '00' : '30';
-  return `${hours}:${minutes}`;
-});
 
 // 저장 전까지 화면에 들고 있는 장소. 검색 결과에서 왔다면 좌표와 출처까지 함께
 // 담아둬야 저장할 때 잃지 않는다. 직접 입력한 장소는 이름만 있다.
@@ -181,28 +177,46 @@ export default function NewScheduleScreen() {
 
               <View style={styles.placeList}>
                 {places.length ? places.map((place, index) => (
-                  <View key={place.id} style={styles.placeRow}>
-                    <View style={styles.placeNumber}><Text style={styles.placeNumberText}>{index + 1}</Text></View>
-                    <View style={styles.placeCopy}><Text style={styles.placeName}>{place.place.name}</Text>{place.place.address ? <Text style={styles.placeMeta}>{[place.place.address, place.place.address_detail].filter(Boolean).join(' ')}</Text> : null}</View>
-                    {/* 아직 저장 전이라 서버에 보낼 것이 없다. 배열만 바꾸면 되고,
-                        저장할 때 이 순서대로 담긴다. */}
-                    <View style={styles.moves}>
-                      <Pressable
-                        accessibilityLabel={`${place.place.name} 순서 올리기`}
-                        disabled={index === 0}
-                        onPress={() => setPlaces((current) => moveItem(current, index, -1))}
-                        style={styles.moveButton}>
-                        <Text style={[styles.moveMark, index === 0 && styles.moveMarkOff]}>↑</Text>
-                      </Pressable>
-                      <Pressable
-                        accessibilityLabel={`${place.place.name} 순서 내리기`}
-                        disabled={index === places.length - 1}
-                        onPress={() => setPlaces((current) => moveItem(current, index, 1))}
-                        style={styles.moveButton}>
-                        <Text style={[styles.moveMark, index === places.length - 1 && styles.moveMarkOff]}>↓</Text>
-                      </Pressable>
+                  <View key={place.id} style={styles.placeItem}>
+                    <View style={styles.placeRow}>
+                      <View style={styles.placeNumber}><Text style={styles.placeNumberText}>{index + 1}</Text></View>
+                      <View style={styles.placeCopy}><Text style={styles.placeName}>{place.place.name}</Text>{place.place.address ? <Text style={styles.placeMeta}>{[place.place.address, place.place.address_detail].filter(Boolean).join(' ')}</Text> : null}</View>
+                      {/* 아직 저장 전이라 서버에 보낼 것이 없다. 배열만 바꾸면 되고,
+                          저장할 때 이 순서대로 담긴다. */}
+                      <View style={styles.moves}>
+                        <Pressable
+                          accessibilityLabel={`${place.place.name} 순서 올리기`}
+                          disabled={index === 0}
+                          onPress={() => setPlaces((current) => moveItem(current, index, -1))}
+                          style={styles.moveButton}>
+                          <Text style={[styles.moveMark, index === 0 && styles.moveMarkOff]}>↑</Text>
+                        </Pressable>
+                        <Pressable
+                          accessibilityLabel={`${place.place.name} 순서 내리기`}
+                          disabled={index === places.length - 1}
+                          onPress={() => setPlaces((current) => moveItem(current, index, 1))}
+                          style={styles.moveButton}>
+                          <Text style={[styles.moveMark, index === places.length - 1 && styles.moveMarkOff]}>↓</Text>
+                        </Pressable>
+                      </View>
+                      <Pressable onPress={() => setPlaces((current) => current.filter((item) => item.id !== place.id))}><Text style={styles.remove}>×</Text></Pressable>
                     </View>
-                    <Pressable onPress={() => setPlaces((current) => current.filter((item) => item.id !== place.id))}><Text style={styles.remove}>×</Text></Pressable>
+                    {/* 예정시각과 메모도 하루를 만들 때 장소와 함께 넘어간다. */}
+                    <View style={styles.placeNote}>
+                      <PlaceNoteEditor
+                        placeName={place.place.name}
+                        plannedTime={place.place.plannedTime ?? null}
+                        memo={place.place.memo ?? null}
+                        editable
+                        onSave={(note) =>
+                          setPlaces((current) =>
+                            current.map((item) =>
+                              item.id === place.id ? { ...item, place: { ...item.place, ...note } } : item,
+                            ),
+                          )
+                        }
+                      />
+                    </View>
                   </View>
                 )) : (
                   <View style={styles.emptyPlaces}><Text style={styles.emptyPlacesIcon}>⌖</Text><Text style={styles.emptyPlacesTitle}>아직 담은 장소가 없어요</Text><Text style={styles.emptyPlacesText}>장소 없이 하루만 먼저 만들어도 괜찮아요.</Text></View>
@@ -240,49 +254,6 @@ export default function NewScheduleScreen() {
 function Field({ label, required = false, children }: { label: string; required?: boolean; children: React.ReactNode }) {
   const styles = useThemedStyles(createStyles);
   return <View style={styles.field}><Text accessibilityLabel={required ? `${label}, 필수` : label} style={styles.label}>{label}{required ? <Text style={styles.requiredMark}> *</Text> : null}</Text>{children}</View>;
-}
-
-function SelectButton({ label, onPress }: { label: string; onPress: () => void }) {
-  const styles = useThemedStyles(createStyles);
-  return (
-    <Pressable accessibilityRole="button" onPress={onPress} style={styles.selectButton}>
-      <Text style={styles.selectValue}>{label}</Text>
-      <Text style={styles.selectArrow}>⌄</Text>
-    </Pressable>
-  );
-}
-
-function TimeSelect({ value, onChange }: { value: string; onChange: (value: string) => void }) {
-  const styles = useThemedStyles(createStyles);
-  const [visible, setVisible] = useState(false);
-  return (
-    <>
-      <SelectButton label={value} onPress={() => setVisible(true)} />
-      <Modal animationType="slide" onRequestClose={() => setVisible(false)} transparent visible={visible}>
-        <Pressable onPress={() => setVisible(false)} style={styles.modalBackdrop}>
-          <Pressable onPress={(event) => event.stopPropagation()} style={styles.timeSheet}>
-            <View style={styles.sheetHeader}>
-              <Text style={styles.sheetTitle}>시간 선택</Text>
-              <Pressable accessibilityLabel="시간 선택 닫기" onPress={() => setVisible(false)}><Text style={styles.sheetClose}>×</Text></Pressable>
-            </View>
-            <ScrollView contentContainerStyle={styles.timeGrid} showsVerticalScrollIndicator={false}>
-              {TIME_OPTIONS.map((time) => (
-                <Pressable
-                  accessibilityRole="button"
-                  key={time}
-                  onPress={() => { onChange(time); setVisible(false); }}
-                  style={[styles.timeOption, value === time && styles.timeOptionSelected]}
-                >
-                  <Text style={[styles.timeOptionText, value === time && styles.timeOptionTextSelected]}>{time}</Text>
-                  {value === time ? <Text style={styles.timeOptionCheck}>✓</Text> : null}
-                </Pressable>
-              ))}
-            </ScrollView>
-          </Pressable>
-        </Pressable>
-      </Modal>
-    </>
-  );
 }
 
 function DatePickerModal({ target, startDate, endDate, onSelect, onClose }: {
@@ -362,9 +333,6 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   label: { color: colors.text, fontSize: 14, fontWeight: '600' },
   requiredMark: { color: palette.primary },
   input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 14, minHeight: 52, paddingHorizontal: 14, paddingVertical: 13 },
-  selectButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, flexDirection: 'row', minHeight: 52, paddingHorizontal: 14 },
-  selectValue: { color: colors.text, flex: 1, fontSize: 14, fontWeight: '600' },
-  selectArrow: { color: colors.muted, fontSize: 18 },
   textarea: { minHeight: 92 },
   row: { flexDirection: 'row', gap: 10 },
   timingCard: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
@@ -383,7 +351,10 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   addButton: { backgroundColor: palette.primarySoft, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10 },
   addButtonText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
   placeList: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, marginTop: 14, overflow: 'hidden', padding: 12 },
+  placeItem: { paddingBottom: 6 },
   placeRow: { alignItems: 'center', flexDirection: 'row', minHeight: 67, paddingHorizontal: 4 },
+  // 번호(30) + 여백(12)만큼 들여써 메모가 장소 이름 줄에서 시작하게 한다.
+  placeNote: { paddingLeft: 46, paddingRight: 4 },
   placeNumber: { alignItems: 'center', backgroundColor: palette.primarySoft, borderColor: palette.primary, borderRadius: 15, borderWidth: 1, height: 30, justifyContent: 'center', width: 30 },
   placeNumberText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
   placeCopy: { flex: 1, marginLeft: 12 },
@@ -407,14 +378,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   disabled: { opacity: 0.5 },
   modalBackdrop: { backgroundColor: 'rgba(40, 35, 33, 0.38)', flex: 1, justifyContent: 'flex-end' },
   calendarSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 28, paddingHorizontal: 14, paddingTop: 10 },
-  timeSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, maxHeight: '72%', paddingBottom: 24, paddingHorizontal: spacing.lg, paddingTop: 10 },
   sheetHeader: { alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', minHeight: 56, paddingHorizontal: 4 },
   sheetTitle: { color: colors.text, fontSize: 18, fontWeight: '600' },
   sheetClose: { color: colors.muted, fontSize: 28, padding: 8 },
-  timeGrid: { gap: 6, paddingTop: 12 },
-  timeOption: { alignItems: 'center', borderColor: colors.border, borderRadius: 12, borderWidth: 1, flexDirection: 'row', minHeight: 48, paddingHorizontal: 16 },
-  timeOptionSelected: { backgroundColor: palette.primary, borderColor: palette.primary },
-  timeOptionText: { color: colors.text, flex: 1, fontSize: 14, fontWeight: '600' },
-  timeOptionTextSelected: { color: '#FFFFFF' },
-  timeOptionCheck: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
 });
