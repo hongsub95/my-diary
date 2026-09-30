@@ -55,12 +55,13 @@ export default function SchedulesScreen() {
             ))}
           </View>
         ) : (
+          /* 만들기 버튼을 여기 두지 않는다. 오른쪽 아래 FAB과 겹치는 데다, 하루가
+             하나라도 생기면 사라지는 버튼이라 늘 있는 FAB이 진짜 입구다. 대신 그
+             입구를 글로 가리킨다. */
           <EmptyState
             icon="📅"
             title="아직 예정된 하루가 없어요"
-            description="기다려지는 하루를 하나 만들어 보세요."
-            actionLabel="하루 만들기"
-            onAction={() => router.push('/schedules/new')}
+            description="오른쪽 아래 ＋ 를 눌러 기다려지는 하루를 만들어 보세요."
           />
         )}
 
