@@ -1,22 +1,28 @@
-import { useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  PanResponder,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAuth } from '@/features/auth/auth-context';
-import { useDiaryFeed } from '@/features/diaries/diary-queries';
-import type { RecordView } from '@/features/diaries/diary-adapter';
+import { HomeWeekStrip } from '@/features/calendar/home-week-strip';
+import { parseDate } from '@/features/calendar/calendar-dates';
+import { KakaoMap } from '@/features/places/kakao-map';
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
-import { ErrorState } from '@/shared/components/error-state';
-import { LoadingScreen } from '@/shared/components/loading-screen';
 import { getApiError } from '@/shared/api/api-error';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
 
-// 홈이 내다보는 기간. 오늘부터 이만큼 안에 다음 약속이 있으면 보여준다.
-const UPCOMING_DAYS = 60;
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul',
@@ -25,260 +31,368 @@ const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
   hour12: false,
 });
 
-const dateFormatter = new Intl.DateTimeFormat('ko-KR', {
-  timeZone: 'Asia/Seoul',
-  month: 'long',
-  day: 'numeric',
-  weekday: 'short',
-});
-
-function dateKeyAfter(days: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() + days);
-  return seoulDateKey(date.toISOString());
+function toDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 }
 
-type Focus =
-  | { kind: 'today'; schedule: ScheduleView }
-  | { kind: 'record'; record: RecordView }
-  | { kind: 'upcoming'; schedule: ScheduleView }
-  | { kind: 'empty' };
+function shiftDate(date: Date, days: number): Date {
+  const next = new Date(date);
+  next.setDate(next.getDate() + days);
+  return next;
+}
 
-/**
- * 지금 무엇을 보여줄지 하나만 고른다.
- *
- * 홈은 여러 정보를 나열하는 대시보드가 아니라 "지금 무엇을 하면 되는지"를 하나로
- * 제시하는 화면이다(docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 3.1절). 그래서 후보가
- * 여럿이어도 우선순위대로 하나만 고른다.
- *
- * 우선순위: 오늘 > 기록 대기 > 다음 약속 > 없음. 진행 중인 하루가 미래 일정보다
- * 앞서야 하고, 다녀왔는데 안 남긴 하루는 다음 약속보다 먼저 눈에 띄어야 한다(7절).
- * 웹의 frontend/src/features/home/HomePage.jsx와 같은 규칙이다.
- */
-function resolveFocus(schedules: ScheduleView[], pendingRecord: RecordView | null): Focus {
-  const today = schedules.filter((schedule) => schedule.experience_phase === 'today');
-  if (today.length > 0) {
-    // 오늘 일정이 여럿이면 시작이 가장 가까운 하나만 주 카드로 쓴다(7절).
-    const [nearest] = [...today].sort(
-      (a, b) => Date.parse(a.start_at) - Date.parse(b.start_at),
-    );
-    return { kind: 'today', schedule: nearest };
-  }
+function startOfWeek(date: Date): Date {
+  const start = new Date(date);
+  start.setHours(12, 0, 0, 0);
+  start.setDate(start.getDate() - start.getDay());
+  return start;
+}
 
-  if (pendingRecord) return { kind: 'record', record: pendingRecord };
+function includesDate(schedule: ScheduleView, dateKey: string): boolean {
+  return seoulDateKey(schedule.start_at) <= dateKey && seoulDateKey(schedule.end_at) >= dateKey;
+}
 
-  const upcoming = schedules
-    .filter((schedule) => schedule.experience_phase === 'upcoming')
-    .sort((a, b) => Date.parse(a.start_at) - Date.parse(b.start_at));
-  if (upcoming.length > 0) return { kind: 'upcoming', schedule: upcoming[0] };
-
-  return { kind: 'empty' };
+function scheduleStateLabel(schedule: ScheduleView): string {
+  if (schedule.experience_phase === 'today') return '오늘';
+  if (schedule.experience_phase === 'record_pending') return '기록 대기';
+  if (schedule.experience_phase === 'recorded') return '기록 완료';
+  if (schedule.experience_phase === 'canceled') return '취소';
+  return '예정';
 }
 
 export default function HomeScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const { user } = useAuth();
+  const { height: windowHeight } = useWindowDimensions();
+  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [activeScheduleId, setActiveScheduleId] = useState<number | null>(null);
 
-  // 오늘부터 앞으로의 일정만 본다. 홈은 지난 계획을 되짚는 화면이 아니다.
-  const schedules = useSchedules({
-    from: dateKeyAfter(0),
-    to: dateKeyAfter(UPCOMING_DAYS),
-    includePlaces: true,
-  });
+  const weekDates = useMemo(
+    () => Array.from({ length: 7 }, (_, index) => shiftDate(weekStart, index)),
+    [weekStart],
+  );
+  const selectedDateKey = toDateKey(selectedDate);
+  const rangeFrom = toDateKey(weekDates[0]);
+  const rangeTo = toDateKey(weekDates[6]);
 
-  // 기록 대기는 기록 탭과 같은 목록에서 가져온다. 두 화면이 다른 기준으로 고르면
-  // 홈에서 재촉한 하루가 기록 탭에는 없는 상황이 생긴다.
-  const feed = useDiaryFeed({ includePending: true });
-  const pendingRecord = useMemo(
+  const schedules = useSchedules({ from: rangeFrom, to: rangeTo, includePlaces: true });
+  const daySchedules = useMemo(
     () =>
-      feed.data?.pages
-        .flatMap((page) => page.records)
-        .find((record) => record.phase === 'record_pending') ?? null,
-    [feed.data],
+      (schedules.data ?? [])
+        .filter((schedule) => includesDate(schedule, selectedDateKey))
+        .sort((left, right) => Date.parse(left.start_at) - Date.parse(right.start_at)),
+    [schedules.data, selectedDateKey],
   );
 
-  const focus = useMemo(
-    () => resolveFocus(schedules.data ?? [], pendingRecord),
-    [schedules.data, pendingRecord],
-  );
-
-  if (schedules.isLoading) return <LoadingScreen message="하루를 준비하고 있어요." />;
-  if (schedules.isError) {
-    return (
-      <ErrorState
-        message={getApiError(schedules.error).message}
-        onRetry={() => schedules.refetch()}
-      />
+  const mapData = useMemo(() => {
+    const scheduleByMarker = new Map<string, number>();
+    const places = daySchedules.flatMap((schedule) =>
+      schedule.places.map((place) => {
+        const id = `${schedule.id}:${place.id}`;
+        scheduleByMarker.set(id, schedule.id);
+        return {
+          id,
+          name: place.name,
+          latitude: place.latitude,
+          longitude: place.longitude,
+        };
+      }),
     );
-  }
+    return { places, scheduleByMarker };
+  }, [daySchedules]);
 
-  const openSchedule = (scheduleId: number) =>
-    router.push({ pathname: '/schedules/[id]', params: { id: scheduleId } });
+  const sheetHeight = Math.min(540, Math.max(390, windowHeight * 0.7));
+  const peekHeight = 184;
+  const collapsedY = Math.max(0, sheetHeight - peekHeight);
+  const [sheetY] = useState(() => new Animated.Value(collapsedY));
+  const [expanded, setExpanded] = useState(false);
+
+  const moveSheet = useCallback(
+    (open: boolean) => {
+      setExpanded(open);
+      Animated.spring(sheetY, {
+        toValue: open ? 0 : collapsedY,
+        useNativeDriver: true,
+        damping: 24,
+        stiffness: 230,
+        mass: 0.9,
+      }).start();
+    },
+    [collapsedY, sheetY],
+  );
+
+  const sheetPanResponder = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 4,
+        onPanResponderGrant: () => {
+          sheetY.stopAnimation((value) => {
+            sheetY.setOffset(value);
+            sheetY.setValue(0);
+          });
+        },
+        onPanResponderMove: (_, gesture) => {
+          sheetY.setValue(gesture.dy);
+        },
+        onPanResponderRelease: (_, gesture) => {
+          sheetY.flattenOffset();
+          if (gesture.vy < -0.45 || gesture.dy < -48) {
+            moveSheet(true);
+            return;
+          }
+          if (gesture.vy > 0.45 || gesture.dy > 48) {
+            moveSheet(false);
+            return;
+          }
+          moveSheet(expanded);
+        },
+        onPanResponderTerminate: () => {
+          sheetY.flattenOffset();
+          moveSheet(expanded);
+        },
+      }),
+    [expanded, moveSheet, sheetY],
+  );
+
+  const openNewSchedule = () =>
+    router.push({ pathname: '/schedules/new', params: { date: selectedDateKey } });
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        <View style={styles.heading}>
-          <Text style={styles.eyebrow}>{dateFormatter.format(new Date())}</Text>
-          <Text style={styles.title}>{user?.nickname}님의 하루</Text>
+      <View style={styles.screen}>
+        <HomeWeekStrip
+          selectedDate={selectedDateKey}
+          onSelect={(key) => {
+            const date = parseDate(key);
+            setSelectedDate(date);
+            setWeekStart(startOfWeek(date));
+            setActiveScheduleId(null);
+          }}
+        />
+
+        <View style={styles.mapArea}>
+          <KakaoMap
+            places={mapData.places}
+            fullBleed
+            showEmptyMap
+            onSelect={(markerId) => {
+              const scheduleId = mapData.scheduleByMarker.get(markerId);
+              if (scheduleId) {
+                setActiveScheduleId(scheduleId);
+                moveSheet(true);
+              }
+            }}
+          />
+          {!schedules.isLoading && mapData.places.length === 0 ? (
+            <View pointerEvents="none" style={styles.emptyMapBadge}>
+              <Text style={styles.emptyMapText}>이날 지도에 표시할 장소가 없어요</Text>
+            </View>
+          ) : null}
         </View>
 
-        {focus.kind === 'today' ? (
-          <TodayCard schedule={focus.schedule} onOpen={() => openSchedule(focus.schedule.id)} />
-        ) : null}
-
-        {focus.kind === 'record' ? (
-          <RecordPromptCard
-            record={focus.record}
-            onOpen={() => openSchedule(focus.record.scheduleId)}
-          />
-        ) : null}
-
-        {focus.kind === 'upcoming' ? (
-          <UpcomingCard schedule={focus.schedule} onOpen={() => openSchedule(focus.schedule.id)} />
-        ) : null}
-
-        {focus.kind === 'empty' ? (
-          <View style={styles.card}>
-            <Text style={styles.cardEyebrow}>아직 계획이 없어요</Text>
-            <Text style={styles.cardTitle}>어떤 하루를{'\n'}보내고 싶으세요?</Text>
-            <Pressable
-              onPress={() =>
-                router.push({
-                  pathname: '/schedules/new',
-                  params: { date: seoulDateKey(new Date().toISOString()) },
-                })
-              }
-              style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-              <Text style={styles.primaryText}>새로운 하루 계획하기</Text>
-            </Pressable>
-            <Pressable onPress={() => router.push('/(tabs)/records')} style={styles.secondaryButton}>
-              <Text style={styles.secondaryText}>지난 기록 다시 보기</Text>
-            </Pressable>
+        <Animated.View
+          style={[
+            styles.sheet,
+            {
+              height: sheetHeight,
+              transform: [{
+                translateY: sheetY.interpolate({
+                  inputRange: [0, collapsedY],
+                  outputRange: [0, collapsedY],
+                  extrapolate: 'clamp',
+                }),
+              }],
+            },
+          ]}>
+          <View style={styles.dragArea} {...sheetPanResponder.panHandlers}>
+            <View style={styles.dragHandle} />
           </View>
-        ) : null}
-      </ScrollView>
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={expanded ? '일정 목록 접기' : '일정 목록 펼치기'}
+            onPress={() => moveSheet(!expanded)}
+            style={styles.sheetHeader}>
+            <View>
+              <Text style={styles.sheetEyebrow}>
+                {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 {WEEKDAYS[selectedDate.getDay()]}요일
+              </Text>
+              <Text style={styles.sheetTitle}>
+                {schedules.isLoading ? '일정을 불러오는 중' : `일정 ${daySchedules.length}개`}
+              </Text>
+            </View>
+            <Pressable onPress={openNewSchedule} hitSlop={10} style={styles.addButton}>
+              <Text style={styles.addButtonText}>＋ 일정</Text>
+            </Pressable>
+          </Pressable>
+
+          <ScrollView
+            scrollEnabled={expanded}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.sheetContent}>
+            {schedules.isError ? (
+              <View style={styles.messageCard}>
+                <Text style={styles.messageTitle}>일정을 불러오지 못했어요</Text>
+                <Text style={styles.messageBody}>{getApiError(schedules.error).message}</Text>
+                <Pressable onPress={() => schedules.refetch()} style={styles.retryButton}>
+                  <Text style={styles.retryText}>다시 시도</Text>
+                </Pressable>
+              </View>
+            ) : null}
+
+            {!schedules.isLoading && !schedules.isError && daySchedules.length === 0 ? (
+              <Pressable onPress={openNewSchedule} style={styles.messageCard}>
+                <Text style={styles.messageTitle}>아직 일정이 없어요</Text>
+                <Text style={styles.messageBody}>이날의 장소와 할 일을 가볍게 계획해 보세요.</Text>
+                <Text style={styles.emptyAction}>새 일정 만들기 →</Text>
+              </Pressable>
+            ) : null}
+
+            {daySchedules.map((schedule) => (
+              <ScheduleCard
+                key={schedule.id}
+                schedule={schedule}
+                active={schedule.id === activeScheduleId}
+                onPress={() =>
+                  router.push({ pathname: '/schedules/[id]', params: { id: schedule.id } })
+                }
+              />
+            ))}
+          </ScrollView>
+        </Animated.View>
+      </View>
     </SafeAreaView>
   );
 }
 
-/** 오늘의 하루. 시작 전이면 시작 시각을, 진행 중이면 다음 장소를 앞세운다. */
-function TodayCard({ schedule, onOpen }: { schedule: ScheduleView; onOpen: () => void }) {
+function ScheduleCard({
+  schedule,
+  active,
+  onPress,
+}: {
+  schedule: ScheduleView;
+  active: boolean;
+  onPress: () => void;
+}) {
   const styles = useThemedStyles(createStyles);
-  // Date.now() 대신 new Date()를 쓴다. React Compiler가 Date.now()를 렌더 중 부르면
-  // 안 되는 순수하지 않은 호출로 잡는다.
-  const started = new Date(schedule.start_at) <= new Date();
-  const visited = schedule.places.filter((place) => place.visited).length;
-  const nextPlace = schedule.places.find((place) => !place.visited) ?? null;
+  const placeNames = schedule.places.map((place) => place.name);
+  const placeSummary = placeNames.length > 0 ? placeNames.slice(0, 2).join(' · ') : '장소 미정';
+  const remainingPlaces = Math.max(0, placeNames.length - 2);
 
   return (
-    <View style={[styles.card, styles.cardToday]}>
-      <Text style={[styles.cardEyebrow, styles.onDark]}>
-        {started ? '지금 진행 중' : `${timeFormatter.format(new Date(schedule.start_at))} 시작`}
-        {' · '}
-        {schedule.space_name}
-      </Text>
-      <Text style={[styles.cardTitle, styles.titleOnDark]}>{schedule.title}</Text>
-
-      {started && nextPlace ? (
-        <Text style={[styles.cardLine, styles.lineOnDark]}>
-          다음 장소 <Text style={styles.strong}>{nextPlace.name}</Text>
+    <Pressable
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.scheduleCard,
+        active && styles.activeScheduleCard,
+        pressed && styles.pressed,
+      ]}>
+      <View style={styles.cardTimeColumn}>
+        <Text style={styles.cardTime}>{timeFormatter.format(new Date(schedule.start_at))}</Text>
+        <View style={styles.routeLine} />
+      </View>
+      <View style={styles.cardBody}>
+        <View style={styles.cardTitleRow}>
+          <Text numberOfLines={1} style={styles.cardTitle}>{schedule.title}</Text>
+          <View style={styles.stateBadge}>
+            <Text style={styles.stateBadgeText}>{scheduleStateLabel(schedule)}</Text>
+          </View>
+        </View>
+        <Text numberOfLines={1} style={styles.placeText}>
+          {placeSummary}{remainingPlaces > 0 ? ` 외 ${remainingPlaces}곳` : ''}
         </Text>
-      ) : schedule.places.length > 0 ? (
-        <Text style={[styles.cardLine, styles.lineOnDark]}>
-          ⌖ {schedule.places.map((place) => place.name).join(' → ')}
-        </Text>
-      ) : null}
-
-      {schedule.place_count > 0 ? (
-        <Text style={[styles.cardMeta, styles.lineOnDark]}>
-          {visited} / {schedule.place_count}곳 방문
-        </Text>
-      ) : null}
-
-      <Pressable
-        onPress={onOpen}
-        style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-        <Text style={styles.primaryText}>{started ? '다음 장소 보기' : '오늘의 하루 보기'}</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/** 다녀왔는데 아직 남기지 않은 하루. 홈이 기록을 유도하는 자리다. */
-function RecordPromptCard({ record, onOpen }: { record: RecordView; onOpen: () => void }) {
-  const styles = useThemedStyles(createStyles);
-  return (
-    <View style={[styles.card, styles.cardRecord]}>
-      <Text style={styles.cardEyebrow}>{record.dateLabel} · 아직 남기지 않았어요</Text>
-      <Text style={styles.cardTitle}>{record.title}</Text>
-      {record.placeCount > 0 ? (
-        <Text style={styles.cardLine}>⌖ {record.placeCount}곳을 다녀왔어요</Text>
-      ) : null}
-      <Text style={styles.cardMeta}>사진 한 장만 올려도 이 하루는 기억으로 남습니다.</Text>
-      <Pressable
-        onPress={onOpen}
-        style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-        <Text style={styles.primaryText}>오늘을 남기기</Text>
-      </Pressable>
-    </View>
-  );
-}
-
-/** 다음 약속. 오늘은 비었지만 앞으로 잡힌 하루가 있을 때 보여준다. */
-function UpcomingCard({ schedule, onOpen }: { schedule: ScheduleView; onOpen: () => void }) {
-  const styles = useThemedStyles(createStyles);
-  const noPlaces = schedule.place_count === 0;
-
-  return (
-    <View style={styles.card}>
-      <Text style={styles.cardEyebrow}>
-        {dateFormatter.format(new Date(schedule.start_at))} · {schedule.space_name}
-      </Text>
-      <Text style={styles.cardTitle}>{schedule.title}</Text>
-      {schedule.places.length > 0 ? (
-        <Text style={styles.cardLine}>
-          ⌖ {schedule.places.map((place) => place.name).join(' → ')}
-        </Text>
-      ) : null}
-      {noPlaces ? <Text style={styles.cardMeta}>아직 갈 곳을 정하지 않았어요.</Text> : null}
-      <Pressable
-        onPress={onOpen}
-        style={({ pressed }) => [styles.primaryButton, pressed && styles.pressed]}>
-        <Text style={styles.primaryText}>{noPlaces ? '갈 곳 정하기' : '하루 보기'}</Text>
-      </Pressable>
-    </View>
+        <Text style={styles.spaceText}>{schedule.space_name}</Text>
+      </View>
+      <Text style={styles.chevron}>›</Text>
+    </Pressable>
   );
 }
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
-  safeArea: { backgroundColor: colors.background, flex: 1 },
-  content: { padding: spacing.lg, paddingBottom: 132, paddingTop: spacing.xl },
-  heading: { gap: 7, paddingHorizontal: 2 },
-  eyebrow: { color: palette.primaryDark, fontSize: 12, fontWeight: '600', letterSpacing: 1.2 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1.1, lineHeight: 35 },
-
-  // 홈은 여러 정보를 나열하지 않고 지금 할 일 하나만 크게 보여준다. 그래서 카드가
-  // 하나뿐이고, 그 안의 주요 행동 버튼도 하나다.
-  card: { alignItems: 'flex-start', backgroundColor: colors.surface, borderRadius: radii.card, elevation: 4, gap: spacing.sm, marginTop: spacing.xl, minHeight: 244, justifyContent: 'flex-end', padding: 24, shadowColor: '#432F28', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 20 },
-  // 오늘의 하루는 어두운 바탕으로 두어 먼저 눈에 들어오게 한다.
-  cardToday: { backgroundColor: colors.ink, minHeight: 330, padding: 28 },
-  cardRecord: { backgroundColor: palette.primarySoft, minHeight: 280 },
-
-  cardEyebrow: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  cardTitle: { color: colors.text, fontSize: 24, fontWeight: '700', letterSpacing: -0.8, lineHeight: 31 },
-  cardLine: { color: colors.muted, fontSize: 13, lineHeight: 20 },
-  cardMeta: { color: colors.muted, fontSize: 12 },
-  strong: { color: colors.text, fontWeight: '600' },
-
-  onDark: { color: palette.primarySoft },
-  titleOnDark: { color: '#FFFFFF' },
-  lineOnDark: { color: '#DFD8D3' },
-
-  primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: palette.primary, borderRadius: radii.lg, elevation: 2, justifyContent: 'center', marginTop: spacing.md, minHeight: 52, paddingHorizontal: spacing.xl, shadowColor: palette.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12 },
-  primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  secondaryButton: { justifyContent: 'center', minHeight: 44 },
-  secondaryText: { color: colors.muted, fontSize: 13, fontWeight: '600' },
-  pressed: { opacity: 0.85 },
+  safeArea: { flex: 1, backgroundColor: colors.surface },
+  screen: { flex: 1, overflow: 'hidden', backgroundColor: colors.background },
+  mapArea: { flex: 1, backgroundColor: colors.sand },
+  emptyMapBadge: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(255,253,249,0.94)',
+    borderRadius: radii.full,
+    elevation: 2,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+    position: 'absolute',
+    top: 16,
+  },
+  emptyMapText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
+  sheet: {
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 26,
+    borderTopRightRadius: 26,
+    bottom: 0,
+    elevation: 15,
+    left: 0,
+    overflow: 'hidden',
+    position: 'absolute',
+    right: 0,
+    shadowColor: '#2B211E',
+    shadowOffset: { width: 0, height: -8 },
+    shadowOpacity: 0.14,
+    shadowRadius: 20,
+  },
+  dragArea: { alignItems: 'center', height: 28, justifyContent: 'center' },
+  dragHandle: { backgroundColor: '#D7CEC8', borderRadius: radii.full, height: 4, width: 42 },
+  sheetHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    minHeight: 58,
+    paddingBottom: 8,
+    paddingHorizontal: spacing.lg,
+  },
+  sheetEyebrow: { color: palette.primaryDark, fontSize: 11, fontWeight: '600' },
+  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '700', letterSpacing: -0.5, marginTop: 2 },
+  addButton: { backgroundColor: palette.primarySoft, borderRadius: radii.full, paddingHorizontal: 13, paddingVertical: 9 },
+  addButtonText: { color: palette.primaryDark, fontSize: 12, fontWeight: '700' },
+  sheetContent: { gap: 10, paddingBottom: 28, paddingHorizontal: spacing.md },
+  scheduleCard: {
+    alignItems: 'stretch',
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    flexDirection: 'row',
+    minHeight: 92,
+    paddingHorizontal: 14,
+    paddingVertical: 13,
+  },
+  activeScheduleCard: { backgroundColor: palette.primarySoft, borderColor: palette.primary },
+  cardTimeColumn: { alignItems: 'center', paddingRight: 12, width: 58 },
+  cardTime: { color: colors.text, fontSize: 12, fontWeight: '700' },
+  routeLine: { backgroundColor: palette.primary, borderRadius: 2, flex: 1, marginTop: 9, width: 2 },
+  cardBody: { flex: 1, gap: 5 },
+  cardTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
+  cardTitle: { color: colors.text, flex: 1, fontSize: 15, fontWeight: '700', letterSpacing: -0.3 },
+  stateBadge: { backgroundColor: colors.surface, borderRadius: radii.full, paddingHorizontal: 8, paddingVertical: 4 },
+  stateBadgeText: { color: palette.primaryDark, fontSize: 10, fontWeight: '700' },
+  placeText: { color: colors.muted, fontSize: 12 },
+  spaceText: { color: colors.muted, fontSize: 10 },
+  chevron: { alignSelf: 'center', color: colors.muted, fontSize: 25, marginLeft: 6 },
+  messageCard: {
+    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.border,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    minHeight: 100,
+    padding: spacing.lg,
+  },
+  messageTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
+  messageBody: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
+  emptyAction: { color: palette.primaryDark, fontSize: 12, fontWeight: '700', marginTop: 10 },
+  retryButton: { alignSelf: 'flex-start', marginTop: 10, paddingVertical: 4 },
+  retryText: { color: palette.primaryDark, fontSize: 12, fontWeight: '700' },
+  pressed: { opacity: 0.78 },
 });

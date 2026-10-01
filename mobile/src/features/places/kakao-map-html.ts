@@ -16,6 +16,10 @@ export type MapProps = {
   places: MapPlace[];
   selectedId?: string;
   onSelect?: (id: string) => void;
+  /** 홈처럼 부모 영역을 가득 채워야 하는 지도에서 사용한다. */
+  fullBleed?: boolean;
+  /** 표시할 장소가 없어도 기본 중심점의 지도를 유지한다. */
+  showEmptyMap?: boolean;
 };
 
 // 사용자 입력이 script 태그를 닫지 못하도록 JSON을 이스케이프한다.
