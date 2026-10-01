@@ -18,6 +18,7 @@ from app.places.router import (
     places_router,
     schedule_places_router,
 )
+from app.recommendations.router import router as recommendations_router
 from app.schedules.router import (
     schedules_router,
     space_schedules_router,
@@ -42,6 +43,7 @@ api_router.include_router(space_schedules_router)
 api_router.include_router(schedule_places_router)
 api_router.include_router(schedules_router)
 api_router.include_router(places_router)
+api_router.include_router(recommendations_router)
 # 일기도 /schedules/{id} 아래에 붙는다. 장소와 마찬가지로 경로가 겹치지 않아 순서에
 # 민감하지 않지만, 일정 상세(/schedules/{schedule_id})보다 뒤에 둔다.
 api_router.include_router(diaries_router)
