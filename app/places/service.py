@@ -23,6 +23,7 @@ from app.places.schemas import (
     PROVIDER_MANUAL,
     PlaceResponse,
     PlaceSearchResponse,
+    PlaceSearchResultResponse,
     SchedulePlaceResponse,
 )
 from app.schedules.models import Schedule
@@ -252,3 +253,40 @@ def search_places(query: str) -> PlaceSearchResponse:
         raise PlaceSearchUnavailableError() from error
 
     return PlaceSearchResponse(items=items, provider=provider.name)
+
+
+def search_nearby_places(
+    *,
+    latitude: Decimal,
+    longitude: Decimal,
+    radius_m: int,
+    keyword: str | None = None,
+    category_group: str | None = None,
+) -> list[PlaceSearchResultResponse]:
+    """한 지점 주변의 장소를 가까운 순으로 찾는다. 코스 추천의 후보 모으기에 쓴다.
+
+    :param latitude: 중심 위도
+    :param longitude: 중심 경도
+    :param radius_m: 반경(m)
+    :param keyword: 검색어. 없으면 카테고리만으로 찾는다
+    :param category_group: 공급자 카테고리 그룹 코드
+    :raises PlaceSearchUnavailableError: 공급자 설정이 잘못됐거나 호출에 실패했을 때
+
+    키워드 검색(search_places)과 같은 규칙으로 오류를 감싼다. 추천 화면이 공급자 사정을
+    알 필요가 없도록, 실패 사유는 서버 로그에만 남긴다.
+    """
+    try:
+        provider = providers.get_provider(settings.place_search_provider)
+        return provider.search_nearby(
+            latitude=latitude,
+            longitude=longitude,
+            radius_m=radius_m,
+            limit=SEARCH_LIMIT,
+            keyword=keyword,
+            category_group=category_group,
+        )
+    except providers.PlaceProviderError as error:
+        logger.warning("Nearby place search failed: %s", error.reason)
+        raise PlaceSearchUnavailableError() from None
+    except ValueError as error:
+        raise PlaceSearchUnavailableError() from error

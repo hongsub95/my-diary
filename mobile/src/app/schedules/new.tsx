@@ -17,7 +17,7 @@ import { PlaceNoteEditor } from '@/features/schedules/place-note-editor';
 import { SelectButton, TIME_PATTERN, TimeSelect } from '@/features/schedules/time-select';
 import { getApiError } from '@/shared/api/api-error';
 import { moveItem } from '@/shared/utils/reorder';
-import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
@@ -314,7 +314,7 @@ function getMarkedDates(startDate: string, endDate: string, palette: ThemePalett
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
   flex: { flex: 1 },
-  header: { alignItems: 'center', backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', minHeight: 58, paddingHorizontal: spacing.sm },
+  header: { alignItems: 'center', backgroundColor: colors.background, flexDirection: 'row', minHeight: 58, paddingHorizontal: spacing.sm },
   headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   back: { color: colors.text, fontSize: 35, lineHeight: 38 },
   close: { color: colors.muted, fontSize: 25 },
@@ -325,17 +325,17 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   progressOff: { backgroundColor: colors.border, borderRadius: 4, flex: 1, height: 4 },
   progressText: { color: colors.muted, fontSize: 14, fontWeight: '600', marginLeft: 5 },
   eyebrow: { color: palette.primaryDark, fontSize: 14, fontWeight: '600', letterSpacing: 1.1, marginTop: 28 },
-  title: { color: colors.text, fontFamily: 'serif', fontSize: 18, fontWeight: '600', lineHeight: 24, marginTop: 9 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1, lineHeight: 35, marginTop: 9 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 7 },
   form: { gap: 15, marginTop: 25 },
   placePickerSection: { marginTop: 24 },
   field: { gap: 7 },
   label: { color: colors.text, fontSize: 14, fontWeight: '600' },
   requiredMark: { color: palette.primary },
-  input: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, color: colors.text, fontSize: 14, minHeight: 52, paddingHorizontal: 14, paddingVertical: 13 },
+  input: { backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderRadius: radii.lg, borderWidth: 1, color: colors.text, fontSize: 14, minHeight: 52, paddingHorizontal: 14, paddingVertical: 13 },
   textarea: { minHeight: 92 },
   row: { flexDirection: 'row', gap: 10 },
-  timingCard: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
+  timingCard: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 2, overflow: 'hidden', shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 18 },
   timingRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 13, paddingVertical: 14, position: 'relative' },
   timingAccent: { borderBottomRightRadius: 3, borderTopRightRadius: 3, bottom: 18, left: 0, position: 'absolute', top: 18, width: 3 },
   timingAccentStart: { backgroundColor: palette.primary, opacity: 0.55 },
@@ -344,13 +344,13 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   dateColumn: { flex: 1, minWidth: 0 },
   timeColumn: { flexBasis: 104, flexGrow: 0, flexShrink: 0 },
   error: { color: colors.danger, fontSize: 12, marginTop: 14 },
-  primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', marginTop: 22, minHeight: 52, paddingHorizontal: 18 },
+  primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.lg, elevation: 2, justifyContent: 'center', marginTop: 22, minHeight: 54, paddingHorizontal: 18, shadowColor: palette.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12 },
   primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   placeInput: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 15, borderWidth: 1, flexDirection: 'row', marginTop: 23, minHeight: 55, paddingHorizontal: 8 },
   placeTextInput: { color: colors.text, flex: 1, fontSize: 13, paddingHorizontal: 8 },
   addButton: { backgroundColor: palette.primarySoft, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10 },
   addButtonText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
-  placeList: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, marginTop: 14, overflow: 'hidden', padding: 12 },
+  placeList: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 2, marginTop: 14, overflow: 'hidden', padding: 12, shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 18 },
   placeItem: { paddingBottom: 6 },
   placeRow: { alignItems: 'center', flexDirection: 'row', minHeight: 67, paddingHorizontal: 4 },
   // 번호(30) + 여백(12)만큼 들여써 메모가 장소 이름 줄에서 시작하게 한다.

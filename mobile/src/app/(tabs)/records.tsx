@@ -8,7 +8,7 @@ import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { EmptyState } from '@/shared/components/empty-state';
 import { getApiError } from '@/shared/api/api-error';
-import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 
 /**
@@ -139,28 +139,28 @@ export default function RecordsScreen() {
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: 120 },
-  heading: { marginBottom: spacing.lg },
-  eyebrow: { color: palette.primary, fontSize: 14, fontWeight: '600', letterSpacing: 1 },
-  title: { color: colors.text, fontSize: 18, fontWeight: '600', lineHeight: 24, marginTop: 6 },
-  description: { color: colors.muted, fontSize: 12, marginTop: 7 },
+  content: { padding: spacing.lg, paddingBottom: 132, paddingTop: spacing.xl },
+  heading: { marginBottom: spacing.xl, paddingHorizontal: 2 },
+  eyebrow: { color: palette.primaryDark, fontSize: 12, fontWeight: '600', letterSpacing: 1.4 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1.1, lineHeight: 35, marginTop: 7 },
+  description: { color: colors.muted, fontSize: 13, lineHeight: 20, marginTop: 9 },
 
-  card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 17, borderWidth: 1, flexDirection: 'row', gap: spacing.md, marginBottom: spacing.md, padding: 10 },
+  card: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 3, flexDirection: 'row', gap: spacing.md, marginBottom: 18, padding: 11, shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 18 },
   cardFeatured: { flexDirection: 'column', gap: 0, overflow: 'hidden', padding: 0 },
   pressed: { opacity: 0.8 },
 
-  thumbnail: { backgroundColor: colors.sand, borderRadius: 12, height: 88, width: 88 },
-  featuredPhoto: { backgroundColor: colors.sand, height: 200, width: '100%' },
+  thumbnail: { backgroundColor: colors.sand, borderRadius: radii.lg, height: 108, width: 108 },
+  featuredPhoto: { backgroundColor: colors.sand, height: 300, width: '100%' },
   emptyPhoto: { alignItems: 'center', justifyContent: 'center' },
   emptyPhotoMark: { color: colors.muted, fontSize: 22 },
 
   cardCopy: { flex: 1, justifyContent: 'center', gap: 3 },
-  featuredCopy: { gap: 5, padding: spacing.lg },
-  date: { color: colors.muted, fontSize: 10 },
-  cardTitle: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  featuredTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
+  featuredCopy: { gap: 7, padding: 22 },
+  date: { color: palette.primaryDark, fontSize: 11, fontWeight: '600' },
+  cardTitle: { color: colors.text, fontSize: 16, fontWeight: '700', lineHeight: 22 },
+  featuredTitle: { color: colors.text, fontSize: 22, fontWeight: '700', letterSpacing: -0.7, lineHeight: 29 },
   cardNote: { color: colors.muted, fontSize: 11 },
-  quote: { color: colors.text, fontSize: 13, lineHeight: 21 },
+  quote: { color: colors.text, fontSize: 14, lineHeight: 23 },
   metaRow: { flexDirection: 'row', gap: spacing.md, marginTop: 4 },
   meta: { color: colors.muted, fontSize: 10 },
 

@@ -12,6 +12,7 @@
 """
 
 from decimal import Decimal
+from math import cos, radians, sin
 from typing import Protocol
 
 import httpx
@@ -37,6 +38,28 @@ class PlaceSearchProvider(Protocol):
         :param query: 검색어 (공백 정리 완료)
         :param limit: 최대 결과 수
         :return: 공통 형태로 변환된 검색 결과
+        """
+        ...
+
+    def search_nearby(
+        self,
+        *,
+        latitude: Decimal,
+        longitude: Decimal,
+        radius_m: int,
+        limit: int,
+        keyword: str | None = None,
+        category_group: str | None = None,
+    ) -> list[PlaceSearchResultResponse]:
+        """한 지점 주변을 가까운 순으로 찾는다. 코스 추천의 후보를 모을 때 쓴다.
+
+        :param latitude: 중심 위도
+        :param longitude: 중심 경도
+        :param radius_m: 반경(m)
+        :param limit: 최대 결과 수
+        :param keyword: 검색어. 없으면 카테고리만으로 찾는다
+        :param category_group: 공급자 카테고리 그룹 코드
+        :return: 가까운 순으로 정렬된 결과. 반경 밖은 들어 있지 않다
         """
         ...
 
@@ -81,6 +104,65 @@ class MockPlaceSearchProvider:
         ]
         return results[:limit]
 
+    # 주변 검색에서 중심으로부터 떨어뜨려 놓을 자리. (방위각, 거리m)
+    # 거리를 일부러 반경 선택지(500m/1km/2km/5km) 사이사이에 걸쳐 두었다. 반경을 바꾸면
+    # 결과 개수가 달라져야 거르기가 실제로 동작하는지 테스트할 수 있다.
+    _NEARBY_OFFSETS = (
+        (0, 180),
+        (70, 420),
+        (140, 750),
+        (210, 1300),
+        (280, 2400),
+        (330, 4200),
+        (45, 8000),
+    )
+    # 위도 1도의 길이(m). 지구 어디서나 거의 같다.
+    _METERS_PER_DEGREE = 111_320
+
+    def search_nearby(
+        self,
+        *,
+        latitude: Decimal,
+        longitude: Decimal,
+        radius_m: int,
+        limit: int,
+        keyword: str | None = None,
+        category_group: str | None = None,
+    ) -> list[PlaceSearchResultResponse]:
+        """중심 둘레에 정해진 거리만큼 떨어진 가짜 장소를 돌려준다.
+
+        이름에 검색어(또는 카테고리)를 넣어 코스 항목마다 다른 장소가 나오게 한다.
+        항목이 달라도 같은 이름이 나오면 화면에서 "같은 곳을 두 번 추천했다"로 보인다.
+        """
+        if not keyword and not category_group:
+            raise ValueError("Keyword or category group is required")
+
+        label = keyword or category_group
+        center_lat = float(latitude)
+        center_lon = float(longitude)
+        results = []
+        for index, (bearing, distance) in enumerate(self._NEARBY_OFFSETS):
+            if distance > radius_m:
+                continue
+            # 경도 1도의 길이는 위도가 높을수록 짧아진다. cos(위도)로 나눠 보정한다.
+            north = distance * cos(radians(bearing)) / self._METERS_PER_DEGREE
+            east = distance * sin(radians(bearing)) / (
+                self._METERS_PER_DEGREE * cos(radians(center_lat))
+            )
+            results.append(
+                PlaceSearchResultResponse(
+                    name=f"{label} {index + 1}",
+                    address=f"서울 (mock) 중심에서 {distance}m",
+                    latitude=Decimal(str(round(center_lat + north, 6))),
+                    longitude=Decimal(str(round(center_lon + east, 6))),
+                    provider=PROVIDER_MANUAL,
+                    provider_place_id=None,
+                    category=label,
+                    phone=None,
+                )
+            )
+        return results[:limit]
+
 
 class PlaceProviderError(Exception):
     """응답 본문·키 없이 운영 진단용 사유만 전달하는 공급자 오류."""
@@ -106,27 +188,101 @@ class _KakaoResponse(BaseModel):
 
 
 class KakaoPlaceSearchProvider:
-    """카카오 키워드 검색의 첫 페이지를 기존 장소 응답으로 정규화한다."""
+    """카카오 로컬 검색을 기존 장소 응답으로 정규화한다.
+
+    키워드 검색과 주변 검색이 같은 요청·오류 처리를 쓴다. 둘이 다른 점은 주소와
+    파라미터뿐이라, 오류를 내부 사유로 바꾸는 부분을 한곳(_fetch)에 둔다.
+    """
 
     name = PROVIDER_KAKAO
     URL = "https://dapi.kakao.com/v2/local/search/keyword.json"
+    # 검색어 없이 카테고리만으로 찾는 주소. "카페 아무 데나"처럼 소분류가 상관없음일 때 쓴다.
+    CATEGORY_URL = "https://dapi.kakao.com/v2/local/search/category.json"
+    # 카카오가 받는 반경 상한(m). 넘기면 카카오가 400을 돌려준다.
+    MAX_RADIUS_M = 20_000
+    # 카카오가 한 페이지에 주는 최대 개수.
+    MAX_PAGE_SIZE = 15
 
     def search(self, query: str, limit: int) -> list[PlaceSearchResultResponse]:
-        settings = get_settings()
-        key = settings.kakao_rest_api_key.get_secret_value().strip()
-        if not key:
-            raise PlaceProviderError("missing_key")
+        key = self._key()
         query = query.strip()
         if not query or limit < 1:
             raise ValueError("Invalid search input")
-        size = min(limit, 15)
+        size = min(limit, self.MAX_PAGE_SIZE)
+        return self._fetch(key, self.URL, {"query": query, "size": size, "page": 1}, size)
+
+    def search_nearby(
+        self,
+        *,
+        latitude: Decimal,
+        longitude: Decimal,
+        radius_m: int,
+        limit: int,
+        keyword: str | None = None,
+        category_group: str | None = None,
+    ) -> list[PlaceSearchResultResponse]:
+        """한 지점 주변을 가까운 순으로 찾는다.
+
+        :param latitude: 중심 위도
+        :param longitude: 중심 경도
+        :param radius_m: 반경(m). 1 이상 MAX_RADIUS_M 이하
+        :param limit: 최대 결과 수. 한 페이지(15개)를 넘지 않는다
+        :param keyword: 검색어. 있으면 키워드 검색을 쓴다 (예: "한식")
+        :param category_group: 카카오 카테고리 그룹 코드 (예: FD6 음식점, CE7 카페)
+        :raises ValueError: 검색어와 카테고리가 둘 다 없거나 반경이 범위 밖일 때
+
+        검색어가 있으면 키워드 검색에 카테고리를 거름망으로 함께 건다. "한식"만 넣으면
+        한식 재료상이나 학원까지 섞여 나오기 때문이다. 검색어가 없으면 카테고리 검색을
+        쓴다 — 키워드 검색은 검색어가 필수다.
+        """
+        key = self._key()
+        if not keyword and not category_group:
+            raise ValueError("Keyword or category group is required")
+        if not 1 <= radius_m <= self.MAX_RADIUS_M or limit < 1:
+            raise ValueError("Invalid nearby search input")
+
+        size = min(limit, self.MAX_PAGE_SIZE)
+        # 카카오는 x가 경도, y가 위도다. 이름만 보고 반대로 넣기 쉽다.
+        params: dict[str, str | int] = {
+            "x": str(longitude),
+            "y": str(latitude),
+            "radius": radius_m,
+            "sort": "distance",
+            "size": size,
+            "page": 1,
+        }
+        if category_group:
+            params["category_group_code"] = category_group
+
+        if keyword:
+            params["query"] = keyword
+            return self._fetch(key, self.URL, params, size)
+        return self._fetch(key, self.CATEGORY_URL, params, size)
+
+    @staticmethod
+    def _key() -> str:
+        """REST 키를 읽는다. 없으면 외부 호출 전에 멈춘다."""
+        key = get_settings().kakao_rest_api_key.get_secret_value().strip()
+        if not key:
+            raise PlaceProviderError("missing_key")
+        return key
+
+    def _fetch(
+        self, key: str, url: str, params: dict, size: int
+    ) -> list[PlaceSearchResultResponse]:
+        """카카오를 한 번 부르고 결과를 공통 형태로 바꾼다.
+
+        :raises PlaceProviderError: 네트워크·HTTP·응답 형식 오류. 사유만 담고 본문과
+            키는 담지 않는다
+        """
+        settings = get_settings()
         try:
             # 호출당 클라이언트를 닫고 자동 재시도하지 않아 쿼터 중복 소비를 피한다.
             with httpx.Client(timeout=settings.kakao_search_timeout_seconds) as client:
                 response = client.get(
-                    self.URL,
+                    url,
                     headers={"Authorization": f"KakaoAK {key}"},
-                    params={"query": query, "size": size, "page": 1},
+                    params=params,
                 )
         except httpx.TimeoutException:
             raise PlaceProviderError("timeout") from None

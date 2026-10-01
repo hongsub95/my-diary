@@ -14,7 +14,7 @@ import { getApiError } from '@/shared/api/api-error';
 import { moveItem } from '@/shared/utils/reorder';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
-import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { formatKoreanDateTime } from '@/shared/utils/date';
 
@@ -343,7 +343,7 @@ export default function ScheduleDetailScreen() {
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
-  header: { alignItems: 'center', borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
+  header: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.md, paddingVertical: spacing.sm },
   backButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
   backMark: { color: colors.text, fontSize: 28, lineHeight: 30 },
   headerTitle: { color: colors.text, fontSize: 18, fontWeight: '600' },
@@ -351,16 +351,16 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   content: { gap: spacing.lg, padding: spacing.lg, paddingBottom: 60 },
   summary: { gap: 5 },
   phase: { color: palette.primary, fontSize: 14, fontWeight: '600' },
-  title: { color: colors.text, fontSize: 18, fontWeight: '600' },
+  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1, lineHeight: 35 },
   when: { color: colors.muted, fontSize: 13 },
   error: { color: colors.danger, fontSize: 12 },
 
-  nextCard: { backgroundColor: colors.text, borderRadius: 18, gap: 4, padding: spacing.lg },
+  nextCard: { backgroundColor: colors.ink, borderRadius: radii.card, elevation: 4, gap: 6, justifyContent: 'flex-end', minHeight: 156, padding: 24, shadowColor: '#302927', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 20 },
   nextLabel: { color: palette.primarySoft, fontSize: 14, fontWeight: '600' },
   nextName: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
   nextProgress: { color: '#DFD8D3', fontSize: 12 },
 
-  section: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.sm, padding: spacing.lg },
+  section: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 2, gap: spacing.sm, padding: spacing.lg, shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 18 },
   sectionHead: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
   action: { color: palette.primary, fontSize: 14, fontWeight: '600' },
@@ -391,7 +391,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   visitButton: { borderColor: colors.border, borderRadius: 12, borderWidth: 1, minHeight: 36, justifyContent: 'center', paddingHorizontal: 12 },
   visitText: { color: palette.primary, fontSize: 14, fontWeight: '600' },
 
-  completeButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', minHeight: 52 },
+  completeButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.lg, elevation: 2, justifyContent: 'center', minHeight: 54, shadowColor: palette.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12 },
   completeText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   pressed: { opacity: 0.85 },
 });

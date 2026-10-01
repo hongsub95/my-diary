@@ -11,7 +11,7 @@ import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { getApiError } from '@/shared/api/api-error';
-import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
 
@@ -254,20 +254,20 @@ function UpcomingCard({ schedule, onOpen }: { schedule: ScheduleView; onOpen: ()
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { backgroundColor: colors.background, flex: 1 },
-  content: { padding: spacing.lg, paddingBottom: 120 },
-  heading: { gap: 6 },
-  eyebrow: { color: palette.primary, fontSize: 14, fontWeight: '600' },
-  title: { color: colors.text, fontSize: 18, fontWeight: '600' },
+  content: { padding: spacing.lg, paddingBottom: 132, paddingTop: spacing.xl },
+  heading: { gap: 7, paddingHorizontal: 2 },
+  eyebrow: { color: palette.primaryDark, fontSize: 12, fontWeight: '600', letterSpacing: 1.2 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1.1, lineHeight: 35 },
 
   // 홈은 여러 정보를 나열하지 않고 지금 할 일 하나만 크게 보여준다. 그래서 카드가
   // 하나뿐이고, 그 안의 주요 행동 버튼도 하나다.
-  card: { alignItems: 'flex-start', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, gap: spacing.sm, marginTop: spacing.xl, padding: spacing.lg },
+  card: { alignItems: 'flex-start', backgroundColor: colors.surface, borderRadius: radii.card, elevation: 4, gap: spacing.sm, marginTop: spacing.xl, minHeight: 244, justifyContent: 'flex-end', padding: 24, shadowColor: '#432F28', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.08, shadowRadius: 20 },
   // 오늘의 하루는 어두운 바탕으로 두어 먼저 눈에 들어오게 한다.
-  cardToday: { backgroundColor: colors.text, borderColor: colors.text },
-  cardRecord: { backgroundColor: palette.primarySoft, borderColor: palette.primary },
+  cardToday: { backgroundColor: colors.ink, minHeight: 330, padding: 28 },
+  cardRecord: { backgroundColor: palette.primarySoft, minHeight: 280 },
 
   cardEyebrow: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  cardTitle: { color: colors.text, fontSize: 18, fontWeight: '600', lineHeight: 24 },
+  cardTitle: { color: colors.text, fontSize: 24, fontWeight: '700', letterSpacing: -0.8, lineHeight: 31 },
   cardLine: { color: colors.muted, fontSize: 13, lineHeight: 20 },
   cardMeta: { color: colors.muted, fontSize: 12 },
   strong: { color: colors.text, fontWeight: '600' },
@@ -276,7 +276,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   titleOnDark: { color: '#FFFFFF' },
   lineOnDark: { color: '#DFD8D3' },
 
-  primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 14, justifyContent: 'center', marginTop: spacing.sm, minHeight: 50, paddingHorizontal: spacing.xl },
+  primaryButton: { alignItems: 'center', alignSelf: 'stretch', backgroundColor: palette.primary, borderRadius: radii.lg, elevation: 2, justifyContent: 'center', marginTop: spacing.md, minHeight: 52, paddingHorizontal: spacing.xl, shadowColor: palette.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12 },
   primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   secondaryButton: { justifyContent: 'center', minHeight: 44 },
   secondaryText: { color: colors.muted, fontSize: 13, fontWeight: '600' },

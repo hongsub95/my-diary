@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { LEGAL_DOCUMENTS } from '@/features/legal/legal-api';
-import { colors, getPalette, spacing, typography, type ThemePalette } from '@/shared/theme';
+import { colors, getPalette, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
 import { useThemeContext, useThemedStyles } from '@/shared/theme-context';
 import { useNavigableMenus } from '@/features/menus/menu-api';
 import { buildAllMenus } from '@/features/menus/all-menus';
@@ -167,15 +167,15 @@ export default function MoreScreen() {
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  menuPanel: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.sm, padding: spacing.md },
+  menuPanel: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 2, gap: spacing.sm, padding: spacing.md, shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 18 },
   menuGrid: { alignItems: 'flex-start', columnGap: 8, flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
   menuTile: { alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 64, paddingHorizontal: 6, paddingVertical: 10, width: '31%' },
   menuLabel: { color: colors.text, fontSize: 12, fontWeight: typography.regular, textAlign: 'center' },
   menuRetry: { alignItems: 'center', minHeight: 44, justifyContent: 'center' },
   menuRetryText: { color: palette.primary, fontSize: typography.body, fontWeight: typography.semibold },
-  content: { padding: spacing.lg, paddingBottom: spacing.xxl },
-  title: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold, marginBottom: spacing.xl },
-  profile: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, flexDirection: 'row', padding: spacing.lg },
+  content: { padding: spacing.lg, paddingBottom: 132, paddingTop: spacing.xl },
+  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1.1, marginBottom: spacing.xl },
+  profile: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.card, elevation: 3, flexDirection: 'row', padding: spacing.lg, shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 18 },
   avatar: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: 24, height: 48, justifyContent: 'center', width: 48 },
   avatarText: { color: palette.primary, fontSize: typography.emphasis, fontWeight: typography.semibold },
   profileText: { gap: 3, marginLeft: spacing.md },
@@ -183,7 +183,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   email: { color: colors.muted, fontSize: typography.body, fontWeight: typography.regular },
   group: { gap: spacing.sm, marginTop: spacing.xl },
   groupTitle: { color: colors.muted, fontSize: typography.emphasis, fontWeight: typography.semibold, paddingLeft: spacing.xs },
-  card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
+  card: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 2, overflow: 'hidden', shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 18 },
   // 터치 영역을 44px 이상으로 유지한다 (BOTTOM_NAVIGATION_SPEC.md 7절).
   row: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 52, paddingHorizontal: spacing.lg, paddingVertical: 14 },
   rowLabel: { color: colors.text, fontSize: typography.body, fontWeight: typography.regular },

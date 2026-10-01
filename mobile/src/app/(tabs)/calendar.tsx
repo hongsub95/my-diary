@@ -7,7 +7,7 @@ import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { EmptyState } from '@/shared/components/empty-state';
-import { colors, spacing, type ThemePalette } from '@/shared/theme';
+import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { CalendarExplorer } from '@/features/calendar/calendar-explorer';
 import { moveDate } from '@/features/calendar/calendar-dates';
@@ -123,21 +123,24 @@ export default function CalendarScreen() {
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { flex: 1, padding: spacing.lg, paddingBottom: spacing.md },
-  heading: { gap: spacing.xs, marginBottom: spacing.lg },
-  eyebrow: { color: palette.primary, fontSize: 14, fontWeight: '600' },
-  title: { color: colors.text, fontSize: 18, fontWeight: '600' },
+  content: { flex: 1, padding: spacing.lg, paddingBottom: spacing.md, paddingTop: spacing.xl },
+  heading: { gap: 6, marginBottom: spacing.xl, paddingHorizontal: 2 },
+  eyebrow: { color: palette.primaryDark, fontSize: 12, fontWeight: '600', letterSpacing: 1.2 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1.1 },
   calendarCard: {
     backgroundColor: colors.surface,
-    borderColor: colors.border,
-    borderRadius: 20,
-    borderWidth: 1,
+    borderRadius: radii.card,
+    elevation: 3,
     overflow: 'hidden',
     flex: 1,
     padding: spacing.xs,
+    shadowColor: '#432F28',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.08,
+    shadowRadius: 18,
   },
   dayCell: { alignItems: 'stretch', flex: 1, minHeight: 0, paddingHorizontal: 2, paddingTop: 3, width: '100%' },
-  dayCellSelected: { backgroundColor: palette.primarySoft, borderRadius: 8 },
+  dayCellSelected: { backgroundColor: palette.primarySoft, borderRadius: radii.md },
   dayNumber: { color: colors.text, fontSize: 12, marginBottom: 3, textAlign: 'center' },
   dayNumberSelected: { color: palette.primary, fontWeight: '600' },
   dayDisabled: { color: colors.border },

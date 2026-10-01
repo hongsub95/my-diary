@@ -6,7 +6,7 @@ import { ScheduleCard } from '@/features/schedules/schedule-card';
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import { ScheduleFab } from '@/shared/components/schedule-fab';
 import { EmptyState } from '@/shared/components/empty-state';
-import { colors, spacing } from '@/shared/theme';
+import { colors, radii, spacing } from '@/shared/theme';
 import { seoulDateKey } from '@/shared/utils/date';
 
 // 일정 탭이 내다보는 기간. 이 안에 잡힌 하루를 모두 보여준다.
@@ -79,11 +79,11 @@ export default function SchedulesScreen() {
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  content: { padding: spacing.lg, paddingBottom: 120 },
-  heading: { gap: spacing.sm, marginBottom: spacing.lg },
-  title: { color: colors.text, fontSize: 18, fontWeight: '600' },
-  description: { color: colors.muted, fontSize: 14 },
-  list: { gap: spacing.md },
-  recordsLink: { alignItems: 'center', borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', marginTop: spacing.lg, minHeight: 48 },
+  content: { padding: spacing.lg, paddingBottom: 132, paddingTop: spacing.xl },
+  heading: { gap: spacing.sm, marginBottom: spacing.xl, paddingHorizontal: 2 },
+  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1.1 },
+  description: { color: colors.muted, fontSize: 13, lineHeight: 20 },
+  list: { gap: 16 },
+  recordsLink: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radii.lg, justifyContent: 'center', marginTop: spacing.xl, minHeight: 50 },
   recordsText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
 });
