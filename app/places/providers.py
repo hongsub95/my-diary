@@ -13,13 +13,16 @@
 
 from decimal import Decimal
 from math import cos, radians, sin
-from typing import Protocol
+from typing import Literal, Protocol
 
 import httpx
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.places.schemas import PROVIDER_KAKAO, PROVIDER_MANUAL, PlaceSearchResultResponse
+
+# 주변 검색 정렬. 카카오가 지원하는 두 값과 같다.
+NearbySort = Literal["distance", "accuracy"]
 
 
 class PlaceSearchProvider(Protocol):
@@ -50,6 +53,7 @@ class PlaceSearchProvider(Protocol):
         limit: int,
         keyword: str | None = None,
         category_group: str | None = None,
+        sort: NearbySort = "distance",
     ) -> list[PlaceSearchResultResponse]:
         """한 지점 주변을 가까운 순으로 찾는다. 코스 추천의 후보를 모을 때 쓴다.
 
@@ -59,7 +63,12 @@ class PlaceSearchProvider(Protocol):
         :param limit: 최대 결과 수
         :param keyword: 검색어. 없으면 카테고리만으로 찾는다
         :param category_group: 공급자 카테고리 그룹 코드
-        :return: 가까운 순으로 정렬된 결과. 반경 밖은 들어 있지 않다
+        :param sort: "distance"면 가까운 순, "accuracy"면 검색어에 잘 맞는 순
+        :return: 반경 안의 결과. 반경 밖은 들어 있지 않다
+
+        정확도 순이 따로 있는 이유: 가게가 몰린 동네에서 가까운 순으로 15개를 받으면 전부
+        100m 안에 몰린다. 그러면 반경을 5km로 넓혀도 같은 15곳이 나와 반경 선택이 뜻을
+        잃는다. 코스 추천은 정확도 순으로 받는다.
         """
         ...
 
@@ -128,6 +137,7 @@ class MockPlaceSearchProvider:
         limit: int,
         keyword: str | None = None,
         category_group: str | None = None,
+        sort: NearbySort = "distance",
     ) -> list[PlaceSearchResultResponse]:
         """중심 둘레에 정해진 거리만큼 떨어진 가짜 장소를 돌려준다.
 
@@ -220,6 +230,7 @@ class KakaoPlaceSearchProvider:
         limit: int,
         keyword: str | None = None,
         category_group: str | None = None,
+        sort: NearbySort = "distance",
     ) -> list[PlaceSearchResultResponse]:
         """한 지점 주변을 가까운 순으로 찾는다.
 
@@ -229,6 +240,7 @@ class KakaoPlaceSearchProvider:
         :param limit: 최대 결과 수. 한 페이지(15개)를 넘지 않는다
         :param keyword: 검색어. 있으면 키워드 검색을 쓴다 (예: "한식")
         :param category_group: 카카오 카테고리 그룹 코드 (예: FD6 음식점, CE7 카페)
+        :param sort: "distance"(가까운 순) 또는 "accuracy"(정확도 순)
         :raises ValueError: 검색어와 카테고리가 둘 다 없거나 반경이 범위 밖일 때
 
         검색어가 있으면 키워드 검색에 카테고리를 거름망으로 함께 건다. "한식"만 넣으면
@@ -247,7 +259,7 @@ class KakaoPlaceSearchProvider:
             "x": str(longitude),
             "y": str(latitude),
             "radius": radius_m,
-            "sort": "distance",
+            "sort": sort,
             "size": size,
             "page": 1,
         }

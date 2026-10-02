@@ -262,6 +262,7 @@ def search_nearby_places(
     radius_m: int,
     keyword: str | None = None,
     category_group: str | None = None,
+    sort: providers.NearbySort = "distance",
 ) -> list[PlaceSearchResultResponse]:
     """한 지점 주변의 장소를 가까운 순으로 찾는다. 코스 추천의 후보 모으기에 쓴다.
 
@@ -270,6 +271,7 @@ def search_nearby_places(
     :param radius_m: 반경(m)
     :param keyword: 검색어. 없으면 카테고리만으로 찾는다
     :param category_group: 공급자 카테고리 그룹 코드
+    :param sort: "distance"(가까운 순) 또는 "accuracy"(정확도 순)
     :raises PlaceSearchUnavailableError: 공급자 설정이 잘못됐거나 호출에 실패했을 때
 
     키워드 검색(search_places)과 같은 규칙으로 오류를 감싼다. 추천 화면이 공급자 사정을
@@ -284,6 +286,7 @@ def search_nearby_places(
             limit=SEARCH_LIMIT,
             keyword=keyword,
             category_group=category_group,
+            sort=sort,
         )
     except providers.PlaceProviderError as error:
         logger.warning("Nearby place search failed: %s", error.reason)
