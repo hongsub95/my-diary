@@ -1,22 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Calendar, DateData } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
-import { KakaoMap } from '@/features/places/kakao-map';
-import { PlacePicker } from '@/features/places/place-picker';
-import {
-  addSchedulePlace,
-  createSchedule,
-  type AddSchedulePlaceInput,
-} from '@/features/schedules/schedule-api';
-import { PlaceNoteEditor } from '@/features/schedules/place-note-editor';
+import { createSchedule } from '@/features/schedules/schedule-api';
 import { SelectButton, TIME_PATTERN, TimeSelect } from '@/features/schedules/time-select';
 import { getApiError } from '@/shared/api/api-error';
-import { moveItem } from '@/shared/utils/reorder';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
@@ -24,10 +16,13 @@ import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
-// 저장 전까지 화면에 들고 있는 장소. 검색 결과에서 왔다면 좌표와 출처까지 함께
-// 담아둬야 저장할 때 잃지 않는다. 직접 입력한 장소는 이름만 있다.
-type DraftPlace = { id: number; place: AddSchedulePlaceInput };
-
+/**
+ * 하루 만들기 1단계 — 하루 정하기.
+ *
+ * "갈 곳 정하기"를 누르면 **그 자리에서 하루를 저장하고** 2단계(schedules/[id]/plan)로
+ * 넘어간다. 웹의 ScheduleNewPage와 같은 흐름이다. 예전처럼 장소까지 다 고른 뒤 한꺼번에
+ * 저장하지 않는 이유는 2단계 화면(plan.tsx) 머리 주석에 있다.
+ */
 export default function NewScheduleScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
@@ -39,7 +34,6 @@ export default function NewScheduleScreen() {
     return value && DATE_PATTERN.test(value) ? value : seoulDateKey(new Date().toISOString());
   }, [params.date]);
 
-  const [step, setStep] = useState<1 | 2>(1);
   const [title, setTitle] = useState('');
   const [startDate, setStartDate] = useState(initialDate);
   const [endDate, setEndDate] = useState(initialDate);
@@ -47,9 +41,11 @@ export default function NewScheduleScreen() {
   const [startTime, setStartTime] = useState('12:00');
   const [endTime, setEndTime] = useState('15:00');
   const [description, setDescription] = useState('');
-  const [places, setPlaces] = useState<DraftPlace[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // 상태값(submitting)은 다음 렌더에야 반영돼서, 빠르게 두 번 누르면 둘 다 통과한다.
+  // 그러면 같은 하루가 둘 생긴다. 즉시 바뀌는 ref로 한 번 더 막는다.
+  const submitLock = useRef(false);
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
 
   function validateBasics() {
@@ -62,23 +58,12 @@ export default function NewScheduleScreen() {
     return null;
   }
 
-  function moveNext() {
+  /** 하루를 저장하고 2단계로 넘어간다. */
+  async function saveAndContinue() {
     const validation = validateBasics();
     if (validation) { setError(null); showSnackbar(validation); return; }
-    dismissSnackbar();
-    setError(null);
-    setStep(2);
-  }
-
-  /** 고른 장소를 저장 전 목록에 쌓는다. 담은 순서가 곧 방문 순서다. */
-  function addPlace(place: AddSchedulePlaceInput) {
-    if (!place.name) return;
-    setPlaces((current) => [...current, { id: Date.now(), place }]);
-  }
-
-  async function handleSubmit() {
-    const validation = validateBasics();
-    if (validation) { setError(null); showSnackbar(validation); return; }
+    if (submitLock.current) return;
+    submitLock.current = true;
     dismissSnackbar();
     setSubmitting(true);
     setError(null);
@@ -92,15 +77,14 @@ export default function NewScheduleScreen() {
         startTime,
         endTime,
       });
-      // 담아둔 순서가 곧 방문 순서다. 동시에 보내면 순서가 뒤섞이므로 차례로 넣는다.
-      for (const draft of places) {
-        await addSchedulePlace(schedule.id, draft.place);
-      }
       await queryClient.invalidateQueries({ queryKey: ['schedules'] });
-      router.replace('/(tabs)/home');
+      // replace를 쓴다. 2단계에서 뒤로 가기로 이 화면에 돌아와 다시 누르면 같은 하루가
+      // 또 만들어진다.
+      router.replace({ pathname: '/schedules/[id]/plan', params: { id: String(schedule.id) } });
     } catch (caught) {
       setError(getApiError(caught).message);
     } finally {
+      submitLock.current = false;
       setSubmitting(false);
     }
   }
@@ -109,126 +93,43 @@ export default function NewScheduleScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <View style={styles.header}>
-          <Pressable accessibilityLabel="뒤로 가기" onPress={() => step === 2 ? setStep(1) : router.back()} style={styles.headerButton}><Text style={styles.back}>‹</Text></Pressable>
+          <Pressable accessibilityLabel="뒤로 가기" onPress={() => router.back()} style={styles.headerButton}><Text style={styles.back}>‹</Text></Pressable>
           <Text style={styles.headerTitle}>하루 만들기</Text>
-          <Pressable onPress={() => router.back()} style={styles.headerButton}><Text style={styles.close}>×</Text></Pressable>
+          <Pressable accessibilityLabel="닫기" onPress={() => router.back()} style={styles.headerButton}><Text style={styles.close}>×</Text></Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.progress}><View style={styles.progressOn} /><View style={step === 2 ? styles.progressOn : styles.progressOff} /><Text style={styles.progressText}>{step} / 2</Text></View>
+          <View style={styles.progress}><View style={styles.progressOn} /><View style={styles.progressOff} /><Text style={styles.progressText}>1 / 2</Text></View>
 
-          {step === 1 ? (
-            <>
-              <Text style={styles.eyebrow}>STEP 1 · 하루 정하기</Text>
-              <Text style={styles.title}>어떤 하루를{"\n"}보내고 싶나요?</Text>
-              <Text style={styles.description}>세부 일정표보다 그날의 모습을 먼저 떠올려 보세요.</Text>
+          <Text style={styles.eyebrow}>STEP 1 · 하루 정하기</Text>
+          <Text style={styles.title}>어떤 하루를{"\n"}보내고 싶나요?</Text>
+          <Text style={styles.description}>세부 일정표보다 그날의 모습을 먼저 떠올려 보세요.</Text>
 
-              <View style={styles.form}>
-                <Field label="하루의 이름" required>
-                  <TextInput accessibilityLabel="하루의 이름, 필수" onChangeText={setTitle} placeholder="하루의 이름을 작성해주세요" placeholderTextColor={colors.muted} style={styles.input} value={title} />
-                </Field>
-                <View style={styles.timingCard}>
-                  <View style={styles.timingRow}>
-                    <View style={[styles.timingAccent, styles.timingAccentStart]} />
-                    <View style={styles.dateColumn}><Field label="시작일" required><SelectButton label={startDate} onPress={() => setCalendarTarget('start')} /></Field></View>
-                    <View style={styles.timeColumn}><Field label="시작 시간" required><TimeSelect value={startTime} onChange={setStartTime} /></Field></View>
-                  </View>
-                  <View style={styles.timingDivider} />
-                  <View style={styles.timingRow}>
-                    <View style={[styles.timingAccent, styles.timingAccentEnd]} />
-                    <View style={styles.dateColumn}><Field label="종료일" required><SelectButton label={endDate} onPress={() => setCalendarTarget('end')} /></Field></View>
-                    <View style={styles.timeColumn}><Field label="종료 시간" required><TimeSelect value={endTime} onChange={setEndTime} /></Field></View>
-                  </View>
-                </View>
-                <Field label="하루의 밑그림">
-                  <TextInput accessibilityLabel="하루의 밑그림" multiline onChangeText={setDescription} placeholder="어떤 하루를 보내고 싶은지 적어주세요" placeholderTextColor={colors.muted} style={[styles.input, styles.textarea]} textAlignVertical="top" value={description} />
-                </Field>
+          <View style={styles.form}>
+            <Field label="하루의 이름" required>
+              <TextInput accessibilityLabel="하루의 이름, 필수" onChangeText={setTitle} placeholder="하루의 이름을 작성해주세요" placeholderTextColor={colors.muted} style={styles.input} value={title} />
+            </Field>
+            <View style={styles.timingCard}>
+              <View style={styles.timingRow}>
+                <View style={[styles.timingAccent, styles.timingAccentStart]} />
+                <View style={styles.dateColumn}><Field label="시작일" required><SelectButton label={startDate} onPress={() => setCalendarTarget('start')} /></Field></View>
+                <View style={styles.timeColumn}><Field label="시작 시간" required><TimeSelect value={startTime} onChange={setStartTime} /></Field></View>
               </View>
-              {error ? <Text style={styles.error}>{error}</Text> : null}
-              <Pressable onPress={moveNext} style={styles.primaryButton}><Text style={styles.primaryText}>갈 곳 정하기  →</Text></Pressable>
-            </>
-          ) : (
-            <>
-              <Text style={styles.eyebrow}>STEP 2 · 갈 곳 정하기</Text>
-              <Text style={styles.title}>이 하루에{"\n"}어디를 담아볼까요?</Text>
-
-              {/* 일정 상세와 같은 패널을 쓴다. 담는 곳만 다르다 — 여기서는 저장 전
-                  목록에 쌓고, 상세에서는 서버에 바로 담는다. */}
-              <View style={styles.placePickerSection}>
-                <PlacePicker onPick={addPlace} busy={submitting} initialCenter={(() => {
-                  const last = [...places].reverse().find(item => item.place.latitude != null && item.place.longitude != null)?.place;
-                  return last ? { latitude: Number(last.latitude), longitude: Number(last.longitude) } : undefined;
-                })()} />
+              <View style={styles.timingDivider} />
+              <View style={styles.timingRow}>
+                <View style={[styles.timingAccent, styles.timingAccentEnd]} />
+                <View style={styles.dateColumn}><Field label="종료일" required><SelectButton label={endDate} onPress={() => setCalendarTarget('end')} /></Field></View>
+                <View style={styles.timeColumn}><Field label="종료 시간" required><TimeSelect value={endTime} onChange={setEndTime} /></Field></View>
               </View>
-
-              {/* 목록 위에 지도를 둔다. 마커 번호가 아래 순번과 같아서 "몇 번째로
-                  어디를 가는지"를 지도에서 바로 읽을 수 있다. 일정 상세와 같은 구성이다.
-                  저장 전 초안이라 서버 id가 없으므로 화면이 매긴 임시 id를 넘긴다. */}
-              {places.length ? (
-                <KakaoMap
-                  places={places.map((item) => ({
-                    id: String(item.id),
-                    name: item.place.name,
-                    latitude: item.place.latitude ?? null,
-                    longitude: item.place.longitude ?? null,
-                  }))}
-                />
-              ) : null}
-
-              <View style={styles.placeList}>
-                {places.length ? places.map((place, index) => (
-                  <View key={place.id} style={styles.placeItem}>
-                    <View style={styles.placeRow}>
-                      <View style={styles.placeNumber}><Text style={styles.placeNumberText}>{index + 1}</Text></View>
-                      <View style={styles.placeCopy}><Text style={styles.placeName}>{place.place.name}</Text>{place.place.address ? <Text style={styles.placeMeta}>{[place.place.address, place.place.address_detail].filter(Boolean).join(' ')}</Text> : null}</View>
-                      {/* 아직 저장 전이라 서버에 보낼 것이 없다. 배열만 바꾸면 되고,
-                          저장할 때 이 순서대로 담긴다. */}
-                      <View style={styles.moves}>
-                        <Pressable
-                          accessibilityLabel={`${place.place.name} 순서 올리기`}
-                          disabled={index === 0}
-                          onPress={() => setPlaces((current) => moveItem(current, index, -1))}
-                          style={styles.moveButton}>
-                          <Text style={[styles.moveMark, index === 0 && styles.moveMarkOff]}>↑</Text>
-                        </Pressable>
-                        <Pressable
-                          accessibilityLabel={`${place.place.name} 순서 내리기`}
-                          disabled={index === places.length - 1}
-                          onPress={() => setPlaces((current) => moveItem(current, index, 1))}
-                          style={styles.moveButton}>
-                          <Text style={[styles.moveMark, index === places.length - 1 && styles.moveMarkOff]}>↓</Text>
-                        </Pressable>
-                      </View>
-                      <Pressable onPress={() => setPlaces((current) => current.filter((item) => item.id !== place.id))}><Text style={styles.remove}>×</Text></Pressable>
-                    </View>
-                    {/* 예정시각과 메모도 하루를 만들 때 장소와 함께 넘어간다. */}
-                    <View style={styles.placeNote}>
-                      <PlaceNoteEditor
-                        placeName={place.place.name}
-                        plannedTime={place.place.plannedTime ?? null}
-                        memo={place.place.memo ?? null}
-                        editable
-                        onSave={(note) =>
-                          setPlaces((current) =>
-                            current.map((item) =>
-                              item.id === place.id ? { ...item, place: { ...item.place, ...note } } : item,
-                            ),
-                          )
-                        }
-                      />
-                    </View>
-                  </View>
-                )) : (
-                  <View style={styles.emptyPlaces}><Text style={styles.emptyPlacesIcon}>⌖</Text><Text style={styles.emptyPlacesTitle}>아직 담은 장소가 없어요</Text><Text style={styles.emptyPlacesText}>장소 없이 하루만 먼저 만들어도 괜찮아요.</Text></View>
-                )}
-              </View>
-              {error ? <Text style={styles.error}>{error}</Text> : null}
-              <View style={styles.actions}>
-                <Pressable onPress={() => setStep(1)} style={styles.secondaryButton}><Text style={styles.secondaryText}>이전</Text></Pressable>
-                <Pressable disabled={submitting} onPress={handleSubmit} style={[styles.primaryButton, styles.submit, submitting && styles.disabled]}><Text style={styles.primaryText}>{submitting ? '만드는 중…' : '하루 완성하기'}</Text></Pressable>
-              </View>
-            </>
-          )}
+            </View>
+            <Field label="하루의 밑그림">
+              <TextInput accessibilityLabel="하루의 밑그림" multiline onChangeText={setDescription} placeholder="어떤 하루를 보내고 싶은지 적어주세요" placeholderTextColor={colors.muted} style={[styles.input, styles.textarea]} textAlignVertical="top" value={description} />
+            </Field>
+          </View>
+          {error ? <Text style={styles.error}>{error}</Text> : null}
+          <Pressable disabled={submitting} onPress={saveAndContinue} style={[styles.primaryButton, submitting && styles.disabled]}>
+            <Text style={styles.primaryText}>{submitting ? '하루를 만드는 중…' : '갈 곳 정하기  →'}</Text>
+          </Pressable>
         </ScrollView>
         <DatePickerModal
           endDate={endDate}
@@ -328,13 +229,11 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1, lineHeight: 35, marginTop: 9 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 7 },
   form: { gap: 15, marginTop: 25 },
-  placePickerSection: { marginTop: 24 },
   field: { gap: 7 },
   label: { color: colors.text, fontSize: 14, fontWeight: '600' },
   requiredMark: { color: palette.primary },
   input: { backgroundColor: colors.surfaceMuted, borderColor: colors.border, borderRadius: radii.lg, borderWidth: 1, color: colors.text, fontSize: 14, minHeight: 52, paddingHorizontal: 14, paddingVertical: 13 },
   textarea: { minHeight: 92 },
-  row: { flexDirection: 'row', gap: 10 },
   timingCard: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 2, overflow: 'hidden', shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 18 },
   timingRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 13, paddingVertical: 14, position: 'relative' },
   timingAccent: { borderBottomRightRadius: 3, borderTopRightRadius: 3, bottom: 18, left: 0, position: 'absolute', top: 18, width: 3 },
@@ -346,35 +245,6 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   error: { color: colors.danger, fontSize: 12, marginTop: 14 },
   primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.lg, elevation: 2, justifyContent: 'center', marginTop: 22, minHeight: 54, paddingHorizontal: 18, shadowColor: palette.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12 },
   primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
-  placeInput: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 15, borderWidth: 1, flexDirection: 'row', marginTop: 23, minHeight: 55, paddingHorizontal: 8 },
-  placeTextInput: { color: colors.text, flex: 1, fontSize: 13, paddingHorizontal: 8 },
-  addButton: { backgroundColor: palette.primarySoft, borderRadius: 10, paddingHorizontal: 13, paddingVertical: 10 },
-  addButtonText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
-  placeList: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 2, marginTop: 14, overflow: 'hidden', padding: 12, shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 18 },
-  placeItem: { paddingBottom: 6 },
-  placeRow: { alignItems: 'center', flexDirection: 'row', minHeight: 67, paddingHorizontal: 4 },
-  // 번호(30) + 여백(12)만큼 들여써 메모가 장소 이름 줄에서 시작하게 한다.
-  placeNote: { paddingLeft: 46, paddingRight: 4 },
-  placeNumber: { alignItems: 'center', backgroundColor: palette.primarySoft, borderColor: palette.primary, borderRadius: 15, borderWidth: 1, height: 30, justifyContent: 'center', width: 30 },
-  placeNumberText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
-  placeCopy: { flex: 1, marginLeft: 12 },
-  placeName: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  placeMeta: { color: colors.muted, fontSize: 9, marginTop: 4 },
-  // 위·아래 버튼을 세로로 붙여 하나의 조작 묶음으로 보이게 한다.
-  moves: { flexDirection: 'column' },
-  moveButton: { alignItems: 'center', justifyContent: 'center', minWidth: 30, paddingVertical: 3 },
-  moveMark: { color: colors.muted, fontSize: 14, lineHeight: 16 },
-  // 끝에서는 감추지 않고 흐리게만 둔다. 사라지면 행마다 버튼 수가 달라 보인다.
-  moveMarkOff: { opacity: 0.3 },
-  remove: { color: colors.muted, fontSize: 22, padding: 8 },
-  emptyPlaces: { alignItems: 'center', paddingHorizontal: 15, paddingVertical: 28 },
-  emptyPlacesIcon: { color: palette.primary, fontSize: 31 },
-  emptyPlacesTitle: { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 8 },
-  emptyPlacesText: { color: colors.muted, fontSize: 10, marginTop: 5 },
-  actions: { flexDirection: 'row', gap: 9 },
-  secondaryButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', marginTop: 22, minHeight: 52, paddingHorizontal: 20 },
-  secondaryText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  submit: { flex: 1 },
   disabled: { opacity: 0.5 },
   modalBackdrop: { backgroundColor: 'rgba(40, 35, 33, 0.38)', flex: 1, justifyContent: 'flex-end' },
   calendarSheet: { backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, paddingBottom: 28, paddingHorizontal: 14, paddingTop: 10 },

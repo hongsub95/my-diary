@@ -6,9 +6,9 @@
  */
 
 :root {
-  --daybook-canvas: #f7f3ef;
-  --daybook-paper: #fffdfa;
-  --daybook-paper-muted: #fbf7f3;
+  --daybook-canvas: var(--color-bg);
+  --daybook-paper: var(--color-surface);
+  --daybook-paper-muted: var(--color-surface-hover);
   --daybook-ink-soft: #514844;
   --daybook-radius-card: 24px;
   --daybook-radius-control: 14px;
@@ -17,9 +17,7 @@
 }
 
 body {
-  background:
-    radial-gradient(circle at 12% 8%, var(--color-primary-light), transparent 26rem),
-    var(--daybook-canvas);
+  background: var(--daybook-canvas);
   letter-spacing: -0.012em;
 }
 
@@ -40,7 +38,7 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-/* App shell: a warm, floating album rather than a boxed utility screen. */
+/* App shell: a floating album with white surfaces. */
 .app-layout {
   width: 100%;
   max-width: 480px;

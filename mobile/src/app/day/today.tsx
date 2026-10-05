@@ -116,7 +116,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   flowTitle: { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 3 },
   flowCount: { color: colors.muted, fontSize: 14, fontWeight: '600' },
   flowRow: { alignItems: 'center', borderRadius: 12, flexDirection: 'row', minHeight: 62, paddingHorizontal: 6 },
-  flowRowActive: { backgroundColor: '#FBF6F3' },
+  flowRowActive: { backgroundColor: colors.surfaceMuted },
   flowNumber: { alignItems: 'center', borderColor: colors.border, borderRadius: 14, borderWidth: 2, height: 28, justifyContent: 'center', width: 28 },
   flowNumberDone: { backgroundColor: colors.sage, borderColor: colors.sage },
   flowNumberText: { color: colors.muted, fontSize: 14, fontWeight: '600' },

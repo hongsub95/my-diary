@@ -1,5 +1,5 @@
 :root {
-  /* Daybook palette: warm paper, muted rose, and sage */
+  /* Daybook palette: white surfaces, muted rose, and sage */
   --color-primary: #CF526B;
   --color-primary-hover: #B8425A;
   --color-primary-light: #FBECEF;
@@ -9,9 +9,9 @@
   --color-orange-light: #F6EBDD;
   --color-orange-text: #7C4A24;
 
-  --color-bg: #F4F0EB;
-  --color-surface: #FFFDF9;
-  --color-surface-hover: #F8F3ED;
+  --color-bg: #FFFFFF;
+  --color-surface: #FFFFFF;
+  --color-surface-hover: #F5F5F5;
 
   --color-text-primary: #282321;
   --color-text-secondary: #756D68;

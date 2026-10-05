@@ -3,6 +3,8 @@ import Constants from 'expo-constants';
 import { Pressable, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
+import { colors } from '@/shared/theme';
+
 import { hasCoordinates, mapHtml, type MapProps } from './kakao-map-html';
 
 export function KakaoMap({
@@ -31,7 +33,7 @@ export function KakaoMap({
         height: fullBleed ? undefined : 260,
         borderRadius: fullBleed ? 0 : 16,
         overflow: 'hidden',
-        backgroundColor: '#f6f3ed',
+        backgroundColor: colors.background,
       }}>
       {failed ? (
         <Pressable
@@ -69,7 +71,7 @@ export function KakaoMap({
               // 다른 메시지는 무시한다.
             }
           }}
-          style={{ flex: 1, backgroundColor: '#f6f3ed' }}
+          style={{ flex: 1, backgroundColor: colors.background }}
         />
       )}
     </View>

@@ -21,7 +21,7 @@ export default function RecommendationScreen() {
   const styles = useThemedStyles(createStyles);
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; from?: string }>();
   const scheduleId = Number(params.id);
   const client = useQueryClient();
   const schedule = useSchedule(scheduleId);
@@ -49,7 +49,12 @@ export default function RecommendationScreen() {
   const checkedIndexes = selectedRank == null ? [] : checksByRank[selectedRank] ?? [];
   const selectionLocked = busy || placementPending;
   const eligible = schedule.data?.status === 'planned' && ['upcoming', 'today'].includes(schedule.data.experience_phase);
-  const back = () => router.replace({ pathname: '/schedules/[id]', params: { id: String(scheduleId) } });
+  // 하루 만들기 2단계에서 왔으면 2단계로 돌아간다. 상세로 보내면 "하루 완성하기"를 못 누른
+  // 채 흐름에서 빠져나온다. 웹의 recommendationReturnPath와 같은 규칙이다.
+  const back = () =>
+    params.from === 'plan'
+      ? router.replace({ pathname: '/schedules/[id]/plan', params: { id: String(scheduleId) } })
+      : router.replace({ pathname: '/schedules/[id]', params: { id: String(scheduleId) } });
   async function request(next: CourseRequest) {
     if (locked.current || placementPending) return;
     locked.current = true;
