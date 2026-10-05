@@ -188,11 +188,6 @@ export default function HomeScreen() {
               }
             }}
           />
-          {!schedules.isLoading && mapData.places.length === 0 ? (
-            <View pointerEvents="none" style={styles.emptyMapBadge}>
-              <Text style={styles.emptyMapText}>이날 지도에 표시할 장소가 없어요</Text>
-            </View>
-          ) : null}
         </View>
 
         <Animated.View
@@ -317,17 +312,6 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.surface },
   screen: { flex: 1, overflow: 'hidden', backgroundColor: colors.background },
   mapArea: { flex: 1, backgroundColor: colors.sand },
-  emptyMapBadge: {
-    alignSelf: 'center',
-    backgroundColor: 'rgba(255,253,249,0.94)',
-    borderRadius: radii.full,
-    elevation: 2,
-    paddingHorizontal: 14,
-    paddingVertical: 9,
-    position: 'absolute',
-    top: 16,
-  },
-  emptyMapText: { color: colors.muted, fontSize: 12, fontWeight: '600' },
   sheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 26,
