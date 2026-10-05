@@ -1,0 +1,16 @@
+.git
+.env
+.env.*
+.venv
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+frontend/dist
+frontend/test-results
+frontend/playwright-report
+mobile/.expo
+mobile/.space-export-check
+mobile/.recommendation-export-check
+uploads
+uploads_test

@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:spaces:e2e": "node scripts/test-spaces-e2e.mjs",
     "test:spaces": "node scripts/test-spaces.mjs",
     "test:recommendations": "node scripts/test-recommendations.mjs",
     "dev": "vite",
@@ -22,6 +23,7 @@
     "temporal-polyfill": "^1.0.4"
   },
   "devDependencies": {
+    "@playwright/test": "1.63.0",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
     "@vitejs/plugin-react": "^4.0.3",
