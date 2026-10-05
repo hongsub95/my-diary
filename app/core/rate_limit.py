@@ -45,7 +45,7 @@ class RateLimitedError(AppError):
 def enforce(
     client: redis.Redis,
     scope: str,
-    user_id: int,
+    subject: int | str,
     limit: int,
     clock: Callable[[], float] = time.time,
 ) -> None:
@@ -53,7 +53,9 @@ def enforce(
 
     :param client: Redis 클라이언트
     :param scope: 무엇을 세는지. 엔드포인트마다 따로 센다 (예: "course-preview")
-    :param user_id: 누구의 호출인지
+    :param subject: 누구의 호출인지. 사용자 id, 또는 IP처럼 계정 밖의 단위도 된다.
+        같은 scope 안에서 사용자와 IP를 함께 셀 때는 scope에 구분을 붙인다
+        (예: "space-join:user", "space-join:ip") — 사용자 id 7과 IP가 같은 키를 쓰면 안 된다
     :param limit: 1분에 허용할 횟수
     :param clock: 현재 시각(초). 테스트에서 분을 넘기려고 바꿔 끼운다
     :raises RateLimitedError: 한도를 넘었을 때
@@ -63,7 +65,7 @@ def enforce(
     추천 기능 자체를 멈추면 주객이 바뀐다. 대신 경고를 남겨 고장을 알 수 있게 한다.
     """
     window = int(clock() // WINDOW_SECONDS)
-    key = f"rate:{scope}:{user_id}:{window}"
+    key = f"rate:{scope}:{subject}:{window}"
     try:
         pipe = client.pipeline()
         pipe.incr(key)

@@ -10,7 +10,8 @@ from fastapi import APIRouter, Request, status
 
 from app.audit import service as audit
 from app.audit.models import AuditAction
-from app.auth.dependencies import CurrentUser, DbSession
+from app.auth.dependencies import CurrentUser, DbSession, RedisClient
+from app.core import rate_limit
 from app.spaces import service
 from app.spaces.dependencies import MemberContext, OwnerContext
 from app.spaces.schemas import (
@@ -78,7 +79,8 @@ def create_space(
     summary="참여 번호로 참여",
     description=(
         "참여 번호를 입력해 공유 스페이스에 들어간다. 대소문자와 공백·하이픈은 "
-        "서버가 정규화하므로 클라이언트가 미리 다듬지 않아도 된다."
+        "서버가 정규화하므로 클라이언트가 미리 다듬지 않아도 된다. "
+        "계정당 1분에 10번, IP당 30번까지 받고, 넘으면 429 `TOO_MANY_REQUESTS`다."
     ),
 )
 def join_space(
@@ -86,8 +88,32 @@ def join_space(
     request: Request,
     current_user: CurrentUser,
     db: DbSession,
+    redis_client: RedisClient,
 ) -> SpaceResponse:
-    """참여 번호로 스페이스 참여."""
+    """참여 번호로 스페이스 참여.
+
+    **번호가 맞는지 보기 전에 센다.** 틀린 번호를 넣어 보는 것이 바로 막아야 할 시도라서,
+    성공·실패와 관계없이 모든 입력을 센다.
+
+    IP 제한은 X-Forwarded-For를 쓰므로 **실서버에서 프록시가 이 헤더를 덮어쓰도록 설정하기
+    전까지는 우회할 수 있다**(요청마다 헤더를 바꿔 보내면 된다). 그래서 계정 제한이 진짜
+    방어선이고 IP 제한은 보조막이다. IP를 알 수 없으면 IP 제한은 건너뛴다.
+    """
+    rate_limit.enforce(
+        redis_client,
+        "space-join:user",
+        current_user.id,
+        limit=service.JOIN_ATTEMPTS_PER_MINUTE_PER_USER,
+    )
+    ip_address, _ = audit.extract_client_info(request)
+    if ip_address:
+        rate_limit.enforce(
+            redis_client,
+            "space-join:ip",
+            ip_address,
+            limit=service.JOIN_ATTEMPTS_PER_MINUTE_PER_IP,
+        )
+
     space = service.join_by_code(db, current_user, payload.join_code)
     audit.record(
         db,

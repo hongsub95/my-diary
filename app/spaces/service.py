@@ -37,6 +37,16 @@ from app.spaces.models import (
 from app.spaces.schemas import SpaceMemberResponse, SpaceResponse
 from app.users.models import User
 
+# 참여 번호 입력을 1분에 몇 번까지 받을지(API_SPEC 4.5). 참여 번호는 남이 추측해 볼 수
+# 있는 값이라, 무작위로 넣어 보며 남의 스페이스에 들어가는 시도를 막아야 한다.
+#
+# - 계정당 10회: 로그인해야 부를 수 있어 위조할 수 없는, 믿을 수 있는 제한이다. 사람이
+#   번호를 잘못 넣어 고쳐 치는 정도로는 닿지 않는다.
+# - IP당 30회: 한 컴퓨터에서 계정을 여러 개 만들어 돌리는 것을 막는 보조막이다. 회사나
+#   학교처럼 여러 사람이 IP 하나를 함께 쓰는 경우를 생각해 넉넉히 둔다.
+JOIN_ATTEMPTS_PER_MINUTE_PER_USER = 10
+JOIN_ATTEMPTS_PER_MINUTE_PER_IP = 30
+
 # 참여 번호 생성 재시도 횟수. 8자리 조합이 31^8(약 8.5조)이라 충돌은 사실상 없지만,
 # 무한 루프를 막기 위해 상한을 둔다.
 JOIN_CODE_MAX_ATTEMPTS = 5
