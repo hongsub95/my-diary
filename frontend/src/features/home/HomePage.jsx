@@ -7,6 +7,7 @@ import bookOpenRaw from '../../assets/icons/book-open.svg?raw'
 import { useAuth } from '../../shared/contexts/AuthContext'
 import { useDiaryFeed, useSchedules } from '../../shared/api/queries'
 import './home.css'
+import SpaceSwitcher from '../spaces/SpaceSwitcher'
 
 // 홈이 내다보는 기간. 오늘부터 이만큼 안에 다음 약속이 있으면 보여준다.
 const UPCOMING_DAYS = 60
@@ -106,6 +107,7 @@ export default function HomePage() {
 
   return (
     <div className="home-page">
+      <SpaceSwitcher />
       <header className="home-page__header">
         <p className="home-page__eyebrow">{dateFormatter.format(new Date())}</p>
         <h1 className="home-page__title">{user?.nickname}님의 하루</h1>

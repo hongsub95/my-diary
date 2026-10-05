@@ -21,6 +21,7 @@ import { getApiError } from '@/shared/api/api-error';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
+import { SpaceSwitcher } from '@/features/spaces/space-switcher';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -165,6 +166,7 @@ export default function HomeScreen() {
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <View style={styles.screen}>
+        <SpaceSwitcher />
         <HomeWeekStrip
           selectedDate={selectedDateKey}
           onSelect={(key) => {

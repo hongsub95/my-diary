@@ -7,11 +7,45 @@ import { apiClient } from './client'
  *
  * 정렬은 서버가 보장한다(개인 스페이스가 항상 먼저). 화면에서 다시 정렬하지 않는다.
  *
- * 지금 쓰는 곳은 계정 탈퇴 경고 화면 하나다. 탈퇴하면 내가 owner인 스페이스가 함께
- * 사라지는데(docs/API_SPEC.md 3-U절), 무엇이 사라지는지 알려면 이 목록이 필요하다.
- * 응답의 `my_role`과 `member_count`로 경고 문구를 만든다.
+ * 스페이스 전환, 관리, 계정 탈퇴 경고에 함께 사용한다.
  */
 export async function listSpaces() {
   const { data } = await apiClient.get('/spaces')
   return Array.isArray(data?.spaces) ? data.spaces : []
+}
+
+export async function getSpace(id) {
+  return (await apiClient.get(`/spaces/${id}`)).data
+}
+
+export async function createSpace({ name, icon }) {
+  return (await apiClient.post('/spaces', { name, icon })).data
+}
+
+export async function joinSpace(joinCode) {
+  return (await apiClient.post('/spaces/join', { join_code: joinCode })).data
+}
+
+export async function regenerateJoinCode(id) {
+  return (await apiClient.post(`/spaces/${id}/join-code/regenerate`)).data
+}
+
+export async function listMembers(id) {
+  return (await apiClient.get(`/spaces/${id}/members`)).data.members
+}
+
+export async function removeMember(id, userId) {
+  await apiClient.delete(`/spaces/${id}/members/${userId}`)
+}
+
+export async function leaveSpace(id) {
+  await apiClient.post(`/spaces/${id}/leave`)
+}
+
+export async function transferOwnership(id, userId) {
+  await apiClient.post(`/spaces/${id}/transfer-ownership`, { user_id: userId })
+}
+
+export async function setDefaultSpace(id) {
+  return (await apiClient.put('/users/me/default-space', { space_id: id })).data
 }

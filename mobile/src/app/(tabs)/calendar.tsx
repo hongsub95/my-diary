@@ -12,6 +12,7 @@ import { useThemedStyles } from '@/shared/theme-context';
 import { CalendarExplorer } from '@/features/calendar/calendar-explorer';
 import { moveDate } from '@/features/calendar/calendar-dates';
 import { seoulDateKey } from '@/shared/utils/date';
+import { SpaceSwitcher } from '@/features/spaces/space-switcher';
 
 LocaleConfig.locales.ko = {
   monthNames: ['1월', '2월', '3월', '4월', '5월', '6월', '7월', '8월', '9월', '10월', '11월', '12월'],
@@ -94,6 +95,7 @@ export default function CalendarScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <SpaceSwitcher />
       <View style={styles.content}>
         <CalendarExplorer selectedDate={selectedDate} onSelect={setSelectedDate}
           onOpenDay={handleDayPress}

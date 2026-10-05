@@ -4,6 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import { useSchedules } from '@/features/schedules/schedule-queries';
+import { SpaceSwitcher } from '@/features/spaces/space-switcher';
 import { ScheduleFab } from '@/shared/components/schedule-fab';
 import { EmptyState } from '@/shared/components/empty-state';
 import { colors, radii, spacing } from '@/shared/theme';
@@ -42,6 +43,7 @@ export default function SchedulesScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <SpaceSwitcher />
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.heading}>
           <Text style={styles.title}>일정</Text>

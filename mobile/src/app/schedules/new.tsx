@@ -5,7 +5,7 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleShee
 import { Calendar, DateData } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useAuth } from '@/features/auth/auth-context';
+import { useSpaces } from '@/features/spaces/space-context';
 import { createSchedule } from '@/features/schedules/schedule-api';
 import { SelectButton, TIME_PATTERN, TimeSelect } from '@/features/schedules/time-select';
 import { getApiError } from '@/shared/api/api-error';
@@ -27,7 +27,7 @@ export default function NewScheduleScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { currentSpace, currentSpaceId } = useSpaces();
   const params = useLocalSearchParams<{ date?: string | string[] }>();
   const initialDate = useMemo(() => {
     const value = Array.isArray(params.date) ? params.date[0] : params.date;
@@ -41,7 +41,6 @@ export default function NewScheduleScreen() {
   const [startTime, setStartTime] = useState('12:00');
   const [endTime, setEndTime] = useState('15:00');
   const [description, setDescription] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   // 상태값(submitting)은 다음 렌더에야 반영돼서, 빠르게 두 번 누르면 둘 다 통과한다.
   // 그러면 같은 하루가 둘 생긴다. 즉시 바뀌는 ref로 한 번 더 막는다.
@@ -54,22 +53,21 @@ export default function NewScheduleScreen() {
     if (endDate < startDate) return '종료일은 시작일보다 빠를 수 없어요.';
     if (!TIME_PATTERN.test(startTime) || !TIME_PATTERN.test(endTime)) return '시간을 HH:mm 형식으로 입력해 주세요.';
     if (startDate === endDate && endTime <= startTime) return '종료 시간은 시작 시간보다 늦어야 해요.';
-    if (!user?.default_space_id) return '하루를 저장할 기본 스페이스가 없어요.';
+    if (!currentSpaceId) return '하루를 저장할 스페이스를 먼저 선택해 주세요.';
     return null;
   }
 
   /** 하루를 저장하고 2단계로 넘어간다. */
   async function saveAndContinue() {
     const validation = validateBasics();
-    if (validation) { setError(null); showSnackbar(validation); return; }
+    if (validation) { showSnackbar(validation); return; }
     if (submitLock.current) return;
     submitLock.current = true;
     dismissSnackbar();
     setSubmitting(true);
-    setError(null);
     try {
       const schedule = await createSchedule({
-        spaceId: user?.default_space_id as string,
+        spaceId: currentSpaceId as string,
         title: title.trim(),
         description: description.trim(),
         startDate,
@@ -82,7 +80,7 @@ export default function NewScheduleScreen() {
       // 또 만들어진다.
       router.replace({ pathname: '/schedules/[id]/plan', params: { id: String(schedule.id) } });
     } catch (caught) {
-      setError(getApiError(caught).message);
+      showSnackbar(getApiError(caught).message);
     } finally {
       submitLock.current = false;
       setSubmitting(false);
@@ -99,6 +97,7 @@ export default function NewScheduleScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+          <Text style={styles.description}>저장할 스페이스: {currentSpace?.name ?? '스페이스 확인 중'}</Text>
           <View style={styles.progress}><View style={styles.progressOn} /><View style={styles.progressOff} /><Text style={styles.progressText}>1 / 2</Text></View>
 
           <Text style={styles.eyebrow}>STEP 1 · 하루 정하기</Text>
@@ -126,7 +125,6 @@ export default function NewScheduleScreen() {
               <TextInput accessibilityLabel="하루의 밑그림" multiline onChangeText={setDescription} placeholder="어떤 하루를 보내고 싶은지 적어주세요" placeholderTextColor={colors.muted} style={[styles.input, styles.textarea]} textAlignVertical="top" value={description} />
             </Field>
           </View>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
           <Pressable disabled={submitting} onPress={saveAndContinue} style={[styles.primaryButton, submitting && styles.disabled]}>
             <Text style={styles.primaryText}>{submitting ? '하루를 만드는 중…' : '갈 곳 정하기  →'}</Text>
           </Pressable>
@@ -242,7 +240,6 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   timingDivider: { backgroundColor: colors.border, height: 1 },
   dateColumn: { flex: 1, minWidth: 0 },
   timeColumn: { flexBasis: 104, flexGrow: 0, flexShrink: 0 },
-  error: { color: colors.danger, fontSize: 12, marginTop: 14 },
   primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.lg, elevation: 2, justifyContent: 'center', marginTop: 22, minHeight: 54, paddingHorizontal: 18, shadowColor: palette.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12 },
   primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   disabled: { opacity: 0.5 },

@@ -7,6 +7,7 @@ import { getApiErrorMessage } from '../../shared/api/apiError'
 import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 import { TIME_OPTIONS } from '../../shared/utils/time'
 import './schedules.css'
+import { useSpaces } from '../spaces/SpaceContext'
 
 const serviceDateFormatter = new Intl.DateTimeFormat('en-CA', {
   timeZone: 'Asia/Seoul',
@@ -31,8 +32,8 @@ function toUtcIso(date, timeText) {
 
 export default function ScheduleNewPage() {
   const navigate = useNavigate()
+  const { currentSpace, currentSpaceId } = useSpaces()
   const createSchedule = useCreateSchedule()
-  const [error, setError] = useState('')
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
   const today = serviceDateFormatter.format(new Date())
   const [form, setForm] = useState({
@@ -49,7 +50,7 @@ export default function ScheduleNewPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (createSchedule.isPending) return
-    setError('')
+    if (!currentSpaceId) { showSnackbar('하루를 저장할 스페이스를 먼저 선택해 주세요.'); return }
     const invalid = !form.title.trim() ? ['하루의 이름을 입력해 주세요.', 'schedule-title']
       : !form.start_date ? ['시작일을 선택해 주세요.', 'schedule-start-date']
         : !form.end_date ? ['종료일을 선택해 주세요.', 'schedule-end-date']
@@ -86,7 +87,7 @@ export default function ScheduleNewPage() {
       // 제목과 시간이 아니라 장소와 순서다(3.2절).
       navigate(`/schedules/${created.id}/plan`, { replace: true })
     } catch (caught) {
-      setError(getApiErrorMessage(caught))
+      showSnackbar(getApiErrorMessage(caught))
     }
   }
 
@@ -100,6 +101,7 @@ export default function ScheduleNewPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="snew-form" noValidate>
+        <p className="space-hint">저장할 스페이스: {currentSpace?.name ?? '스페이스 확인 중'}</p>
         <div className="snew-form__intro">
           <span className="snew-form__eyebrow">NEW PLAN</span>
           <h2>어떤 하루를 보내고 싶나요?</h2>
@@ -215,7 +217,6 @@ export default function ScheduleNewPage() {
           </div>
         </section>
 
-        {error && <p className="snew-form__error" role="alert">{error}</p>}
         <button type="submit" className="snew-form__submit" disabled={createSchedule.isPending}>
           {createSchedule.isPending ? '저장 중…' : '갈 곳 정하기 →'}
         </button>

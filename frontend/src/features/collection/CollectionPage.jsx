@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { useAuth } from '../../shared/contexts/AuthContext'
+import { useCurrentSpaceId } from '../spaces/SpaceContext'
 import { apiClient } from '../../shared/api/client'
 import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 import './collection.css'
@@ -9,7 +9,6 @@ import './collection.css'
 const dateLabel = value => new Date(value).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric' })
 
 export default function CollectionPage() {
-  const { user } = useAuth()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
   const kind = params.get('kind') === 'records' ? 'records' : 'schedules'
@@ -18,7 +17,7 @@ export default function CollectionPage() {
   const to = params.get('to') ?? ''
   const [draft, setDraft] = useState({ q, from, to })
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
-  const spaceId = user?.default_space_id
+  const spaceId = useCurrentSpaceId()
   const query = useInfiniteQuery({
     queryKey: ['schedules', 'collection', spaceId, kind, q, from, to],
     queryFn: async ({ pageParam, signal }) => (await apiClient.get(`/spaces/${spaceId}/schedules/collection`, {

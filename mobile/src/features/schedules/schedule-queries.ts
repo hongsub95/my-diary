@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { useAuth } from '@/features/auth/auth-context';
+import { useCurrentSpaceId } from '@/features/spaces/space-context';
 import {
   addSchedulePlace,
   completeSchedule,
@@ -19,12 +19,8 @@ import { toScheduleDetailView, toScheduleView, type ScheduleView } from './sched
 /**
  * 일정 API에 쓸 스페이스 UUID.
  *
- * 로그인 응답에 이미 담겨 오므로 따로 조회하지 않는다(API_SPEC 3.5절).
+ * 현재 선택한 스페이스를 사용한다. 처음에는 계정의 기본 스페이스를 연다.
  */
-function useDefaultSpaceId(): string | null {
-  const { user } = useAuth();
-  return user?.default_space_id ?? null;
-}
 
 export type UseSchedulesOptions = {
   /** 조회 시작일 YYYY-MM-DD */
@@ -42,7 +38,7 @@ export type UseSchedulesOptions = {
  * 하루치 캐시를 그대로 그린다.
  */
 export function useSchedules({ from, to, includePlaces = false }: UseSchedulesOptions = {}) {
-  const spaceId = useDefaultSpaceId();
+  const spaceId = useCurrentSpaceId();
 
   return useQuery<ScheduleView[]>({
     queryKey: ['schedules', spaceId, from ?? null, to ?? null, includePlaces],

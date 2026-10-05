@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:spaces": "node scripts/test-spaces.mjs",
     "test:recommendations": "node scripts/test-recommendations.mjs",
     "dev": "vite",
     "build": "vite build",

@@ -3,6 +3,7 @@ import { FlatList, Image, Pressable, StyleSheet, Text, View } from 'react-native
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDiaryFeed } from '@/features/diaries/diary-queries';
+import { SpaceSwitcher } from '@/features/spaces/space-switcher';
 import type { RecordView } from '@/features/diaries/diary-adapter';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
@@ -94,6 +95,7 @@ export default function RecordsScreen() {
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
+      <SpaceSwitcher />
       <FlatList
         data={records}
         keyExtractor={(record) => String(record.scheduleId)}

@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { useAuth } from '@/features/auth/auth-context';
+import { useCurrentSpaceId } from '@/features/spaces/space-context';
 import {
   addTimelineItem,
   deleteDiaryEntry,
@@ -18,12 +18,8 @@ import {
 import { toRecordPage, type RecordPage } from './diary-adapter';
 
 /**
- * 일기 API에 쓸 스페이스 UUID. 로그인 응답에 이미 담겨 오므로 따로 조회하지 않는다.
+ * 일기 API에 쓸 스페이스 UUID는 현재 선택한 공간을 따른다.
  */
-function useDefaultSpaceId(): string | null {
-  const { user } = useAuth();
-  return user?.default_space_id ?? null;
-}
 
 export type UseDiaryFeedOptions = {
   /** 아직 기록이 없는 지난 하루도 포함할지 */
@@ -37,7 +33,7 @@ export type UseDiaryFeedOptions = {
  * 서버가 준 것을 그대로 돌려주며, 화면은 내용을 해석하지 않는다.
  */
 export function useDiaryFeed({ includePending = false }: UseDiaryFeedOptions = {}) {
-  const spaceId = useDefaultSpaceId();
+  const spaceId = useCurrentSpaceId();
 
   return useInfiniteQuery<RecordPage>({
     queryKey: ['diaries', spaceId, includePending],

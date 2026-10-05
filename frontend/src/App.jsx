@@ -20,6 +20,9 @@ import ThemePage from './features/more/ThemePage'
 import LegalPage from './features/more/LegalPage'
 import RecordsPage from './features/records/RecordsPage'
 import PrototypeLab from './features/prototype/PrototypeLab'
+import SpacesPage from './features/spaces/SpacesPage'
+import SpaceDetailPage from './features/spaces/SpaceDetailPage'
+import SpaceFormPage from './features/spaces/SpaceFormPage'
 
 /** 로그인해야 볼 수 있는 화면을 감싼다. 확인이 끝나기 전에는 판단을 미룬다. */
 function PrivateRoute({ children }) {
@@ -47,6 +50,10 @@ export default function App() {
           아니라, PrivateRoute 안에 두면 약관을 읽지 못하고 로그인으로 튕긴다.
           문서마다 화면을 만들지 않고 코드로 갈라 쓴다 — 문서가 늘어도 경로는 그대로다. */}
       <Route path="/legal/:code" element={<LegalPage />} />
+      <Route path="/spaces" element={<PrivateRoute><SpacesPage /></PrivateRoute>} />
+      <Route path="/spaces/new" element={<PrivateRoute><SpaceFormPage key="create" mode="create" /></PrivateRoute>} />
+      <Route path="/spaces/join" element={<PrivateRoute><SpaceFormPage key="join" mode="join" /></PrivateRoute>} />
+      <Route path="/spaces/:id" element={<PrivateRoute><SpaceDetailPage /></PrivateRoute>} />
       {/* 하루 만들기는 하단 탭 밖에 둔다. 작성 중에는 탭을 숨긴다는 요구사항
           (docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 3.2절)에 따른 것이다. 탭이 보이면
           작성 도중 다른 화면으로 새어 나가 입력이 사라진다. */}

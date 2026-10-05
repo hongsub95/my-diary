@@ -19,11 +19,39 @@ export type Space = {
  *
  * 정렬은 서버가 보장한다(개인 스페이스가 항상 먼저). 화면에서 다시 정렬하지 않는다.
  *
- * 지금 쓰는 곳은 계정 탈퇴 경고 화면 하나다. 탈퇴하면 내가 owner인 스페이스가 함께
- * 사라지는데(docs/API_SPEC.md 3-U절), 무엇이 사라지는지 알려면 이 목록이 필요하다.
- * `my_role`과 `member_count`로 경고 문구를 만든다.
+ * 스페이스 전환, 관리, 계정 탈퇴 경고에 함께 사용한다.
  */
 export async function listSpaces(): Promise<Space[]> {
   const response = await apiClient.get<{ spaces: Space[] }>('/spaces');
   return response.data.spaces ?? [];
+}
+
+export type SpaceMember = { user_id: number; nickname: string; email: string; role: 'owner' | 'member'; joined_at: string };
+
+export async function getSpace(id: SpaceId): Promise<Space> {
+  return (await apiClient.get<Space>(`/spaces/${id}`)).data;
+}
+export async function createSpace(input: { name: string; icon: string }): Promise<Space> {
+  return (await apiClient.post<Space>('/spaces', input)).data;
+}
+export async function joinSpace(joinCode: string): Promise<Space> {
+  return (await apiClient.post<Space>('/spaces/join', { join_code: joinCode })).data;
+}
+export async function regenerateJoinCode(id: SpaceId): Promise<{ join_code: string }> {
+  return (await apiClient.post<{ join_code: string }>(`/spaces/${id}/join-code/regenerate`)).data;
+}
+export async function listMembers(id: SpaceId): Promise<SpaceMember[]> {
+  return (await apiClient.get<{ members: SpaceMember[] }>(`/spaces/${id}/members`)).data.members;
+}
+export async function removeMember(id: SpaceId, userId: number): Promise<void> {
+  await apiClient.delete(`/spaces/${id}/members/${userId}`);
+}
+export async function leaveSpace(id: SpaceId): Promise<void> {
+  await apiClient.post(`/spaces/${id}/leave`);
+}
+export async function transferOwnership(id: SpaceId, userId: number): Promise<void> {
+  await apiClient.post(`/spaces/${id}/transfer-ownership`, { user_id: userId });
+}
+export async function setDefaultSpace(id: SpaceId): Promise<Space> {
+  return (await apiClient.put<Space>('/users/me/default-space', { space_id: id })).data;
 }

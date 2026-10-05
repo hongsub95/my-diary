@@ -18,7 +18,7 @@ type MoreMenuItem = {
   // 열 화면의 경로. 없으면 아직 화면이나 API가 없다는 뜻이라 눌리지 않고 '준비 중'으로
   // 표시한다. 미구현 항목을 눌러 빈 화면이나 오류를 보여주지 않기 위한 장치다
   // (docs/BOTTOM_NAVIGATION_SPEC.md 7절). 화면이 준비되면 href만 채우면 된다.
-  href?: '/more/profile' | '/more/password' | '/more/theme';
+  href?: '/more/profile' | '/more/password' | '/more/theme' | '/spaces';
   // 약관은 문서 코드로 갈라 쓰는 동적 경로라 href와 따로 둔다.
   legalCode?: string;
   // 소셜 로그인 계정에는 감춰야 하는 항목(같은 문서 6.5절).
@@ -28,6 +28,7 @@ type MoreMenuItem = {
 // 더보기 안의 항목은 동작이 제각각이라 DB로 관리하지 않고 여기서 관리한다(8.1절).
 // 그룹 구성은 6.5절을 따르며, 웹의 frontend/src/features/more/MorePage.jsx와 같은 구성이다.
 const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
+  { title: '함께 쓰는 공간', items: [{ key: 'spaces', label: '스페이스 전환 · 관리', href: '/spaces' }] },
   {
     title: '내 정보',
     items: [

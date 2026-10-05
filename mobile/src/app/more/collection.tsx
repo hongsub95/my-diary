@@ -6,6 +6,8 @@ import { Calendar } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
+import { useCurrentSpaceId } from '@/features/spaces/space-context';
+import { SpaceSwitcher } from '@/features/spaces/space-switcher';
 import { apiClient } from '@/shared/api/client';
 import type { Schedule } from '@/shared/api/types';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
@@ -18,7 +20,7 @@ const EMPTY: Filters = { q: '', from: '', to: '' };
 const dateLabel = (value: string) => new Date(value).toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: 'long', day: 'numeric' });
 
 export default function CollectionScreen() {
-  const { user, status } = useAuth();
+  const { status } = useAuth();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const [kind, setKind] = useState<'schedules' | 'records'>('schedules');
@@ -26,7 +28,7 @@ export default function CollectionScreen() {
   const [draft, setDraft] = useState<Filters>(EMPTY);
   const [dateTarget, setDateTarget] = useState<'from' | 'to' | null>(null);
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
-  const spaceId = user?.default_space_id;
+  const spaceId = useCurrentSpaceId();
   const query = useInfiniteQuery({
     queryKey: ['schedules', 'collection', spaceId, kind, filters],
     queryFn: async ({ pageParam, signal }) => (await apiClient.get<CollectionPage>(`/spaces/${spaceId}/schedules/collection`, {
@@ -54,6 +56,7 @@ export default function CollectionScreen() {
   const items = query.data?.pages.flatMap(page => page.items) ?? [];
   const hasFilters = Boolean(filters.q || filters.from || filters.to);
   return <SafeAreaView style={styles.safeArea}>
+    <SpaceSwitcher />
     <View style={styles.header}>
       <Pressable accessibilityRole="button" onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/more')} style={styles.back}><Text style={styles.link}>‹ 전체 메뉴</Text></Pressable>
       <Text style={styles.title}>모아보기</Text>

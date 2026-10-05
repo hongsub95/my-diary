@@ -1,7 +1,7 @@
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from './client'
 import { toNavigableMenus } from '../navigation/menuRoutes'
-import { useAuth } from '../contexts/AuthContext'
+import { useCurrentSpaceId } from '../../features/spaces/SpaceContext'
 import {
   completeSchedule,
   createSchedule,
@@ -60,15 +60,10 @@ export function useMenus() {
 /**
  * 일정 API에 쓸 스페이스 UUID.
  *
- * 로그인 응답에 이미 담겨 오므로 따로 조회하지 않는다. 값이 없으면(로그인 전이거나
- * 기본 스페이스가 없는 계정) 조회를 시작하지 않는다.
+ * 현재 선택한 스페이스를 사용한다. 처음에는 계정의 기본 스페이스를 연다.
  *
  * @returns {string|null} 스페이스 공개 UUID
  */
-function useDefaultSpaceId() {
-  const { user } = useAuth()
-  return user?.default_space_id ?? null
-}
 
 /**
  * 기간별 일정 목록.
@@ -80,7 +75,7 @@ function useDefaultSpaceId() {
  *   보여주는 화면만 켠다. 캘린더처럼 개수만 쓰는 화면은 끄는 편이 응답이 가볍다
  */
 export function useSchedules({ from, to, includePlaces = false } = {}) {
-  const spaceId = useDefaultSpaceId()
+  const spaceId = useCurrentSpaceId()
 
   return useQuery({
     // 기간과 include 여부가 다르면 다른 응답이므로 키에 모두 넣는다. 빠뜨리면 캘린더가
@@ -118,7 +113,7 @@ export function useSchedule(id) {
  * 성공하면 목록 캐시를 무효화해 캘린더·홈·일정 목록이 새 일정을 바로 반영하게 한다.
  */
 export function useCreateSchedule() {
-  const spaceId = useDefaultSpaceId()
+  const spaceId = useCurrentSpaceId()
   const queryClient = useQueryClient()
 
   return useMutation({
@@ -231,7 +226,7 @@ export function useCompleteSchedule(scheduleId) {
  * 서버가 준 것을 그대로 돌려주며, 화면은 내용을 해석하지 않는다.
  */
 export function useDiaryFeed({ includePending = false } = {}) {
-  const spaceId = useDefaultSpaceId()
+  const spaceId = useCurrentSpaceId()
 
   return useInfiniteQuery({
     queryKey: ['diaries', spaceId, includePending],
