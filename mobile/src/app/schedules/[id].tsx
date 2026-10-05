@@ -187,6 +187,11 @@ export default function ScheduleDetailScreen() {
       <View style={styles.sectionHead}>
         {/* 완료한 하루에는 계획을 더 담지 않는다. 그날 있었던 일은 방문 기록으로 남긴다. */}
         <Text style={styles.sectionTitle}>{isDone ? '다녀온 장소' : '장소'}</Text>
+        {day.status === 'planned' && ['upcoming', 'today'].includes(phase) ? (
+          <Pressable accessibilityRole="button" onPress={() => router.push({ pathname: '/schedules/[id]/recommendations', params: { id: String(scheduleId) } })} style={{ minHeight: 44, justifyContent: 'center' }}>
+            <Text style={styles.action}>코스 추천</Text>
+          </Pressable>
+        ) : null}
         {!isDone && !picking ? (
           <Pressable onPress={() => setPicking(true)}>
             <Text style={styles.action}>+ 추가</Text>

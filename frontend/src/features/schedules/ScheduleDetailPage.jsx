@@ -205,6 +205,9 @@ export default function ScheduleDetailPage() {
     <section className="sdetail-section">
       <div className="sdetail-section__header">
         <h2 className="sdetail-section__title">{isDone ? '다녀온 장소' : '장소'}</h2>
+        {schedule.status === 'planned' && ['upcoming', 'today'].includes(phase) && (
+          <button type="button" className="sdetail-section__edit" onClick={() => navigate(`/schedules/${id}/recommendations`)}>코스 추천</button>
+        )}
         {/* 완료한 하루에는 계획을 더 담지 않는다. 그날 있었던 일은 방문 기록으로 남긴다. */}
         {!picking && !isDone && (
           <button type="button" className="sdetail-section__edit" onClick={() => setPicking(true)}>

@@ -74,6 +74,7 @@ export default function SchedulePlanPage() {
       </header>
 
       <div className="splan-page__body">
+        <button type="button" className="splan-page__recommend" onClick={() => navigate(`/schedules/${id}/recommendations?from=plan`)}>어디로 갈지 고민이라면 · 코스 추천받기</button>
         {/* 검색과 직접 입력을 함께 둔다. 검색에 안 나오는 장소는 직접 넣어야 한다.
             이미 담은 장소가 있으면 마지막 장소를 지도 중심으로 넘겨, 다음 장소를
             그 근처에서 찾게 한다. */}
