@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.auth import security, session as session_store
 from app.auth.service import NicknameAlreadyExistsError
+from app.spaces import service as spaces_service
 from app.spaces.models import (
     SPACE_MEMBER_STATUS_ACTIVE,
     SPACE_MEMBER_STATUS_LEFT,
@@ -141,6 +142,9 @@ def delete_account(
             # 이미 보관된 스페이스를 다시 건드리면 보관 시각이 지금으로 밀린다.
             if space is not None and space.archived_at is None:
                 space.archived_at = func.now()
+                # 남은 멤버가 있어도 보관된다. 그 멤버가 이곳을 기본으로 두었다면 개인
+                # 스페이스로 돌려놓는다. 스페이스 삭제와 같은 규칙이다.
+                spaces_service.reset_defaults_to_personal(db, space.id)
                 archived_spaces += 1
         else:
             left_spaces += 1

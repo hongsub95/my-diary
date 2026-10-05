@@ -175,7 +175,28 @@ def archive_space(db: Session, space: Space, user: User) -> None:
         raise DefaultSpaceCannotBeDeletedError()
 
     space.archived_at = func.now()
+    reset_defaults_to_personal(db, space.id)
     db.commit()
+
+
+def reset_defaults_to_personal(db: Session, space_id: int) -> None:
+    """이 스페이스를 기본으로 둔 모든 사용자를 각자의 개인 스페이스로 되돌린다.
+
+    :param space_id: 보관되는 스페이스의 내부 id
+
+    스페이스가 보관되는 모든 길에서 부른다 — owner의 삭제(archive_space)와 owner의 계정
+    탈퇴(app/users/service.py). 둘 다 다른 멤버가 남아 있어도 보관된다. owner는 남의 기본값을
+    바꿀 수 없어서 미리 막을 방법이 없으니, 막는 대신 정리한다. 그대로 두면 그 멤버는 앱을
+    열 때 보관된 스페이스를 열려다 실패한다.
+
+    owner가 혼자 남아 나가는 경우(leave_space)는 부르지 않는다. 남은 멤버가 없고, 예전에
+    나가거나 내보내진 사람의 기본값은 그때 이미 정리됐다.
+
+    한 스페이스의 멤버는 최대 20명이라 한 명씩 되돌려도 비용이 작다.
+    """
+    users = db.scalars(select(User).where(User.default_space_id == space_id)).all()
+    for affected in users:
+        affected.default_space_id = _find_personal_space_id(db, affected.id)
 
 
 def join_by_code(db: Session, user: User, join_code: str) -> SpaceResponse:
