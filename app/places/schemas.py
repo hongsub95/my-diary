@@ -16,6 +16,10 @@ PROVIDERS = (PROVIDER_MANUAL, PROVIDER_KAKAO, PROVIDER_NAVER, PROVIDER_GOOGLE)
 MAX_LATITUDE = Decimal("90")
 MAX_LONGITUDE = Decimal("180")
 
+# 한 번에 담을 수 있는 장소 수. 코스 추천 결과(최대 6곳)를 담는 데 쓰므로 그보다
+# 조금 넉넉히 둔다. 상한이 없으면 요청 하나로 수백 곳을 밀어 넣을 수 있다.
+MAX_BATCH_PLACES = 10
+
 # 장소 메모 길이 상한. 일기 본문과 달리 "예약 필요", "2층 안쪽" 같은 짧은 쪽지다.
 # 상한이 없으면 목록 화면이 감당 못 할 길이가 그대로 들어온다.
 MAX_MEMO_LENGTH = 500
@@ -99,6 +103,16 @@ class SchedulePlaceCreateRequest(PlaceInput, AddressDetailInput, PlaceNoteInput)
     sort_order는 받지 않는다. 항상 맨 뒤에 붙이고, 순서 조정은 reorder로만 한다.
     그래야 "추가하면서 동시에 순서를 끼워 넣는" 요청이 만들어내는 충돌이 없다.
     """
+
+
+class SchedulePlaceBatchCreateRequest(BaseModel):
+    """여러 장소를 한 번에 일정 맨 뒤에 추가하는 요청. 배열 순서대로 붙는다.
+
+    코스 추천 결과를 담을 때 쓴다. 장소 추가 API를 여러 번 부르면 중간에 실패했을 때
+    코스의 일부만 담긴다. 한 요청·한 트랜잭션으로 받아 전부 담기거나 하나도 안 담기게 한다.
+    """
+
+    places: list[SchedulePlaceCreateRequest] = Field(min_length=1, max_length=MAX_BATCH_PLACES)
 
 
 class SchedulePlaceUpdateRequest(AddressDetailInput, PlaceNoteInput):

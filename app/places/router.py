@@ -18,6 +18,7 @@ from app.auth.dependencies import CurrentUser, DbSession
 from app.places import service, geocoding
 from app.places.schemas import (
     PlaceSearchResponse,
+    SchedulePlaceBatchCreateRequest,
     SchedulePlaceCreateRequest,
     SchedulePlaceListResponse,
     SchedulePlaceReorderRequest,
@@ -91,6 +92,26 @@ def add_place(
         address_detail=payload.address_detail,
     )
     return service.to_response(schedule_place)
+
+
+@schedule_places_router.post(
+    "/batch",
+    response_model=SchedulePlaceListResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="일정에 장소 여러 개 추가",
+    description=(
+        "`places` 배열을 순서대로 일정 **맨 뒤**에 붙인다. 각 항목은 장소 추가 API와 같은 "
+        "모양이며, 코스 추천 결과의 추천 장소를 그대로 넣을 수 있다. "
+        "**전부 담기거나 하나도 안 담긴다.** 담은 뒤의 전체 목록을 돌려준다."
+    ),
+)
+def add_places(
+    payload: SchedulePlaceBatchCreateRequest,
+    context: ScheduleMemberContext,
+    db: DbSession,
+) -> SchedulePlaceListResponse:
+    """일정에 장소 여러 개 추가."""
+    return SchedulePlaceListResponse(items=service.add_places(db, context.schedule, payload.places))
 
 
 @schedule_places_router.patch(

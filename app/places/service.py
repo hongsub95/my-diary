@@ -24,6 +24,7 @@ from app.places.schemas import (
     PlaceResponse,
     PlaceSearchResponse,
     PlaceSearchResultResponse,
+    SchedulePlaceCreateRequest,
     SchedulePlaceResponse,
 )
 from app.schedules.models import Schedule
@@ -127,6 +128,14 @@ def _get_or_create_place(
     return place
 
 
+def _next_sort_order(db: Session, schedule: Schedule) -> int:
+    """맨 뒤 자리. 지금 최대 sort_order + 1이고, 비어 있으면 0이다."""
+    last_order = db.scalar(
+        select(func.max(SchedulePlace.sort_order)).where(SchedulePlace.schedule_id == schedule.id)
+    )
+    return 0 if last_order is None else last_order + 1
+
+
 def add_place(
     db: Session,
     schedule: Schedule,
@@ -152,16 +161,10 @@ def add_place(
         db, name, address, latitude, longitude, provider, provider_place_id
     )
 
-    # 현재 최대 sort_order + 1. 비어 있으면 0부터 시작한다.
-    last_order = db.scalar(
-        select(func.max(SchedulePlace.sort_order)).where(SchedulePlace.schedule_id == schedule.id)
-    )
-    next_order = 0 if last_order is None else last_order + 1
-
     schedule_place = SchedulePlace(
         schedule_id=schedule.id,
         place_id=place.id,
-        sort_order=next_order,
+        sort_order=_next_sort_order(db, schedule),
         planned_time=planned_time,
         memo=memo,
         address_detail=address_detail,
@@ -170,6 +173,43 @@ def add_place(
     db.commit()
     db.refresh(schedule_place)
     return schedule_place
+
+
+def add_places(
+    db: Session, schedule: Schedule, items: list[SchedulePlaceCreateRequest]
+) -> list[SchedulePlaceResponse]:
+    """여러 장소를 일정 맨 뒤에 배열 순서대로 붙인다. **전부 담기거나 하나도 안 담긴다.**
+
+    :param items: 담을 장소들. 이 순서대로 붙는다
+    :return: 담은 뒤의 전체 장소 목록
+
+    commit을 맨 끝에 한 번만 한다. 중간에 실패하면 그때까지 넣은 행도 함께 되돌려져,
+    코스의 일부만 담기는 일이 없다. 같은 외부 장소가 두 번 들어 있어도
+    _get_or_create_place가 앞에서 flush한 행을 찾아 재사용한다.
+    """
+    first_order = _next_sort_order(db, schedule)
+    for offset, item in enumerate(items):
+        place = _get_or_create_place(
+            db,
+            item.name,
+            item.address,
+            item.latitude,
+            item.longitude,
+            item.provider,
+            item.provider_place_id,
+        )
+        db.add(
+            SchedulePlace(
+                schedule_id=schedule.id,
+                place_id=place.id,
+                sort_order=first_order + offset,
+                planned_time=item.planned_time,
+                memo=item.memo,
+                address_detail=item.address_detail,
+            )
+        )
+    db.commit()
+    return list_places(db, schedule)
 
 
 def update_place(db: Session, schedule_place: SchedulePlace, changes: dict) -> SchedulePlace:
