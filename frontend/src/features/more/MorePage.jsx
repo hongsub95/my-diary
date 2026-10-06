@@ -24,7 +24,7 @@ import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 // 눌리지 않고 '준비 중'으로 표시한다. 미구현 항목을 눌러 빈 화면이나 오류를 보여주지
 // 않기 위한 장치다(같은 문서 7절). 화면이 준비되면 to만 채우면 된다.
 const MENU_GROUPS = [
-  { title: '함께 쓰는 공간', items: [{ key: 'spaces', label: '스페이스 전환 · 관리', to: '/spaces' }] },
+  { title: '함께 쓰는 공간', items: [{ key: 'spaces', label: '공간 바꾸기 · 관리', to: '/spaces' }] },
   {
     title: '내 정보',
     items: [

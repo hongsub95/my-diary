@@ -9,7 +9,7 @@ export function SpaceSwitcher() {
   const { currentSpace } = useSpaces();
   const router = useRouter();
   const s = useThemedStyles(createSpaceStyles);
-  return <Pressable accessibilityRole="button" accessibilityLabel={`스페이스 전환, 현재 ${currentSpace?.name ?? '스페이스'}`} onPress={() => router.push({ pathname: '/spaces', params: { from: 'home' } })} style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-    <View style={s.row}><Text style={s.accentText}>{currentSpace?.type === 'shared' ? '♡' : '✎'}</Text><Text style={[s.name, { flex: 1 }]} numberOfLines={1}>{currentSpace?.name ?? '스페이스 선택'}</Text><Text style={s.hint}>전환 ›</Text></View>
+  return <Pressable accessibilityRole="button" accessibilityLabel={`공간 바꾸기, 현재 ${currentSpace?.name ?? '공간'}`} onPress={() => router.push({ pathname: '/spaces', params: { from: 'home' } })} style={{ paddingHorizontal: 16, paddingVertical: 8 }}>
+    <View style={s.row}><Text style={s.accentText}>{currentSpace?.type === 'shared' ? '♡' : '✎'}</Text><Text style={[s.name, { flex: 1 }]} numberOfLines={1}>{currentSpace?.name ?? '공간 선택'}</Text><Text style={s.hint}>공간 바꾸기 ›</Text></View>
   </Pressable>;
 }

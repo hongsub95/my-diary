@@ -19,7 +19,7 @@ export function getApiError(error: unknown): ApiErrorPayload {
     typeof data.message === 'string' &&
     ('field' in data)
   ) {
-    return data as ApiErrorPayload;
+    return { ...data, message: data.message.replaceAll('스페이스를', '공간을').replaceAll('스페이스는', '공간은').replaceAll('스페이스로', '공간으로').replaceAll('스페이스', '공간') } as ApiErrorPayload;
   }
 
   return error.code === 'ERR_NETWORK'

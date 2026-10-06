@@ -1,13 +1,13 @@
 import { apiClient } from './client'
 
 /**
- * 내가 활성 멤버인 스페이스 목록을 가져온다. 보관된 스페이스는 서버가 빼고 준다.
+ * 내가 활성 멤버인 공간 목록을 가져온다. 보관된 공간은 서버가 빼고 준다.
  *
- * @returns {Promise<Array<object>>} 스페이스 배열
+ * @returns {Promise<Array<object>>} 공간 배열
  *
- * 정렬은 서버가 보장한다(개인 스페이스가 항상 먼저). 화면에서 다시 정렬하지 않는다.
+ * 정렬은 서버가 보장한다(개인 공간가 항상 먼저). 화면에서 다시 정렬하지 않는다.
  *
- * 스페이스 전환, 관리, 계정 탈퇴 경고에 함께 사용한다.
+ * 공간 전환, 관리, 계정 탈퇴 경고에 함께 사용한다.
  */
 export async function listSpaces() {
   const { data } = await apiClient.get('/spaces')
@@ -20,6 +20,14 @@ export async function getSpace(id) {
 
 export async function createSpace({ name, icon }) {
   return (await apiClient.post('/spaces', { name, icon })).data
+}
+
+export async function updateSpace(id, { name }) {
+  return (await apiClient.patch(`/spaces/${id}`, { name })).data
+}
+
+export async function deleteSpace(id) {
+  await apiClient.delete(`/spaces/${id}`)
 }
 
 export async function joinSpace(joinCode) {

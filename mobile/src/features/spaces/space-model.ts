@@ -17,5 +17,5 @@ export function spaceInputError(value: string, joining: boolean): string | null 
   if (joining) return /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/.test(normalizeJoinCode(value))
     ? null : '8자리 영문·숫자 참여 번호를 확인해 주세요.';
   const length = [...value.trim()].length;
-  return length >= 1 && length <= 30 ? null : '스페이스 이름을 1~30자로 입력해 주세요.';
+  return length >= 1 && length <= 30 ? null : '공간 이름을 1~30자로 입력해 주세요.';
 }

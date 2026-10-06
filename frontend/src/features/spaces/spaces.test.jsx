@@ -66,6 +66,8 @@ for (const [platform, api] of [['web', webApi], ['mobile', mobileApi]]) {
       assert.deepEqual(await api.listSpaces(), [shared])
       assert.deepEqual(await api.getSpace(shared.id), shared)
       await api.createSpace({ name: '우리 둘', icon: 'heart' })
+      assert.deepEqual(await api.updateSpace(shared.id, { name: '바꾼 공간' }), shared)
+      await api.deleteSpace(shared.id)
       await api.joinSpace('K7M2QX9P')
       assert.deepEqual(await api.regenerateJoinCode(shared.id), { join_code: 'P7M2QX9K' })
       assert.deepEqual(await api.listMembers(shared.id), [{ user_id: 5 }])
@@ -77,6 +79,8 @@ for (const [platform, api] of [['web', webApi], ['mobile', mobileApi]]) {
         { method: 'get', url: '/spaces', body: undefined },
         { method: 'get', url: '/spaces/shared-uuid', body: undefined },
         { method: 'post', url: '/spaces', body: { name: '우리 둘', icon: 'heart' } },
+        { method: 'patch', url: '/spaces/shared-uuid', body: { name: '바꾼 공간' } },
+        { method: 'delete', url: '/spaces/shared-uuid', body: undefined },
         { method: 'post', url: '/spaces/join', body: { join_code: 'K7M2QX9P' } },
         { method: 'post', url: '/spaces/shared-uuid/join-code/regenerate', body: undefined },
         { method: 'get', url: '/spaces/shared-uuid/members', body: undefined },
@@ -90,9 +94,13 @@ for (const [platform, api] of [['web', webApi], ['mobile', mobileApi]]) {
   test(`${platform}: server rejection remains available for the snackbar and existing-membership recovery`, async () => {
     const original = apiClient.defaults.adapter
     apiClient.defaults.adapter = async config => {
-      throw new AxiosError('Already a member', 'ERR_BAD_REQUEST', config, null, { data: { code: 'ALREADY_MEMBER', message: '이미 참여 중인 스페이스입니다.', field: 'join_code' }, status: 409, statusText: 'Conflict', headers: {}, config })
+      throw new AxiosError('Already a member', 'ERR_BAD_REQUEST', config, null, { data: { code: 'ALREADY_MEMBER', message: '이미 참여 중인 공간입니다.', field: 'join_code' }, status: 409, statusText: 'Conflict', headers: {}, config })
     }
-    try { await assert.rejects(api.joinSpace('K7M2QX9P'), error => error.response.data.code === 'ALREADY_MEMBER') }
+    try {
+      await assert.rejects(api.joinSpace('K7M2QX9P'), error => error.response.data.code === 'ALREADY_MEMBER')
+      await assert.rejects(api.updateSpace(shared.id, { name: '바꾼 공간' }), error => error.response.status === 409)
+      await assert.rejects(api.deleteSpace(shared.id), error => error.response.status === 409)
+    }
     finally { apiClient.defaults.adapter = original }
   })
 }

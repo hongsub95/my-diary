@@ -70,7 +70,7 @@ export default function ProfileEditPage() {
               autoComplete="nickname"
               maxLength={50}
             />
-            <p className="more-form__hint">함께 쓰는 스페이스에서 이 이름으로 보입니다.</p>
+            <p className="more-form__hint">함께 쓰는 공간에서 이 이름으로 보입니다.</p>
           </div>
 
           <div className="more-form__field">

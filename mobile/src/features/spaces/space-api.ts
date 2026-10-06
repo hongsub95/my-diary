@@ -15,11 +15,11 @@ export type Space = {
 };
 
 /**
- * 내가 활성 멤버인 스페이스 목록을 가져온다. 보관된 스페이스는 서버가 빼고 준다.
+ * 내가 활성 멤버인 공간 목록을 가져온다. 보관된 공간은 서버가 빼고 준다.
  *
- * 정렬은 서버가 보장한다(개인 스페이스가 항상 먼저). 화면에서 다시 정렬하지 않는다.
+ * 정렬은 서버가 보장한다(개인 공간가 항상 먼저). 화면에서 다시 정렬하지 않는다.
  *
- * 스페이스 전환, 관리, 계정 탈퇴 경고에 함께 사용한다.
+ * 공간 전환, 관리, 계정 탈퇴 경고에 함께 사용한다.
  */
 export async function listSpaces(): Promise<Space[]> {
   const response = await apiClient.get<{ spaces: Space[] }>('/spaces');
@@ -33,6 +33,12 @@ export async function getSpace(id: SpaceId): Promise<Space> {
 }
 export async function createSpace(input: { name: string; icon: string }): Promise<Space> {
   return (await apiClient.post<Space>('/spaces', input)).data;
+}
+export async function updateSpace(id: SpaceId, input: { name: string }): Promise<Space> {
+  return (await apiClient.patch<Space>(`/spaces/${id}`, input)).data;
+}
+export async function deleteSpace(id: SpaceId): Promise<void> {
+  await apiClient.delete(`/spaces/${id}`);
 }
 export async function joinSpace(joinCode: string): Promise<Space> {
   return (await apiClient.post<Space>('/spaces/join', { join_code: joinCode })).data;

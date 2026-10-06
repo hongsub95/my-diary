@@ -15,8 +15,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
-# 회원가입 시 자동 생성되는 개인 스페이스의 기본 표시 이름 (명세 4.2).
-PERSONAL_SPACE_DEFAULT_NAME = "나의 일정"
+# 회원가입 시 자동 생성되는 개인 스페이스의 기본 표시 이름 (SPACE_MODEL_SPEC 4.2).
+# 2026-10-05 화면 명칭을 "공간"으로 확정하면서 "나의 일정"에서 바꿨다
+# (docs/SPACE_COLLABORATION_UI_SPEC.md '화면 명칭과 문구'). 새로 가입하는 사람부터 적용된다.
+# 이미 만들어진 공간의 이름은 바꾸지 않는다 — 사용자가 고쳐 쓴 이름일 수도 있고, 바뀌면
+# 자기 공간이 사라진 것처럼 보인다.
+PERSONAL_SPACE_DEFAULT_NAME = "나만의 공간"
 
 # 참여 번호에 쓸 문자 집합. 사용자가 눈으로 보고 옮겨 적기 때문에 서로 헷갈리는
 # 0/O, 1/I/L은 제외한다 (명세 0절).

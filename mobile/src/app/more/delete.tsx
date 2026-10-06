@@ -12,14 +12,14 @@ import { colors, spacing } from '@/shared/theme';
 
 // 실수로 누르는 것을 막는 마지막 관문. 비밀번호만 받으면 확인 버튼을 습관적으로 누르는
 // 사람을 못 막는다. 정해진 글자를 직접 쳐야 넘어간다
-// (docs/SPACE_MODEL_SPEC.md 7.4절이 스페이스 삭제에 요구하는 것과 같은 장치다).
+// (docs/SPACE_MODEL_SPEC.md 7.4절이 공간 삭제에 요구하는 것과 같은 장치다).
 const CONFIRM_WORD = '탈퇴합니다';
 
 /**
  * 더보기 > 계정 > 계정 탈퇴.
  *
  * 되돌릴 수 없는 동작이라 세 가지를 요구한다.
- * 1. 무엇이 사라지는지 읽게 한다 (내가 owner인 공유 스페이스는 남은 멤버가 있어도 함께 보관된다)
+ * 1. 무엇이 사라지는지 읽게 한다 (내가 owner인 공유 공간은 남은 멤버가 있어도 함께 보관된다)
  * 2. 확인 문구를 직접 입력하게 한다
  * 3. 비밀번호로 재인증한다 (docs/BOTTOM_NAVIGATION_SPEC.md 6.5절)
  */
@@ -31,8 +31,8 @@ export default function AccountDeleteScreen() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // 경고 문구를 만들려면 내가 owner인 스페이스를 알아야 한다. 전용 API를 두지 않고
-  // 스페이스 목록으로 계산한다 — 서버가 이미 my_role과 member_count를 준다.
+  // 경고 문구를 만들려면 내가 owner인 공간을 알아야 한다. 전용 API를 두지 않고
+  // 공간 목록으로 계산한다 — 서버가 이미 my_role과 member_count를 준다.
   const spaces = useQuery({ queryKey: ['spaces'], queryFn: listSpaces });
 
   const ownedShared = (spaces.data ?? []).filter(
@@ -92,15 +92,15 @@ export default function AccountDeleteScreen() {
             <Text style={styles.dangerTitle}>탈퇴하면 되돌릴 수 없습니다</Text>
             <Text style={styles.dangerItem}>· {user?.email} 계정으로 다시 로그인할 수 없습니다.</Text>
             <Text style={styles.dangerItem}>· 같은 이메일과 닉네임으로 다시 가입할 수 없습니다.</Text>
-            <Text style={styles.dangerItem}>· 내가 만든 스페이스는 함께 사라집니다. 남은 멤버도 열 수 없습니다.</Text>
+            <Text style={styles.dangerItem}>· 내가 만든 공간은 함께 사라집니다. 남은 멤버도 열 수 없습니다.</Text>
             <Text style={styles.dangerItem}>· 남긴 일기와 사진은 지워지지 않고 기록으로 남습니다.</Text>
           </View>
 
-          {/* 내가 owner인 공유 스페이스는 남의 하루까지 함께 닫는다. 숫자로 보여주지
+          {/* 내가 owner인 공유 공간은 남의 하루까지 함께 닫는다. 숫자로 보여주지
               않으면 "내 것만 지우는 것"으로 오해한다. */}
           {ownedShared.length > 0 ? (
             <View style={[styles.danger, styles.spacesCard]}>
-              <Text style={styles.spacesTitle}>함께 사라지는 스페이스 {ownedShared.length}개</Text>
+              <Text style={styles.spacesTitle}>함께 사라지는 공간 {ownedShared.length}개</Text>
               {ownedShared.map((space) => (
                 <Text key={space.id} style={styles.dangerItem}>
                   · {space.name} <Text style={styles.count}>멤버 {space.member_count}명</Text>
@@ -108,7 +108,7 @@ export default function AccountDeleteScreen() {
               ))}
               {affectedMembers > 0 ? (
                 <Text style={styles.dangerNote}>
-                  나를 포함하지 않은 {affectedMembers}명이 이 스페이스의 일정과 기록에 더 이상
+                  나를 포함하지 않은 {affectedMembers}명이 이 공간의 일정과 기록에 더 이상
                   접근할 수 없게 됩니다.
                 </Text>
               ) : null}

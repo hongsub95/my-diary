@@ -75,7 +75,7 @@ export default function ProfileEditScreen() {
                 style={styles.input}
                 value={nickname}
               />
-              <Text style={styles.hint}>함께 쓰는 스페이스에서 이 이름으로 보입니다.</Text>
+              <Text style={styles.hint}>함께 쓰는 공간에서 이 이름으로 보입니다.</Text>
             </View>
 
             <View style={styles.field}>

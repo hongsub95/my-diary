@@ -28,7 +28,7 @@ type MoreMenuItem = {
 // 더보기 안의 항목은 동작이 제각각이라 DB로 관리하지 않고 여기서 관리한다(8.1절).
 // 그룹 구성은 6.5절을 따르며, 웹의 frontend/src/features/more/MorePage.jsx와 같은 구성이다.
 const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
-  { title: '함께 쓰는 공간', items: [{ key: 'spaces', label: '스페이스 전환 · 관리', href: '/spaces' }] },
+  { title: '함께 쓰는 공간', items: [{ key: 'spaces', label: '공간 바꾸기 · 관리', href: '/spaces' }] },
   {
     title: '내 정보',
     items: [

@@ -58,11 +58,11 @@ export function useMenus() {
 }
 
 /**
- * 일정 API에 쓸 스페이스 UUID.
+ * 일정 API에 쓸 공간 UUID.
  *
- * 현재 선택한 스페이스를 사용한다. 처음에는 계정의 기본 스페이스를 연다.
+ * 현재 선택한 공간을 사용한다. 처음에는 계정의 기본 공간을 연다.
  *
- * @returns {string|null} 스페이스 공개 UUID
+ * @returns {string|null} 공간 공개 UUID
  */
 
 /**
@@ -117,8 +117,8 @@ export function useCreateSchedule() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ title, description, startAt, endAt }) =>
-      createSchedule({ spaceId, title, description, startAt, endAt }),
+    mutationFn: ({ spaceId: targetSpaceId = spaceId, title, description, startAt, endAt }) =>
+      createSchedule({ spaceId: targetSpaceId, title, description, startAt, endAt }),
     onSuccess: () => {
       // 기간·include 조합마다 키가 달라서 개별로 지우기 어렵다. 접두사로 한 번에 무효화한다.
       queryClient.invalidateQueries({ queryKey: ['schedules'] })

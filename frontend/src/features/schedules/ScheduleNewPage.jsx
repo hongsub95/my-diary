@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
 import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
@@ -32,7 +32,11 @@ function toUtcIso(date, timeText) {
 
 export default function ScheduleNewPage() {
   const navigate = useNavigate()
-  const { currentSpace, currentSpaceId } = useSpaces()
+  const { spaces, spacesQuery, currentSpaceId, selectSpace } = useSpaces()
+  const [selectedSpaceId, setSelectedSpaceId] = useState(null)
+  const targetSpaceId = selectedSpaceId ?? currentSpaceId
+  const targetSpace = spaces.find(space => space.id === targetSpaceId)
+  const submitLock = useRef(false)
   const createSchedule = useCreateSchedule()
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
   const today = serviceDateFormatter.format(new Date())
@@ -49,8 +53,8 @@ export default function ScheduleNewPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (createSchedule.isPending) return
-    if (!currentSpaceId) { showSnackbar('하루를 저장할 스페이스를 먼저 선택해 주세요.'); return }
+    if (submitLock.current) return
+    if (!targetSpace || spacesQuery.isError) { showSnackbar('하루를 저장할 공간을 확인하고 다시 선택해 주세요.'); return }
     const invalid = !form.title.trim() ? ['하루의 이름을 입력해 주세요.', 'schedule-title']
       : !form.start_date ? ['시작일을 선택해 주세요.', 'schedule-start-date']
         : !form.end_date ? ['종료일을 선택해 주세요.', 'schedule-end-date']
@@ -75,8 +79,10 @@ export default function ScheduleNewPage() {
     }
 
     dismissSnackbar()
+    submitLock.current = true
     try {
       const created = await createSchedule.mutateAsync({
+        spaceId: targetSpaceId,
         title: form.title.trim(),
         description: form.memo.trim(),
         startAt,
@@ -85,9 +91,12 @@ export default function ScheduleNewPage() {
       // 만든 일정으로 바로 들어가야 장소를 이어서 추가할 수 있다.
       // 저장하고 끝내지 않고 곧바로 갈 곳을 정하러 보낸다. 제품이 말하는 하루는
       // 제목과 시간이 아니라 장소와 순서다(3.2절).
+      selectSpace(targetSpaceId)
       navigate(`/schedules/${created.id}/plan`, { replace: true })
     } catch (caught) {
       showSnackbar(getApiErrorMessage(caught))
+    } finally {
+      submitLock.current = false
     }
   }
 
@@ -101,7 +110,12 @@ export default function ScheduleNewPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="snew-form" noValidate>
-        <p className="space-hint">저장할 스페이스: {currentSpace?.name ?? '스페이스 확인 중'}</p>
+        <div className="snew-form__field"><label className="snew-form__label" htmlFor="schedule-space">저장할 공간</label>
+          <select id="schedule-space" className="snew-form__input" value={targetSpace?.id ?? ''} disabled={createSchedule.isPending || spacesQuery.isPending || spacesQuery.isError} onChange={event => setSelectedSpaceId(event.target.value)}>
+            <option value="" disabled>공간을 선택해 주세요</option>{spaces.map(space => <option key={space.id} value={space.id}>{space.name}{space.type === 'personal' ? ' · 개인 공간' : ' · 공유 공간'}</option>)}
+          </select><p className="space-hint">이 하루를 저장할 공간만 바꿔요. 앱을 시작할 때 여는 공간은 그대로예요.</p>
+          {spacesQuery.isError && <button type="button" className="space-button" onClick={() => spacesQuery.refetch()}>공간 다시 불러오기</button>}
+        </div>
         <div className="snew-form__intro">
           <span className="snew-form__eyebrow">NEW PLAN</span>
           <h2>어떤 하루를 보내고 싶나요?</h2>

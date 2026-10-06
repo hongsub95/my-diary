@@ -19,7 +19,7 @@ export function getApiErrorMessage(error) {
 
   const data = error.response?.data
   if (data && typeof data.message === 'string' && data.message) {
-    return data.message
+    return data.message.replaceAll('스페이스를', '공간을').replaceAll('스페이스는', '공간은').replaceAll('스페이스로', '공간으로').replaceAll('스페이스', '공간')
   }
 
   // 응답 자체가 없는 경우다. 서버가 꺼져 있거나 CORS에 막힌 상황이라 서버 문구가 없다.

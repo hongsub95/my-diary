@@ -6,6 +6,7 @@ import { Calendar, DateData } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSpaces } from '@/features/spaces/space-context';
+import { createSpaceStyles, SpaceButton } from '@/features/spaces/space-ui';
 import { createSchedule } from '@/features/schedules/schedule-api';
 import { SelectButton, TIME_PATTERN, TimeSelect } from '@/features/schedules/time-select';
 import { getApiError } from '@/shared/api/api-error';
@@ -27,7 +28,12 @@ export default function NewScheduleScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { currentSpace, currentSpaceId } = useSpaces();
+  const { spaces, spacesQuery, currentSpaceId, selectSpace } = useSpaces();
+  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
+  const [choosingSpace, setChoosingSpace] = useState(false);
+  const targetSpaceId = selectedSpaceId ?? currentSpaceId;
+  const targetSpace = spaces.find(space => space.id === targetSpaceId);
+  const spaceStyles = useThemedStyles(createSpaceStyles);
   const params = useLocalSearchParams<{ date?: string | string[] }>();
   const initialDate = useMemo(() => {
     const value = Array.isArray(params.date) ? params.date[0] : params.date;
@@ -53,7 +59,7 @@ export default function NewScheduleScreen() {
     if (endDate < startDate) return '종료일은 시작일보다 빠를 수 없어요.';
     if (!TIME_PATTERN.test(startTime) || !TIME_PATTERN.test(endTime)) return '시간을 HH:mm 형식으로 입력해 주세요.';
     if (startDate === endDate && endTime <= startTime) return '종료 시간은 시작 시간보다 늦어야 해요.';
-    if (!currentSpaceId) return '하루를 저장할 스페이스를 먼저 선택해 주세요.';
+    if (!targetSpace || spacesQuery.isError) return '하루를 저장할 공간을 확인하고 다시 선택해 주세요.';
     return null;
   }
 
@@ -67,7 +73,7 @@ export default function NewScheduleScreen() {
     setSubmitting(true);
     try {
       const schedule = await createSchedule({
-        spaceId: currentSpaceId as string,
+        spaceId: targetSpaceId as string,
         title: title.trim(),
         description: description.trim(),
         startDate,
@@ -76,6 +82,7 @@ export default function NewScheduleScreen() {
         endTime,
       });
       await queryClient.invalidateQueries({ queryKey: ['schedules'] });
+      selectSpace(targetSpaceId as string);
       // replace를 쓴다. 2단계에서 뒤로 가기로 이 화면에 돌아와 다시 누르면 같은 하루가
       // 또 만들어진다.
       router.replace({ pathname: '/schedules/[id]/plan', params: { id: String(schedule.id) } });
@@ -97,7 +104,15 @@ export default function NewScheduleScreen() {
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <Text style={styles.description}>저장할 스페이스: {currentSpace?.name ?? '스페이스 확인 중'}</Text>
+          <View style={spaceStyles.card}>
+            <Text style={styles.label}>저장할 공간</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel={`저장할 공간 바꾸기, 현재 ${targetSpace?.name ?? '선택 없음'}`} accessibilityState={{ expanded: choosingSpace, disabled: submitting || spacesQuery.isPending || spacesQuery.isError }} disabled={submitting || spacesQuery.isPending || spacesQuery.isError} style={spaceStyles.button} onPress={() => setChoosingSpace(value => !value)}>
+              <Text style={spaceStyles.buttonText}>{targetSpace?.name ?? (spacesQuery.isPending ? '공간 확인 중' : '공간을 선택해 주세요')} · 바꾸기</Text>
+            </Pressable>
+            {choosingSpace && spaces.map(space => <SpaceButton key={space.id} disabled={submitting} kind={space.id === targetSpaceId ? 'selected' : 'secondary'} onPress={() => { setSelectedSpaceId(space.id); setChoosingSpace(false); }}>{space.name} · {space.type === 'personal' ? '개인 공간' : '공유 공간'}</SpaceButton>)}
+            <Text style={spaceStyles.hint}>이 하루를 저장할 공간만 바꿔요. 앱을 시작할 때 여는 공간은 그대로예요.</Text>
+            {spacesQuery.isError && <SpaceButton onPress={() => { void spacesQuery.refetch(); }}>공간 다시 불러오기</SpaceButton>}
+          </View>
           <View style={styles.progress}><View style={styles.progressOn} /><View style={styles.progressOff} /><Text style={styles.progressText}>1 / 2</Text></View>
 
           <Text style={styles.eyebrow}>STEP 1 · 하루 정하기</Text>

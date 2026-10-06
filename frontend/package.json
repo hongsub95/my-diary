@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "test:space-management": "node scripts/test-space-management-ui.mjs",
     "test:spaces:e2e": "node scripts/test-spaces-e2e.mjs",
     "test:spaces": "node scripts/test-spaces.mjs",
     "test:recommendations": "node scripts/test-recommendations.mjs",
