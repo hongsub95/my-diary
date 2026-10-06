@@ -22,7 +22,7 @@ export default function SpacesScreen() {
     <View style={{ gap: 8 }}><Text style={s.heading}>내 공간 {spaces.length}</Text><Text style={s.hint}>전환은 지금 보는 공간만 바꿔요. 처음 열 공간은 상세에서 따로 지정할 수 있어요.</Text></View>
     {spacesQuery.isPending && <Text style={s.text}>공간을 불러오고 있어요.</Text>}
     {spacesQuery.isError && <SpaceButton onPress={() => { void refetch(); }}>다시 불러오기</SpaceButton>}
-    {!spacesQuery.isPending && !spacesQuery.isError && !spaces.length && <Text style={s.text}>아직 참여한 공간가 없어요. 만들거나 참여해 주세요.</Text>}
+    {!spacesQuery.isPending && !spacesQuery.isError && !spaces.length && <Text style={s.text}>아직 참여한 공간이 없어요. 만들거나 참여해 주세요.</Text>}
     {spaces.map(space => <View key={space.id} style={[s.card, currentSpaceId === space.id && s.currentCard]}>
       <View style={s.row}><View style={s.symbol}><Text style={s.symbolText}>{space.type === 'personal' ? '✎' : space.icon === 'friends' ? '♧' : '♡'}</Text></View><View style={s.grow}><Text style={s.name}>{space.name}</Text><Text style={s.hint}>{space.type === 'personal' ? '나만의 공간' : `함께 ${space.member_count}명 · ${space.my_role === 'owner' ? '주인' : '멤버'}`}</Text></View></View>
       {(currentSpaceId === space.id || space.is_default) && <View style={s.tags}>{currentSpaceId === space.id && <Text style={s.tag}>지금 보는 공간</Text>}{space.is_default && <Text style={s.tag}>처음 열 공간</Text>}</View>}

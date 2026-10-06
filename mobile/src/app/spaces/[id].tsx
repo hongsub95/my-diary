@@ -118,7 +118,7 @@ export default function SpaceDetailScreen() {
         </View>)}
       </View>
       {shared && <View style={s.card}><Text style={s.heading}>공간 나가기</Text><Text style={s.text}>{mustTransfer ? '다른 멤버에게 주인을 넘긴 뒤 나갈 수 있어요. 위 멤버 목록에서 주인 넘기기를 선택해 주세요.' : owner ? '마지막 멤버인 내가 나가면 공간도 함께 보관되어 더 이상 열 수 없어요.' : '나가면 이곳의 일정과 기록을 볼 수 없어요. 내가 남긴 기록은 공간에 유지됩니다.'}</Text>
-        <SpaceButton kind="danger" disabled={busy || mustTransfer} onPress={() => setConfirmation({ title: '공간에서 나갈까요?', message: owner ? '혼자 남은 공간가 함께 보관됩니다. 이곳의 일정과 기록을 더 이상 열 수 없어요.' : '이곳의 일정과 기록에 접근할 수 없게 됩니다. 남긴 기록은 다른 멤버에게 계속 보입니다.', label: '나가기', action: async () => { await leaveSpace(id); context.forgetSpace(id); router.replace('/spaces'); } })}>공간 나가기</SpaceButton>
+        <SpaceButton kind="danger" disabled={busy || mustTransfer} onPress={() => setConfirmation({ title: '공간에서 나갈까요?', message: owner ? '혼자 남은 공간이 함께 보관됩니다. 이곳의 일정과 기록을 더 이상 열 수 없어요.' : '이곳의 일정과 기록에 접근할 수 없게 됩니다. 남긴 기록은 다른 멤버에게 계속 보입니다.', label: '나가기', action: async () => { await leaveSpace(id); context.forgetSpace(id); router.replace('/spaces'); } })}>공간 나가기</SpaceButton>
       </View>}
     </>}
   </SpaceFrame>;

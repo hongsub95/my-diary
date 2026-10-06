@@ -24,7 +24,7 @@ class SpaceNotFoundError(AppError):
     def __init__(self) -> None:
         super().__init__(
             code="SPACE_NOT_FOUND",
-            message="스페이스를 찾을 수 없습니다.",
+            message="공간을 찾을 수 없습니다.",
             status_code=status.HTTP_404_NOT_FOUND,
         )
 
@@ -65,7 +65,7 @@ class AlreadyMemberError(AppError):
     def __init__(self) -> None:
         super().__init__(
             code="ALREADY_MEMBER",
-            message="이미 참여 중인 스페이스입니다.",
+            message="이미 참여 중인 공간입니다.",
             status_code=status.HTTP_409_CONFLICT,
             field="join_code",
         )
@@ -77,7 +77,7 @@ class SpaceArchivedError(AppError):
     def __init__(self) -> None:
         super().__init__(
             code="SPACE_ARCHIVED",
-            message="보관된 스페이스입니다.",
+            message="보관된 공간입니다.",
             status_code=status.HTTP_410_GONE,
             field="join_code",
         )
@@ -89,7 +89,7 @@ class SpaceMemberLimitError(AppError):
     def __init__(self, limit: int) -> None:
         super().__init__(
             code="SPACE_MEMBER_LIMIT",
-            message=f"스페이스 정원({limit}명)이 가득 찼습니다.",
+            message=f"공간 정원({limit}명)이 가득 찼습니다.",
             status_code=status.HTTP_409_CONFLICT,
             field="join_code",
         )
@@ -101,7 +101,7 @@ class PersonalSpaceError(AppError):
     개인 스페이스는 초대·나가기·삭제가 모두 불가능하다 (명세 4.2).
     """
 
-    def __init__(self, message: str = "개인 스페이스에는 할 수 없는 작업입니다.") -> None:
+    def __init__(self, message: str = "개인 공간에는 할 수 없는 작업입니다.") -> None:
         super().__init__(
             code="PERSONAL_SPACE_NOT_ALLOWED",
             message=message,
@@ -118,7 +118,7 @@ class DefaultSpaceCannotBeDeletedError(AppError):
     def __init__(self) -> None:
         super().__init__(
             code="DEFAULT_SPACE_CANNOT_BE_DELETED",
-            message="기본 스페이스는 삭제할 수 없습니다. 먼저 다른 스페이스를 기본으로 지정해 주세요.",
+            message="처음 열 공간은 삭제할 수 없습니다. 먼저 다른 공간을 처음 열 공간으로 지정해 주세요.",
             status_code=status.HTTP_409_CONFLICT,
         )
 
@@ -133,7 +133,7 @@ class OwnerMustTransferError(AppError):
     def __init__(self) -> None:
         super().__init__(
             code="OWNER_MUST_TRANSFER",
-            message="다른 멤버에게 소유권을 넘긴 뒤 나갈 수 있습니다.",
+            message="다른 멤버에게 주인을 넘긴 뒤 나갈 수 있습니다.",
             status_code=status.HTTP_409_CONFLICT,
         )
 

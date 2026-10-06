@@ -21,7 +21,7 @@ class SpaceCreateRequest(BaseModel):
         """공백만 입력한 이름을 거르고 앞뒤 공백을 제거한다."""
         stripped = value.strip()
         if not stripped:
-            raise ValueError("스페이스 이름은 공백일 수 없습니다.")
+            raise ValueError("공간 이름은 공백일 수 없습니다.")
         return stripped
 
 
@@ -38,7 +38,7 @@ class SpaceUpdateRequest(BaseModel):
             return None
         stripped = value.strip()
         if not stripped:
-            raise ValueError("스페이스 이름은 공백일 수 없습니다.")
+            raise ValueError("공간 이름은 공백일 수 없습니다.")
         return stripped
 
 

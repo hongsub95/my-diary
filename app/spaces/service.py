@@ -168,7 +168,7 @@ def archive_space(db: Session, space: Space, user: User) -> None:
     :raises DefaultSpaceCannotBeDeletedError: 기본 스페이스로 지정된 경우
     """
     if space.type == SPACE_TYPE_PERSONAL:
-        raise PersonalSpaceError("개인 스페이스는 삭제할 수 없습니다.")
+        raise PersonalSpaceError("개인 공간은 삭제할 수 없습니다.")
 
     # 기본 스페이스를 지우면 앱 실행 시 열 곳이 사라진다. 먼저 다른 곳으로 바꾸게 한다.
     if user.default_space_id == space.id:
@@ -262,7 +262,7 @@ def regenerate_join_code(db: Session, space: Space) -> str:
     :raises PersonalSpaceError: 개인 스페이스는 참여 번호 자체가 없다
     """
     if space.type == SPACE_TYPE_PERSONAL:
-        raise PersonalSpaceError("개인 스페이스에는 참여 번호가 없습니다.")
+        raise PersonalSpaceError("개인 공간에는 참여 번호가 없습니다.")
 
     space.join_code = _generate_unique_join_code(db)
     db.commit()
@@ -305,7 +305,7 @@ def remove_member(db: Session, space: Space, target_user_id: int, owner_id: int)
     :raises MemberNotFoundError: 대상이 활성 멤버가 아님
     """
     if space.type == SPACE_TYPE_PERSONAL:
-        raise PersonalSpaceError("개인 스페이스에는 다른 멤버가 없습니다.")
+        raise PersonalSpaceError("개인 공간에는 다른 멤버가 없습니다.")
 
     if target_user_id == owner_id:
         # 자기 자신을 제거하려는 것은 "나가기"에 해당한다. 그쪽 규칙(소유권 이전 확인)을
@@ -340,7 +340,7 @@ def leave_space(db: Session, space: Space, membership: SpaceMember, user: User) 
     :return: 스페이스가 함께 보관됐으면 True
     """
     if space.type == SPACE_TYPE_PERSONAL:
-        raise PersonalSpaceError("개인 스페이스는 나갈 수 없습니다.")
+        raise PersonalSpaceError("개인 공간은 나갈 수 없습니다.")
 
     archived = False
     if membership.role == SPACE_ROLE_OWNER:

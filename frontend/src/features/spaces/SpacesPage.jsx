@@ -18,7 +18,7 @@ export default function SpacesPage() {
     <section className="space-section"><h2>내 공간 <span>{spaces.length}</span></h2><p className="space-hint">전환은 지금 보는 공간만 바꿔요. 처음 열 공간은 상세에서 따로 지정할 수 있어요.</p>
       {spacesQuery.isPending && <p role="status">공간을 불러오고 있어요.</p>}
       {spacesQuery.isError && <button type="button" className="space-button" onClick={() => spacesQuery.refetch()}>다시 불러오기</button>}
-      {!spacesQuery.isPending && !spacesQuery.isError && spaces.length === 0 && <p>아직 참여한 공간가 없어요. 만들거나 참여해 주세요.</p>}
+      {!spacesQuery.isPending && !spacesQuery.isError && spaces.length === 0 && <p>아직 참여한 공간이 없어요. 만들거나 참여해 주세요.</p>}
       <div className="space-list">{spaces.map(space => <article className={`space-card${currentSpaceId === space.id ? ' space-card--current' : ''}`} key={space.id}>
         <div className="space-card__heading"><SpaceBadge space={space} /><div><h3>{space.name}</h3><p>{space.type === 'personal' ? '나만의 공간' : `함께 ${space.member_count}명 · ${space.my_role === 'owner' ? '주인' : '멤버'}`}</p></div></div>
         <div className="space-tags">{currentSpaceId === space.id && <span>지금 보는 공간</span>}{space.is_default && <span>처음 열 공간</span>}</div>

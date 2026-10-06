@@ -100,7 +100,7 @@ def require_owner(
     space, membership = _load_space_for_member(db, space_id, current_user)
     context = SpaceContext(space, membership)
     if not context.is_owner:
-        raise SpaceForbiddenError("스페이스 소유자만 할 수 있는 작업입니다.")
+        raise SpaceForbiddenError("공간 주인만 할 수 있는 작업입니다.")
     return context
 
 
