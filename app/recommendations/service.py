@@ -53,6 +53,10 @@ PREVIEW_LIMIT_PER_MINUTE = 10
 # 이 인원부터는 "수용 인원 확인 필요"를 붙인다. 1~2명은 어디든 들어가므로 붙이면 잡음이다.
 LARGE_PARTY_SIZES = {"3-4", "5+"}
 
+# 본체와 "그 안의 장소"로 볼 최대 거리(m). 과학관·미술관·공연장 건물 안의 관과 홀은 대부분
+# 이 안에 든다. 이보다 멀면 이름이 겹쳐도 다른 장소(체인 지점 등)로 본다.
+VENUE_PART_MAX_DISTANCE_M = 1000
+
 # 추천 장소마다 붙는 경고 코드.
 WARNING_BUSINESS_HOURS = "BUSINESS_HOURS_UNVERIFIED"
 WARNING_PARTY_SIZE = "PARTY_SIZE_UNVERIFIED"
@@ -290,7 +294,45 @@ def _gather_candidates(
                 payload=item,
             )
 
-    return list(found.values())
+    return _drop_parts_of_listed_venues(list(found.values()))
+
+
+def _drop_parts_of_listed_venues(candidates: list[Candidate]) -> list[Candidate]:
+    """후보 중에 본체가 있으면, 그 본체 안의 장소를 뺀다.
+
+    :param candidates: 한 항목의 후보. 정확도 순서를 그대로 지킨다
+    :return: 본체 안의 장소를 뺀 후보
+
+    카카오가 "안의 시설"로 표시하지 않는 경우가 있다. 세종문화회관 대극장·M씨어터,
+    국립과천과학관 천체투영관·곤충생태관 같은 것들이다(2026-10-07 실측). 그대로 두면
+    "다시 추천"이 같은 건물의 다른 관만 돌려 보여준다.
+
+    **본체 이름 + 띄어쓰기로 시작하고, 본체에서 가까운 장소만 뺀다.** 앞 단어가 같다는
+    것만으로 묶으면 안 된다 — "스타벅스 광화문점"과 "스타벅스 경복궁역점", "CGV 강변"과
+    "CGV 건대입구"는 진짜 다른 지점이다. "스타벅스"라는 이름 그대로의 장소는 결과에 없으니
+    이 규칙은 지점들을 건드리지 않는다. 거리 조건은, 혹시 그런 장소가 있더라도 멀리 떨어진
+    지점까지 지우지 않게 하는 안전장치다.
+
+    본체가 결과에 없으면(홀만 여러 개 나온 경우) 잡지 못한다. 이름만으로 더 묶으면 다른
+    가게를 지울 위험이 생겨서 거기까지는 하지 않는다.
+    """
+    def name_of(candidate: Candidate) -> str:
+        return candidate.payload.name.strip()
+
+    def is_part_of(child: Candidate, parent: Candidate) -> bool:
+        if not name_of(child).startswith(name_of(parent) + " "):
+            return False
+        gap = distance_m(
+            Point(0, child.latitude, child.longitude),
+            Point(0, parent.latitude, parent.longitude),
+        )
+        return gap <= VENUE_PART_MAX_DISTANCE_M
+
+    return [
+        candidate
+        for candidate in candidates
+        if not any(other is not candidate and is_part_of(candidate, other) for other in candidates)
+    ]
 
 
 def _suggest_relaxation(request: CoursePreviewRequest, empty: list[int]) -> list[RelaxationSuggestion]:

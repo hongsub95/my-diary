@@ -29,6 +29,21 @@ KAKAO_CAFE = "CE7"
 KAKAO_CULTURE = "CT1"
 KAKAO_ATTRACTION = "AT4"
 
+# 카카오가 "어떤 장소 안의 시설"에 붙이는 업종 경로. **모든 검색에서 뺀다.**
+#
+# 2026-10-07 실측: "놀이공원"을 찾으면 성수·잠실·과천 등 5곳 50건 중 37건이 테마파크
+# 시설이었다(어린이대공원 음악분수, 롯데월드 자이로드롭 …). 카카오는 본체를
+# "여행 > 관광,명소 > 테마파크"로, 그 안의 시설을 "… > 테마파크 > 테마파크시설"로 구분해
+# 준다. 시설을 그대로 두면 "다시 추천"을 눌러도 같은 공원 안의 시설만 바뀌어 나온다.
+# 공원시설물은 공원 안의 화장실·주차장이다.
+#
+# 분류마다 따로 걸지 않고 공통으로 거는 이유: 이런 시설을 추천해도 되는 분류가 없고,
+# 산책로처럼 뜻밖의 분류에서도 섞여 나왔다(서울대공원 둘레길).
+VENUE_FACILITY_PATHS = (
+    "여행 > 관광,명소 > 테마파크 > 테마파크시설",
+    "여행 > 공원시설물",
+)
+
 
 @dataclass(frozen=True)
 class KakaoSearch:
@@ -183,7 +198,12 @@ CATEGORIES: tuple[Category, ...] = (
             # 체험·놀이를 묶는 카카오 그룹이 없다. "체험"으로 찾으면 어린이 체험학습장이
             # 나와서, 데이트에 흔한 소분류 셋을 합쳐 후보로 쓴다.
             _sub(ANY, "상관없음", _WORKSHOP, _ESCAPE_ROOM, _BOARD_GAME),
-            _sub("theme_park", "놀이공원", KakaoSearch(keyword="놀이공원")),
+            # 본체만 남긴다. 시설은 VENUE_FACILITY_PATHS로 빠진다.
+            _sub(
+                "theme_park",
+                "놀이공원",
+                KakaoSearch(keyword="놀이공원", require=("여행 > 관광,명소 > 테마파크",)),
+            ),
             _sub("workshop", "공방", _WORKSHOP),
             _sub("escape_room", "방탈출", _ESCAPE_ROOM),
             _sub("board_game", "보드게임", _BOARD_GAME),
@@ -205,8 +225,14 @@ CATEGORIES: tuple[Category, ...] = (
             # "여행 > 공원"만 남기면 편의점·화장실이 빠진다. 칸 단위로 비교해서
             # "여행 > 공원시설물"(주차장·화장실)도 걸리지 않는다.
             _sub("park", "일반 공원", KakaoSearch(keyword="공원", require=("여행 > 공원",))),
-            _sub("trail", "산책로", KakaoSearch(keyword="산책로", require=("여행",))),
-            _sub("arboretum", "수목원", KakaoSearch(keyword="수목원")),
+            # 여행 분류 전체를 허용하면 호텔(여행 > 숙박)이 섞여 나온다(2026-10-07 실측).
+            _sub(
+                "trail",
+                "산책로",
+                KakaoSearch(keyword="산책로", require=("여행",), exclude=("여행 > 숙박",)),
+            ),
+            # 이름에 "수목원"이 들어간 아파트(부동산 > 주거시설)가 섞여 나와 여행 분류만 남긴다.
+            _sub("arboretum", "수목원", KakaoSearch(keyword="수목원", require=("여행",))),
             # 해안 지역에서만 나온다. 서울에서 비는 것은 정상이다.
             _sub("beach", "해변", KakaoSearch(keyword="해수욕장")),
         ),
@@ -264,8 +290,12 @@ def matches(search: KakaoSearch, category_path: str | None) -> bool:
 
     :param search: 검색 조건
     :param category_path: 결과의 `category_name`. 없을 수 있다
+
+    장소 안의 시설(VENUE_FACILITY_PATHS)은 검색 조건과 관계없이 먼저 떨어진다.
     """
     path = _segments(category_path or "")
+    if any(_starts_with(path, prefix) for prefix in VENUE_FACILITY_PATHS):
+        return False
     if search.require and not any(_starts_with(path, prefix) for prefix in search.require):
         return False
     return not any(_starts_with(path, prefix) for prefix in search.exclude)
