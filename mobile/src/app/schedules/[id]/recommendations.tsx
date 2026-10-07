@@ -7,7 +7,7 @@ import { KakaoMap } from '@/features/places/kakao-map';
 import { useSchedule } from '@/features/schedules/schedule-queries';
 import { listSchedulePlaces, reorderSchedulePlaces } from '@/features/schedules/schedule-api';
 import { ConditionForm } from '@/features/recommendations/condition-form';
-import { addRecommendedCourse, formatCourseLeg, getRecommendationOptions, previewCourse, recommendedIndexes, relaxConditions, toBatchPlaces, warningLabels, type CourseRequest, type CourseResult } from '@/features/recommendations/recommendation-api';
+import { addRecommendedCourse, formatCourseLeg, getRecommendationOptions, mergeShownKeys, previewCourse, recommendedIndexes, relaxConditions, rerollNotice, shownPlaceKeys, toBatchPlaces, warningLabels, type CourseRequest, type CourseResult } from '@/features/recommendations/recommendation-api';
 import { CourseSaveError, createCourseSaver, type BatchPlace } from '@/features/recommendations/course-save';
 import { formatDistance } from '@/shared/utils/distance';
 import { getApiError } from '@/shared/api/api-error';
@@ -29,6 +29,10 @@ export default function RecommendationScreen() {
   const preview = useMutation({ mutationFn: (conditions: CourseRequest) => previewCourse(scheduleId, conditions) });
   const [result, setResult] = useState<CourseResult | null>(null);
   const [conditions, setConditions] = useState<CourseRequest | null>(null);
+  // 지금까지 보여준 추천 장소의 place_key. "다시 추천" 때만 보내고, 조건을 바꿔 새로 찾으면
+  // 비운다(API_SPEC 코스 추천 미리보기 '다시 추천'). conditions와 따로 두어, 완화 제안이나
+  // 조건 수정으로 새로 찾을 때 예전 값이 섞여 들어가지 않게 한다.
+  const [shownKeys, setShownKeys] = useState<string[]>([]);
   const [editing, setEditing] = useState(true);
   const [selectedRank, setSelectedRank] = useState<number | null>(null);
   const [selectedPlace, setSelectedPlace] = useState<string | undefined>();
@@ -55,15 +59,25 @@ export default function RecommendationScreen() {
     params.from === 'plan'
       ? router.replace({ pathname: '/schedules/[id]/plan', params: { id: String(scheduleId) } })
       : router.replace({ pathname: '/schedules/[id]', params: { id: String(scheduleId) } });
-  async function request(next: CourseRequest) {
+  /** 코스를 찾는다. reroll이면 지금까지 본 장소를 빼 달라고 함께 보낸다. */
+  async function request(next: CourseRequest, { reroll = false }: { reroll?: boolean } = {}) {
     if (locked.current || placementPending) return;
     locked.current = true;
     try {
-      const data = await preview.mutateAsync(next);
+      const data = await preview.mutateAsync(reroll ? { ...next, exclude_place_keys: shownKeys } : next);
+      // 다시 추천이 새 코스를 못 찾으면 보던 코스를 그대로 둔다. 빈 화면으로 바꾸면 고르던
+      // 코스를 잃고, 빈 화면 문구도 "조건에 맞는 곳이 없다"용이라 상황과 맞지 않는다.
+      if (reroll && !data.candidates.length) {
+        showSnackbar(rerollNotice(data, next, options.data?.categories ?? []) ?? '');
+        return;
+      }
+      setShownKeys(current => reroll ? mergeShownKeys(current, shownPlaceKeys(data)) : shownPlaceKeys(data));
       setResult(data); setConditions(next); setSelectedRank(data.candidates[0]?.rank ?? null); setSelectedPlace(undefined); setEditing(false);
       setChecksByRank(Object.fromEntries(data.candidates.map(candidate => [candidate.rank, recommendedIndexes(candidate)])));
       scroll.current?.scrollTo({ y: 0, animated: false });
-      if (!data.candidates.length) showSnackbar('조건에 맞는 코스가 없어요. 반경이나 소분류를 바꿔 다시 찾아보세요.');
+      const notice = reroll ? rerollNotice(data, next, options.data?.categories ?? []) : null;
+      if (notice) showSnackbar(notice);
+      else if (!data.candidates.length) showSnackbar('조건에 맞는 코스가 없어요. 반경이나 소분류를 바꿔 다시 찾아보세요.');
     } catch (caught) { showSnackbar(getApiError(caught).message); }
     finally { locked.current = false; }
   }
@@ -92,7 +106,7 @@ export default function RecommendationScreen() {
           {editing ? <ConditionForm key={JSON.stringify(conditions)} options={options.data} places={schedule.data.places} initial={conditions} busy={busy} onSubmit={request} onNotice={showSnackbar} /> : result && conditions ? <View style={[styles.card, styles.row]}><View style={styles.flex}><Text style={styles.subtitle}>{result.center.label} 주변</Text><Text style={styles.muted}>반경 {formatDistance(conditions.radius_m)} · {options.data.party_sizes.find(party => party.code === conditions.party_size)?.label} · {conditions.items.length}곳 추천</Text></View><Pressable accessibilityRole="button" disabled={selectionLocked} onPress={() => setEditing(true)} style={styles.softButton}><Text style={styles.action}>조건 바꾸기</Text></Pressable></View> : null}
           {!editing && result && conditions && !result.candidates.length ? <View style={styles.card}><Text style={styles.emptyIcon}>⌖</Text><Text style={styles.subtitle}>아직 어울리는 코스를 찾지 못했어요</Text><Text style={styles.muted}>{result.empty_item_indexes.map(index => `${index + 1}번째 ${options.data!.categories.find(category => category.code === conditions.items[index]?.category)?.label ?? '항목'}`).join(', ')}에 맞는 장소가 없어요.</Text>{result.relaxation_suggestions.map((suggestion, index) => <Pressable accessibilityRole="button" key={index} disabled={busy} onPress={() => request(relaxConditions(conditions, suggestion))} style={styles.softButton}><Text style={styles.action}>{suggestion.code === 'WIDEN_RADIUS' ? `반경 ${formatDistance(suggestion.radius_m!)}로 다시 찾기` : `${suggestion.item_index! + 1}번째 소분류를 상관없음으로 찾기`}</Text></Pressable>)}<Pressable accessibilityRole="button" disabled={selectionLocked} onPress={() => setEditing(true)} style={styles.button}><Text style={styles.action}>다른 조건으로 찾기</Text></Pressable></View> : null}
           {!editing && selected && result && conditions ? <>
-            <View style={styles.sectionHead}><Text style={styles.subtitle}>추천 코스 <Text style={styles.action}>{result.candidates.length}</Text></Text><Pressable accessibilityRole="button" disabled={selectionLocked} onPress={() => request(conditions)} style={styles.button}><Text style={styles.muted}>{preview.isPending ? '찾는 중…' : '↻ 다시 추천'}</Text></Pressable></View>
+            <View style={styles.sectionHead}><Text style={styles.subtitle}>추천 코스 <Text style={styles.action}>{result.candidates.length}</Text></Text><Pressable accessibilityRole="button" disabled={selectionLocked} onPress={() => request(conditions, { reroll: true })} style={styles.button}><Text style={styles.muted}>{preview.isPending ? '찾는 중…' : '↻ 다시 추천'}</Text></Pressable></View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.candidates}>{result.candidates.map(candidate => <Pressable key={candidate.rank} accessibilityRole="button" accessibilityState={{ selected: candidate.rank === selectedRank }} disabled={selectionLocked} onPress={() => { setSelectedRank(candidate.rank); setSelectedPlace(undefined); }} style={[styles.candidate, candidate.rank === selectedRank && styles.candidateSelected]}><View style={styles.sectionHead}><Text style={styles.muted}>코스 {String(candidate.rank).padStart(2, '0')}</Text>{candidate.rank === selectedRank && <Text style={styles.action}>✓</Text>}</View><Text style={styles.distance}>직선거리 {formatDistance(candidate.total_distance_m)}</Text><Text style={styles.muted}>{candidate.places.map(place => place.name).join(' → ')}</Text><Text style={styles.tag}>{candidate.rank === 1 ? '가장 가까운 동선' : '다른 장소로 즐기는 하루'}</Text></Pressable>)}</ScrollView>
             <View style={styles.card}><Text style={styles.eyebrow}>한눈에 보는 코스</Text><Text style={styles.subtitle}>{result.center.label}에서 이어지는 하루</Text><KakaoMap key={selectedRank} places={selected.places.map((place, index) => ({ ...place, id: String(index) }))} selectedId={selectedPlace} onSelect={setSelectedPlace} /><Text style={styles.muted}>지도는 추천 코스 전체를 보여줘요. 담을 장소는 아래에서 선택해 주세요.</Text></View>
             <View style={styles.card}><View style={styles.sectionHead}><Text style={styles.subtitle}>담을 장소를 골라 주세요</Text><Text style={styles.muted}>{selected.places.length}곳</Text></View>{selected.places.map((place, index) => <View key={`${place.kind}-${place.provider_place_id ?? index}`}>

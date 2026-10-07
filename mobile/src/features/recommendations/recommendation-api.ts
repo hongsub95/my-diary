@@ -19,9 +19,13 @@ export type CourseRequest = {
   radius_m: number;
   party_size: string;
   items: { category: string; subcategory: string }[];
+  /** "다시 추천" 때만 보낸다. 지금까지 보여준 추천 장소의 place_key */
+  exclude_place_keys?: string[];
 };
 export type CoursePlace = {
   kind: 'anchor' | 'recommended';
+  /** 추천 장소에만 있다. 다시 추천 때 그대로 돌려보낸다. 내용을 해석하지 않는다 */
+  place_key?: string | null;
   schedule_place_id: number | null;
   name: string;
   address: string | null;
@@ -45,6 +49,8 @@ export type CourseResult = {
   center: { label: string; latitude: string; longitude: string };
   candidates: CourseCandidate[];
   empty_item_indexes: number[];
+  /** 다시 추천에서 새 후보가 바닥나 이미 보여준 장소를 다시 쓴 항목 */
+  exhausted_item_indexes?: number[];
   relaxation_suggestions: Relaxation[];
   basis: 'straight_line';
 };
@@ -88,4 +94,42 @@ export function relaxConditions(request: CourseRequest, suggestion: Relaxation):
     items: request.items.map((item, index) => index === suggestion.item_index ? { ...item, subcategory: 'any' } : item),
   };
   return request;
+}
+
+// 서버가 받는 제외 목록 상한(app/recommendations/schemas.py MAX_EXCLUDED_PLACES). 넘기면 422다.
+const MAX_EXCLUDED_PLACES = 120;
+
+/**
+ * 응답의 모든 코스에서 추천 장소의 place_key를 모은다. "다시 추천" 때 빼 달라고 보낼 값이다.
+ * 웹의 recommendationModel.js와 같은 규칙이다.
+ */
+export function shownPlaceKeys(result: CourseResult): string[] {
+  const keys = result.candidates.flatMap(candidate => candidate.places
+    .filter(place => place.kind === 'recommended' && place.place_key)
+    .map(place => place.place_key as string));
+  return [...new Set(keys)];
+}
+
+/**
+ * 지금까지 본 값에 새로 본 값을 더한다. 상한을 넘으면 오래 본 것부터 버린다 — 오래전에 본
+ * 장소가 다시 나오는 편이, 요청이 거절돼 다시 추천이 아예 안 되는 것보다 낫다.
+ */
+export function mergeShownKeys(previous: string[], next: string[]): string[] {
+  return [...new Set([...previous, ...next])].slice(-MAX_EXCLUDED_PLACES);
+}
+
+/**
+ * 다시 추천 결과를 알릴 문구. 알릴 것이 없으면 null.
+ *
+ * 새 코스가 없을 때는 "조건에 맞는 곳이 없다"와 다르다 — 장소는 있지만 이미 다 보여준 것이다.
+ */
+export function rerollNotice(result: CourseResult, conditions: CourseRequest, categories: Choice[]): string | null {
+  if (!result.candidates.length) return '더 보여드릴 새 코스가 없어요. 반경을 넓히거나 조건을 바꿔 찾아보세요.';
+  const exhausted = result.exhausted_item_indexes ?? [];
+  if (!exhausted.length) return null;
+  const labels = exhausted.map(index => {
+    const label = categories.find(category => category.code === conditions.items[index]?.category)?.label ?? '항목';
+    return `${index + 1}번째 ${label}`;
+  });
+  return `${labels.join(', ')}: 더 보여드릴 곳이 없어 같은 곳을 다시 넣었어요.`;
 }

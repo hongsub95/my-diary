@@ -7,7 +7,7 @@ import { getApiErrorMessage } from '../../shared/api/apiError'
 import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 import RecommendationResults from './RecommendationResults'
 import { addRecommendedCourse, getRecommendationOptions, previewCourse } from './recommendationApi'
-import { recommendedIndexes, recommendationReturnPath, relaxConditions, toBatchPlaces } from './recommendationModel'
+import { mergeShownKeys, recommendedIndexes, recommendationReturnPath, relaxConditions, rerollNotice, shownPlaceKeys, toBatchPlaces } from './recommendationModel'
 import { formatDistance } from '../../shared/utils/distance'
 import { listSchedulePlaces } from '../../shared/api/schedules'
 import { reorderSchedulePlaces } from '../../shared/api/places'
@@ -73,6 +73,10 @@ export default function RecommendationPage() {
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
   const [result, setResult] = useState(null)
   const [conditions, setConditions] = useState(null)
+  // 지금까지 보여준 추천 장소의 place_key. "다시 추천" 때만 보내고, 조건을 바꿔 새로 찾으면
+  // 비운다(API_SPEC 코스 추천 미리보기 '다시 추천'). conditions와 따로 두는 이유는, 완화
+  // 제안이나 조건 수정으로 새로 찾을 때 예전 값이 섞여 들어가지 않게 하기 위해서다.
+  const [shownKeys, setShownKeys] = useState([])
   const [editing, setEditing] = useState(true)
   const [selectedRank, setSelectedRank] = useState(null)
   const [selectedPlace, setSelectedPlace] = useState(null)
@@ -92,18 +96,33 @@ export default function RecommendationPage() {
   const selectionLocked = busy || placementPending
   const eligible = schedule.data?.status === 'planned' && ['upcoming', 'today'].includes(schedule.data?.experience_phase)
 
-  async function request(next) {
+  /**
+   * 코스를 찾는다.
+   *
+   * @param {object} next 추천 조건
+   * @param {{reroll?: boolean}} [options] reroll이면 지금까지 본 장소를 빼 달라고 함께 보낸다
+   */
+  async function request(next, { reroll = false } = {}) {
     if (locked.current || placementPending) return
     locked.current = true
     try {
-      const data = await preview.mutateAsync(next)
+      const data = await preview.mutateAsync(reroll ? { ...next, exclude_place_keys: shownKeys } : next)
+      // 다시 추천이 새 코스를 못 찾으면 보던 코스를 그대로 둔다. 빈 화면으로 바꾸면 고르던
+      // 코스를 잃고, 빈 화면 문구도 "조건에 맞는 곳이 없다"용이라 상황과 맞지 않는다.
+      if (reroll && !data.candidates.length) {
+        showSnackbar(rerollNotice(data, next, options.data.categories))
+        return
+      }
+      setShownKeys(current => reroll ? mergeShownKeys(current, shownPlaceKeys(data)) : shownPlaceKeys(data))
       setConditions(next)
       setResult(data)
       setSelectedRank(data.candidates[0]?.rank ?? null)
       setSelectedPlace(null)
       setChecksByRank(Object.fromEntries(data.candidates.map(candidate => [candidate.rank, recommendedIndexes(candidate)])))
       setEditing(false)
-      if (!data.candidates.length) showSnackbar('조건에 맞는 코스가 없어요. 반경이나 소분류를 바꿔 다시 찾아보세요.')
+      const notice = reroll ? rerollNotice(data, next, options.data.categories) : null
+      if (notice) showSnackbar(notice)
+      else if (!data.candidates.length) showSnackbar('조건에 맞는 코스가 없어요. 반경이나 소분류를 바꿔 다시 찾아보세요.')
     } catch (caught) { showSnackbar(getApiErrorMessage(caught)) }
     finally { locked.current = false }
   }
@@ -132,7 +151,7 @@ export default function RecommendationPage() {
             {editing ? <ConditionForm key={JSON.stringify(conditions)} options={options.data} places={schedule.data.places} initial={conditions} busy={busy} onSubmit={request} /> : result && <div className="course-conditions"><div><strong><MapPinIcon /> {result.center.label} 주변</strong><p>반경 {formatDistance(conditions.radius_m)} · {options.data.party_sizes.find(party => party.code === conditions.party_size)?.label} · {conditions.items.length}곳 추천</p></div><button type="button" disabled={selectionLocked} onClick={() => setEditing(true)}>조건 바꾸기</button></div>}
             {!editing && result && !result.candidates.length && <section className="course-state"><MapPinIcon /><h2>아직 어울리는 코스를 찾지 못했어요</h2><p>{result.empty_item_indexes.map(index => `${index + 1}번째 ${options.data.categories.find(category => category.code === conditions.items[index]?.category)?.label ?? '항목'}`).join(', ')}에 맞는 장소가 없어요.</p><div className="course-relax">{result.relaxation_suggestions.map((suggestion, index) => <button type="button" key={index} disabled={busy} onClick={() => request(relaxConditions(conditions, suggestion))}>{suggestion.code === 'WIDEN_RADIUS' ? `반경 ${formatDistance(suggestion.radius_m)}로 다시 찾기` : `${suggestion.item_index + 1}번째 소분류를 상관없음으로 찾기`}</button>)}</div><button type="button" disabled={selectionLocked} onClick={() => setEditing(true)}>다른 조건으로 찾기</button></section>}
             {!editing && selected && <>
-              <RecommendationResults result={result} selected={selected} options={options.data} conditions={conditions} busy={busy} saving={apply.isPending} selectedPlace={selectedPlace} checkedIndexes={checkedIndexes} placementPending={placementPending} onTogglePlace={index => setChecksByRank(current => ({ ...current, [selectedRank]: checkedIndexes.includes(index) ? checkedIndexes.filter(value => value !== index) : [...checkedIndexes, index] }))} onChoose={rank => { setSelectedRank(rank); setSelectedPlace(null) }} onRefresh={() => request(conditions)} onSave={save} onSelectPlace={setSelectedPlace} onNotice={showSnackbar} />
+              <RecommendationResults result={result} selected={selected} options={options.data} conditions={conditions} busy={busy} saving={apply.isPending} selectedPlace={selectedPlace} checkedIndexes={checkedIndexes} placementPending={placementPending} onTogglePlace={index => setChecksByRank(current => ({ ...current, [selectedRank]: checkedIndexes.includes(index) ? checkedIndexes.filter(value => value !== index) : [...checkedIndexes, index] }))} onChoose={rank => { setSelectedRank(rank); setSelectedPlace(null) }} onRefresh={() => request(conditions, { reroll: true })} onSave={save} onSelectPlace={setSelectedPlace} onNotice={showSnackbar} />
             </>}
           </>}
     <Snackbar notice={notice} onDismiss={dismissSnackbar} />

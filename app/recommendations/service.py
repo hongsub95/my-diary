@@ -132,6 +132,19 @@ def build_course_preview(schedule: Schedule, request: CoursePreviewRequest) -> C
             basis="straight_line",
         )
 
+    slots, exhausted = _exclude_shown(slots, set(request.exclude_place_keys))
+    if exhausted and len(exhausted) == len(slots):
+        # 모든 항목에서 새 후보가 바닥났다. 무엇을 엮어도 이미 보여준 코스라 새로 줄 게 없다.
+        # 반경을 넓히거나 소분류를 풀면 새 후보가 생기므로 그 방법을 함께 알려준다.
+        return CoursePreviewResponse(
+            center=center,
+            candidates=[],
+            empty_item_indexes=[],
+            exhausted_item_indexes=exhausted,
+            relaxation_suggestions=_suggest_relaxation(request, exhausted),
+            basis="straight_line",
+        )
+
     build_backward = request.anchor is not None and request.anchor.position == "before"
     courses = build_courses(start, slots, build_backward=build_backward)
 
@@ -148,9 +161,42 @@ def build_course_preview(schedule: Schedule, request: CoursePreviewRequest) -> C
         center=center,
         candidates=candidates,
         empty_item_indexes=[],
+        exhausted_item_indexes=exhausted,
         relaxation_suggestions=[],
         basis="straight_line",
     )
+
+
+def _exclude_shown(
+    slots: list[list[Candidate]], shown: set[str]
+) -> tuple[list[list[Candidate]], list[int]]:
+    """"다시 추천"을 위해, 이미 보여준 장소를 항목마다 뺀다.
+
+    :param slots: 항목마다의 후보 (이미 하루에 담긴 곳은 빠져 있다)
+    :param shown: 화면이 보낸, 지금까지 보여준 추천 장소의 place_key
+    :return: (뺀 뒤의 항목별 후보, 새 후보가 바닥난 항목의 자리)
+
+    **바닥난 항목은 이미 보여준 장소를 다시 쓴다.** 후보가 적은 항목(놀이공원은 동네에
+    두세 곳뿐이다)이 한 번 만에 바닥나면, 다른 항목에 새 후보가 많아도 코스 전체가 안
+    나오게 된다. 그 항목만 예전 장소를 쓰면 다른 항목이 새로워서 코스는 여전히 새 코스다.
+
+    "이미 하루에 담긴 곳"과 다르게 다루는 이유: 담긴 곳은 다시 추천하면 쓸모가 없지만,
+    보여준 곳은 사용자가 마음에 들어 했을 수도 있다. 다른 선택지가 없을 때 다시 보여주는
+    것은 괜찮다.
+    """
+    if not shown:
+        return slots, []
+
+    result = []
+    exhausted = []
+    for index, slot in enumerate(slots):
+        fresh = [candidate for candidate in slot if candidate.key not in shown]
+        if fresh:
+            result.append(fresh)
+        else:
+            exhausted.append(index)
+            result.append(slot)
+    return result, exhausted
 
 
 def _validate_items(request: CoursePreviewRequest) -> list[Subcategory]:
@@ -332,6 +378,8 @@ def _recommended_place(
     return CoursePlace(
         kind="recommended",
         item_index=index,
+        # 코스 엮기에서 같은 장소를 가린 바로 그 값이다. 화면이 다시 추천할 때 돌려보낸다.
+        place_key=candidate.key,
         category=request.items[index].category,
         subcategory=request.items[index].subcategory,
         name=item.name,

@@ -16,6 +16,12 @@ PARTY_SIZES = (
 )
 PARTY_SIZE_CODES = {code for code, _ in PARTY_SIZES}
 
+# 다시 추천할 때 뺄 장소 수의 상한. 한 번에 최대 3코스 × 6항목 = 18곳을 보여주니, 여섯 번쯤
+# 다시 추천해도 담기는 크기다. 상한이 없으면 요청 하나에 수만 개를 실어 보낼 수 있다.
+MAX_EXCLUDED_PLACES = 120
+# place_key 하나의 최대 길이. 서버가 만드는 값은 "kakao:12345" 정도라 이 안에 충분히 들어간다.
+MAX_PLACE_KEY_LENGTH = 300
+
 
 class ChoiceOption(BaseModel):
     """코드와 화면 이름의 짝. 화면은 code를 보내고 label을 보여준다."""
@@ -86,6 +92,16 @@ class CoursePreviewRequest(BaseModel):
     radius_m: int
     party_size: str = "2"
     items: list[CourseItemInput] = Field(min_length=1, max_length=MAX_ITEM_COUNT)
+    # "다시 추천"할 때, 지금까지 보여준 추천 장소의 place_key를 모아 보낸다. 서버는 이
+    # 장소들을 빼고 코스를 짠다. 조건을 바꿔 새로 찾을 때는 비워서 보낸다.
+    exclude_place_keys: list[str] = Field(default_factory=list, max_length=MAX_EXCLUDED_PLACES)
+
+    @field_validator("exclude_place_keys")
+    @classmethod
+    def validate_place_keys(cls, value: list[str]) -> list[str]:
+        if any(len(key) > MAX_PLACE_KEY_LENGTH for key in value):
+            raise ValueError("place_key가 너무 깁니다.")
+        return value
 
     @field_validator("area_query")
     @classmethod
@@ -134,6 +150,9 @@ class CoursePlace(BaseModel):
     schedule_place_id: int | None = None
     # 추천 장소일 때만 있다. 몇 번째 코스 항목을 채운 장소인지.
     item_index: int | None = None
+    # 추천 장소일 때만 있다. 같은 장소인지 가리는 값으로, "다시 추천"할 때
+    # exclude_place_keys에 그대로 실어 보낸다. 화면은 내용을 해석하지 않는다.
+    place_key: str | None = None
     category: str | None = None
     subcategory: str | None = None
     name: str
@@ -185,5 +204,9 @@ class CoursePreviewResponse(BaseModel):
     candidates: list[CourseCandidate]
     # 후보가 하나도 없던 항목. 하나라도 있으면 코스를 만들 수 없어 candidates가 빈다.
     empty_item_indexes: list[int]
+    # 다시 추천에서, 이미 보여준 장소를 빼면 새 후보가 남지 않은 항목. 이 항목은 이미
+    # 보여준 장소를 다시 쓰고, 다른 항목이 새 장소라 코스는 여전히 새롭다. 모든 항목이
+    # 이렇게 되면 새 코스를 만들 수 없어 candidates가 빈다.
+    exhausted_item_indexes: list[int] = []
     relaxation_suggestions: list[RelaxationSuggestion]
     basis: Literal["straight_line"]

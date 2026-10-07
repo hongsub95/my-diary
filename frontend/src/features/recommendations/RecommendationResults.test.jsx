@@ -165,3 +165,33 @@ for (const [platform, createSaver, insert] of [['web', createCourseSaver, insert
     assert.equal(writes, 1)
   })
 }
+
+test('reroll collects place keys from every course, skipping the anchor and duplicates', async () => {
+  const { shownPlaceKeys } = await import('./recommendationModel')
+  const keyed = (name, kind = 'recommended') => ({ ...place(name, kind), place_key: kind === 'anchor' ? null : `kakao:${name}` })
+  const result = { candidates: [
+    { rank: 1, places: [keyed('기준', 'anchor'), keyed('카페A'), keyed('식당A')] },
+    { rank: 2, places: [keyed('카페B'), keyed('식당A')] },
+  ] }
+  assert.deepEqual(shownPlaceKeys(result).sort(), ['kakao:식당A', 'kakao:카페A', 'kakao:카페B'])
+})
+
+test('reroll keeps at most 120 keys and drops the oldest first', async () => {
+  const { mergeShownKeys } = await import('./recommendationModel')
+  const old = Array.from({ length: 110 }, (_, i) => `old-${i}`)
+  const fresh = Array.from({ length: 20 }, (_, i) => `new-${i}`)
+  const merged = mergeShownKeys(old, fresh)
+  assert.equal(merged.length, 120)
+  assert.ok(!merged.includes('old-0'), '가장 오래 본 값부터 버린다')
+  assert.ok(merged.includes('new-19'), '방금 본 값은 남는다')
+  assert.deepEqual(mergeShownKeys(['a'], ['a', 'b']), ['a', 'b'])
+})
+
+test('reroll notice tells "already shown" apart from "nothing matches"', async () => {
+  const { rerollNotice } = await import('./recommendationModel')
+  const categories = [{ code: 'cafe', label: '카페·디저트' }, { code: 'activity', label: '체험·놀이' }]
+  const conds = { items: [{ category: 'cafe' }, { category: 'activity' }] }
+  assert.match(rerollNotice({ candidates: [], exhausted_item_indexes: [0, 1] }, conds, categories), /더 보여드릴 새 코스가 없어요/)
+  assert.equal(rerollNotice({ candidates: [{}], exhausted_item_indexes: [] }, conds, categories), null)
+  assert.equal(rerollNotice({ candidates: [{}], exhausted_item_indexes: [1] }, conds, categories), '2번째 체험·놀이: 더 보여드릴 곳이 없어 같은 곳을 다시 넣었어요.')
+})
