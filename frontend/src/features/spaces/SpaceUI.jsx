@@ -33,7 +33,7 @@ export function SpaceConfirm({ confirmation, busy, onClose }) {
       }
     }}>
       <h2 id="space-confirm-title">{confirmation.title}</h2><p>{confirmation.message}</p>
-      <div className="space-actions"><button type="button" className="space-button" disabled={busy} onClick={onClose}>취소</button>
+      <div className="space-actions"><button type="button" className="space-button" disabled={busy} onClick={onClose}>{confirmation.cancelLabel ?? '취소'}</button>
         <button type="button" className="space-button space-button--danger" disabled={busy} onClick={confirmation.onConfirm}>{busy ? '처리 중…' : confirmation.label}</button></div>
     </section>
   </div>

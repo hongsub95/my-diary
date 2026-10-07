@@ -26,8 +26,10 @@ export type SchedulePlaceView = {
 /** 화면이 쓰는 일정 하나. */
 export type ScheduleView = {
   id: number;
+  space_id: string;
+  created_by: Schedule['created_by'];
   title: string;
-  description: string;
+  description: string | null;
   start_at: string;
   end_at: string;
   status: Schedule['status'];
@@ -68,6 +70,8 @@ function toPlaceView(item: SchedulePlace): SchedulePlaceView {
 export function toScheduleView(schedule: Schedule): ScheduleView {
   return {
     id: schedule.id,
+    space_id: schedule.space_id,
+    created_by: schedule.created_by,
     title: schedule.title,
     description: schedule.description,
     start_at: schedule.start_at,

@@ -47,6 +47,16 @@ export async function getSchedule(scheduleId: number): Promise<Schedule> {
   return response.data;
 }
 
+export type UpdateScheduleInput = Partial<Pick<Schedule, 'title' | 'start_at' | 'end_at'>> & { description?: string | null };
+
+export async function updateSchedule(scheduleId: number, changes: UpdateScheduleInput): Promise<Schedule> {
+  return (await apiClient.patch<Schedule>(`/schedules/${scheduleId}`, changes)).data;
+}
+
+export async function deleteSchedule(scheduleId: number): Promise<void> {
+  await apiClient.delete(`/schedules/${scheduleId}`);
+}
+
 /** 일정의 장소를 방문 순서대로 조회한다. */
 export async function listSchedulePlaces(scheduleId: number): Promise<SchedulePlace[]> {
   const response = await apiClient.get<SchedulePlaceListResponse>(`/schedules/${scheduleId}/places`);

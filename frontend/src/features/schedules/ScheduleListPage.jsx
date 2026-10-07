@@ -1,4 +1,6 @@
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { Snackbar } from '../../shared/components/Snackbar'
 import { Icon } from '../../shared/components/Icon'
 import { EmptyState } from '../../shared/components/EmptyState'
 import calendarRaw from '../../assets/icons/calendar.svg?raw'
@@ -67,6 +69,8 @@ function dateKeyAfter(days) {
  */
 export default function ScheduleListPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [notice, setNotice] = useState(location.state?.notice ? { message: location.state.notice } : null)
   // 오늘부터 앞으로만 받는다. 지난 하루는 애초에 목록에 오지 않는다.
   const { data: schedules = [] } = useSchedules({
     from: dateKeyAfter(0),
@@ -112,6 +116,7 @@ export default function ScheduleListPage() {
           지난 하루는 기록에서 다시 볼 수 있어요 →
         </button>
       </div>
+      <Snackbar notice={notice} onDismiss={() => setNotice(null)} />
     </div>
   )
 }

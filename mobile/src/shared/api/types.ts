@@ -49,7 +49,7 @@ export type Schedule = {
   space_id: SpaceId;
   space_name: string;
   title: string;
-  description: string;
+  description: string | null;
   start_at: string;
   end_at: string;
   status: 'planned' | 'completed' | 'canceled';

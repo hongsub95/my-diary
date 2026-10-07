@@ -61,6 +61,8 @@ function toPlaceView(item) {
 export function toScheduleView(schedule) {
   return {
     id: schedule.id,
+    space_id: schedule.space_id,
+    created_by: schedule.created_by,
     title: schedule.title,
     description: schedule.description,
     start_at: schedule.start_at,

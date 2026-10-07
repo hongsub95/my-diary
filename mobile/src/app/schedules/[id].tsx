@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -16,7 +16,9 @@ import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
-import { formatKoreanDateTime } from '@/shared/utils/date';
+import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
+import { SpaceButton } from '@/features/spaces/space-ui';
+import { scheduleWhen, useScheduleAccess } from '@/features/schedules/schedule-management';
 
 const PHASE_LABELS: Record<string, string> = {
   upcoming: '예정',
@@ -138,11 +140,12 @@ function PlaceList({
 export default function ScheduleDetailScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
-  const params = useLocalSearchParams<{ id?: string | string[] }>();
+  const params = useLocalSearchParams<{ id?: string | string[]; notice?: string }>();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
   const scheduleId = Number(rawId);
 
   const schedule = useSchedule(scheduleId);
+  const access = useScheduleAccess(schedule.data);
   const {
     complete,
     toggleVisited,
@@ -152,11 +155,14 @@ export default function ScheduleDetailScreen() {
     reorderPlaces,
     optimizePlaces,
   } = useScheduleActions(scheduleId);
-  const [error, setError] = useState<string | null>(null);
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
+  useEffect(() => {
+    if (typeof params.notice === 'string' && params.notice) { showSnackbar(params.notice); router.setParams({ notice: undefined }); }
+  }, [params.notice, router, showSnackbar]);
   const [picking, setPicking] = useState(false);
 
   if (schedule.isLoading) return <LoadingScreen message="하루를 불러오고 있어요." />;
-  if (schedule.isError || !schedule.data) {
+  if (schedule.isError || access.space.isError || !schedule.data) {
     return (
       <ErrorState
         message={schedule.error ? getApiError(schedule.error).message : '일정을 찾을 수 없습니다.'}
@@ -174,11 +180,11 @@ export default function ScheduleDetailScreen() {
   const nextPlace = day.places.find((place) => !place.visited) ?? null;
 
   async function run(action: () => Promise<unknown>) {
-    setError(null);
+    dismissSnackbar();
     try {
       await action();
     } catch (caught) {
-      setError(getApiError(caught).message);
+      showSnackbar(getApiError(caught).message);
     }
   }
 
@@ -292,10 +298,14 @@ export default function ScheduleDetailScreen() {
             {PHASE_LABELS[phase] ?? phase} · {day.space_name}
           </Text>
           <Text style={styles.title}>{day.title}</Text>
-          <Text style={styles.when}>{formatKoreanDateTime(day.start_at)}</Text>
+          <Text style={styles.when}>{scheduleWhen(day)}</Text>
         </View>
 
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+        {access.canEdit && <View style={styles.section}>
+          <Text style={styles.sectionTitle}>일정 관리</Text>
+          <SpaceButton onPress={() => router.push({ pathname: '/schedules/[id]/edit', params: { id: String(scheduleId) } })}>일정 고치기</SpaceButton>
+          {access.canDelete && <SpaceButton kind="danger" onPress={() => router.push({ pathname: '/schedules/[id]/delete', params: { id: String(scheduleId) } })}>일정 지우기</SpaceButton>}
+        </View>}
 
         {/* 당일에는 다음 장소와 진행률을 맨 위에 둔다. 지금 뭘 하면 되는지가 먼저다. */}
         {isToday && day.places.length > 0 ? (
@@ -342,6 +352,7 @@ export default function ScheduleDetailScreen() {
           </Pressable>
         ) : null}
       </ScrollView>
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
   );
 }

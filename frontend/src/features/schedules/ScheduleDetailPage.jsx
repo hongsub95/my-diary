@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
 import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
 import plusRaw from '../../assets/icons/plus.svg?raw'
@@ -15,9 +15,10 @@ import { moveItem } from '../../shared/utils/reorder'
 import OptimizeSuggestion from './OptimizeSuggestion'
 import PlaceNoteEditor from './PlaceNoteEditor'
 import DiarySection from '../diaries/DiarySection'
+import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
+import { scheduleWhen, useScheduleAccess } from './scheduleManagement'
 import './schedules.css'
-
-const DAYS = ['일', '월', '화', '수', '목', '금', '토']
+import './schedule-management.css'
 
 const PHASE_LABELS = {
   upcoming: '예정',
@@ -25,19 +26,6 @@ const PHASE_LABELS = {
   record_pending: '기록을 기다리는 중',
   recorded: '기록함',
   canceled: '취소됨',
-}
-
-function formatFullDate(dateStr) {
-  const d = new Date(dateStr)
-  return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${DAYS[d.getDay()]})`
-}
-
-function formatTime(dateStr) {
-  const d = new Date(dateStr)
-  const h = d.getHours()
-  const m = d.getMinutes()
-  const ampm = h < 12 ? '오전' : '오후'
-  return `${ampm} ${h % 12 || 12}:${String(m).padStart(2, '0')}`
 }
 
 /**
@@ -185,14 +173,18 @@ function PlaceList({ places, checkable, reorderable, editable, mutations, onErro
 export default function ScheduleDetailPage() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { data: schedule, isLoading } = useSchedule(id)
+  const location = useLocation()
+  const { data: schedule, isLoading, isError } = useSchedule(id)
+  const access = useScheduleAccess(schedule)
+  const feedback = useSnackbar()
+  const [successNotice, setSuccessNotice] = useState(location.state?.notice ? { message: location.state.notice } : null)
   const mutations = useSchedulePlaceMutations(id)
   const complete = useCompleteSchedule(id)
   const [picking, setPicking] = useState(false)
-  const [error, setError] = useState('')
+  const showError = message => { if (message) feedback.showSnackbar(message) }
 
   if (isLoading) return <div className="sdetail-loading">로딩 중...</div>
-  if (!schedule) return <div className="sdetail-loading">일정을 찾을 수 없어요</div>
+  if (isError || access.space.isError || !schedule) return <div className="sdetail-loading">일정을 찾을 수 없거나 접근할 수 없어요. <button type="button" className="space-button" onClick={() => navigate('/schedules', { replace: true })}>일정 목록으로</button></div>
 
   const phase = schedule.experience_phase
   const isToday = phase === 'today'
@@ -230,7 +222,7 @@ export default function ScheduleDetailPage() {
           reorderable={!isToday && !isDone}
           editable={!isDone}
           mutations={mutations}
-          onError={setError}
+          onError={showError}
         />
       )}
     </section>
@@ -253,13 +245,15 @@ export default function ScheduleDetailPage() {
           </span>
         </div>
         <p className="sdetail-header__time">
-          {schedule.space_name} · {formatFullDate(schedule.start_at)} ·{' '}
-          {formatTime(schedule.start_at)} – {formatTime(schedule.end_at)}
+          {schedule.space_name} · {scheduleWhen(schedule)}
         </p>
       </div>
 
       <div className="sdetail-body">
-        {error && <p className="sdetail-error" role="alert">{error}</p>}
+        {access.canEdit && <details className="sdetail-management-menu"><summary>일정 관리</summary><div className="sdetail-manage">
+          <button type="button" onClick={() => navigate(`/schedules/${id}/edit`)}>일정 고치기</button>
+          {access.canDelete && <button type="button" className="sdetail-manage-delete" onClick={() => navigate(`/schedules/${id}/delete`)}>일정 지우기</button>}
+        </div></details>}
 
         {/* 당일에는 다음 장소와 진행률을 맨 위에 둔다. 지금 뭘 하면 되는지가 먼저다. */}
         {isToday && schedule.places.length > 0 && (
@@ -300,11 +294,11 @@ export default function ScheduleDetailPage() {
             type="button"
             className="sdetail-complete"
             onClick={async () => {
-              setError('')
+              feedback.dismissSnackbar()
               try {
                 await complete.mutateAsync()
               } catch (caught) {
-                setError(getApiErrorMessage(caught))
+                feedback.showSnackbar(getApiErrorMessage(caught))
               }
             }}
             disabled={complete.isPending}
@@ -313,6 +307,7 @@ export default function ScheduleDetailPage() {
           </button>
         )}
       </div>
+      <Snackbar notice={feedback.notice ?? successNotice} onDismiss={() => { feedback.dismissSnackbar(); setSuccessNotice(null) }} />
     </div>
   )
 }

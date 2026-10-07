@@ -35,6 +35,15 @@ export async function getSchedule(scheduleId) {
   return data
 }
 
+export async function updateSchedule(scheduleId, changes) {
+  const { data } = await apiClient.patch(`/schedules/${scheduleId}`, changes, { timeout: 15000 })
+  return data
+}
+
+export async function deleteSchedule(scheduleId) {
+  await apiClient.delete(`/schedules/${scheduleId}`, { timeout: 15000 })
+}
+
 /**
  * 일정의 장소를 방문 순서대로 조회한다.
  *

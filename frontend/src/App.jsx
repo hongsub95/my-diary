@@ -10,6 +10,7 @@ import ScheduleListPage from './features/schedules/ScheduleListPage'
 import ScheduleDetailPage from './features/schedules/ScheduleDetailPage'
 import ScheduleNewPage from './features/schedules/ScheduleNewPage'
 import SchedulePlanPage from './features/schedules/SchedulePlanPage'
+import ScheduleManagementPage from './features/schedules/ScheduleManagementPage'
 import RecommendationPage from './features/recommendations/RecommendationPage'
 import MorePage from './features/more/MorePage'
 import CollectionPage from './features/collection/CollectionPage'
@@ -59,6 +60,8 @@ export default function App() {
           작성 도중 다른 화면으로 새어 나가 입력이 사라진다. */}
       <Route path="/schedules/new" element={<PrivateRoute><ScheduleNewPage /></PrivateRoute>} />
       <Route path="/schedules/:id/plan" element={<PrivateRoute><SchedulePlanPage /></PrivateRoute>} />
+      <Route path="/schedules/:id/edit" element={<PrivateRoute><ScheduleManagementPage mode="edit" /></PrivateRoute>} />
+      <Route path="/schedules/:id/delete" element={<PrivateRoute><ScheduleManagementPage mode="delete" /></PrivateRoute>} />
       <Route path="/schedules/:id/recommendations" element={<PrivateRoute><RecommendationPage /></PrivateRoute>} />
       <Route
         path="/"

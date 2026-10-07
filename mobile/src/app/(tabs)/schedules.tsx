@@ -1,4 +1,6 @@
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -27,6 +29,11 @@ function dateKeyAfter(days: number): string {
  */
 export default function SchedulesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ notice?: string }>();
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
+  useEffect(() => {
+    if (typeof params.notice === 'string' && params.notice) { showSnackbar(params.notice); router.setParams({ notice: undefined }); }
+  }, [params.notice, router, showSnackbar]);
   // 오늘부터 앞으로만 받는다. 카드에 장소 이름을 보여주므로 장소까지 함께 받는다.
   const schedules = useSchedules({
     from: dateKeyAfter(0),
@@ -75,6 +82,7 @@ export default function SchedulesScreen() {
       <ScheduleFab
         onPress={() => router.push({ pathname: '/schedules/new', params: { date: seoulDateKey(new Date().toISOString()) } })}
       />
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
   );
 }
