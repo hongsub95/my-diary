@@ -50,6 +50,13 @@ DEFAULT_ITEM_COUNT = 3
 # 어렵고, 연타나 직접 호출은 여기서 막힌다.
 PREVIEW_LIMIT_PER_MINUTE = 10
 
+# 한 번에 보여줄 코스 수. 처음엔 넉넉히 보여주고, "다시 추천"은 적게 보여준다(2026-10-11 결정).
+# 다시 추천을 5개씩 주면 항목마다 후보를 5곳씩 써 버려, 카카오가 주는 15곳이 두 번 만에
+# 바닥난다. 실측(성수·광화문·잠실)에서 처음 5개 + 다시 3개로 다시 추천이 세 번쯤 버텼다.
+# 4·5번째 코스는 거리가 길어지지만 짧은 순으로 정렬돼 뒤에 온다.
+FIRST_COURSE_COUNT = 5
+REROLL_COURSE_COUNT = 3
+
 # 이 인원부터는 "수용 인원 확인 필요"를 붙인다. 1~2명은 어디든 들어가므로 붙이면 잡음이다.
 LARGE_PARTY_SIZES = {"3-4", "5+"}
 
@@ -150,7 +157,9 @@ def build_course_preview(schedule: Schedule, request: CoursePreviewRequest) -> C
         )
 
     build_backward = request.anchor is not None and request.anchor.position == "before"
-    courses = build_courses(start, slots, build_backward=build_backward)
+    # 제외 목록이 있으면 "다시 추천"이다. 화면은 다시 추천 때만 이 목록을 보낸다(API_SPEC).
+    limit = REROLL_COURSE_COUNT if request.exclude_place_keys else FIRST_COURSE_COUNT
+    courses = build_courses(start, slots, build_backward=build_backward, limit=limit)
 
     candidates = [
         _to_candidate(course, request, anchor_place, center, build_backward)

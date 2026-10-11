@@ -39,7 +39,8 @@ def get_options(current_user: CurrentUser) -> RecommendationOptionsResponse:
     response_model=CoursePreviewResponse,
     summary="코스 추천 미리보기",
     description=(
-        "기준 장소(이 하루에 담긴 장소)나 지역 주변에서, 고른 항목 순서대로 코스를 최대 3개 "
+        "기준 장소(이 하루에 담긴 장소)나 지역 주변에서, 고른 항목 순서대로 코스를 처음엔 최대 5개, "
+        "다시 추천(exclude_place_keys가 있을 때)엔 최대 3개 "
         "만들어 **제안만 한다.** 일정은 바뀌지 않는다. 담으려면 고른 코스의 추천 장소를 "
         "장소 추가 API로 보낸다. **직선거리 기준이다.** 항목 순서는 바꾸지 않는다. "
         "후보가 없는 항목이 있으면 200과 빈 candidates, empty_item_indexes, 완화 제안을 준다. "
