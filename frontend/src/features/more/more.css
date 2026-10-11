@@ -625,3 +625,22 @@
   gap: 10px;
   align-items: flex-start;
 }
+.more-space__text {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  margin-right: 12px;
+  text-align: left;
+}
+
+.more-space__name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+}

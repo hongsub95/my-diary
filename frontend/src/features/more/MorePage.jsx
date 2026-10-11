@@ -16,6 +16,7 @@ import './more.css'
 import { useMenus } from '../../shared/api/queries'
 import { buildAllMenus } from '../../shared/navigation/allMenus'
 import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
+import { useSpaces } from '../spaces/SpaceContext'
 
 // 더보기 안의 항목은 동작이 제각각이라 DB로 관리하지 않고 여기서 관리한다
 // (docs/BOTTOM_NAVIGATION_SPEC.md 8.1절). 그룹 구성은 같은 문서 6.5절을 따른다.
@@ -24,7 +25,6 @@ import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 // 눌리지 않고 '준비 중'으로 표시한다. 미구현 항목을 눌러 빈 화면이나 오류를 보여주지
 // 않기 위한 장치다(같은 문서 7절). 화면이 준비되면 to만 채우면 된다.
 const MENU_GROUPS = [
-  { title: '함께 쓰는 공간', items: [{ key: 'spaces', label: '공간 바꾸기 · 관리', to: '/spaces' }] },
   {
     title: '내 정보',
     items: [
@@ -66,6 +66,7 @@ const ALL_MENU_ICONS = {
  */
 export default function MorePage() {
   const { user, logout } = useAuth()
+  const { currentSpace } = useSpaces()
   const navigate = useNavigate()
   const location = useLocation()
   const menuQuery = useMenus()
@@ -114,6 +115,18 @@ export default function MorePage() {
           <div>
             <p className="more-profile__name">{user?.nickname}</p>
             <p className="more-profile__email">{user?.email}</p>
+          </div>
+        </section>
+
+        <section className="more-group" aria-label="나의 공간">
+          <div className="more-menu">
+            <button type="button" className="more-menu__item" onClick={() => navigate('/spaces', { state: { from: '/more' } })}>
+              <span className="more-space__text">
+                <strong>나의 공간</strong>
+                <span className="more-space__name">{currentSpace?.name ?? '공간 바꾸기 · 관리'}</span>
+              </span>
+              <Icon raw={chevronRightRaw} size={16} className="more-menu__arrow" />
+            </button>
           </div>
         </section>
 

@@ -11,6 +11,7 @@ import { useNavigableMenus } from '@/features/menus/menu-api';
 import { buildAllMenus } from '@/features/menus/all-menus';
 import { MenuIcon } from '@/features/menus/menu-icon';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
+import { useSpaces } from '@/features/spaces/space-context';
 
 type MoreMenuItem = {
   key: string;
@@ -28,7 +29,6 @@ type MoreMenuItem = {
 // 더보기 안의 항목은 동작이 제각각이라 DB로 관리하지 않고 여기서 관리한다(8.1절).
 // 그룹 구성은 6.5절을 따르며, 웹의 frontend/src/features/more/MorePage.jsx와 같은 구성이다.
 const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
-  { title: '함께 쓰는 공간', items: [{ key: 'spaces', label: '공간 바꾸기 · 관리', href: '/spaces' }] },
   {
     title: '내 정보',
     items: [
@@ -59,6 +59,7 @@ const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
  */
 export default function MoreScreen() {
   const { logout, user } = useAuth();
+  const { currentSpace } = useSpaces();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
   const menuQuery = useNavigableMenus();
@@ -86,6 +87,18 @@ export default function MoreScreen() {
           <View style={styles.profileText}>
             <Text style={styles.nickname}>{user?.nickname}</Text>
             <Text style={styles.email}>{user?.email}</Text>
+          </View>
+        </View>
+
+        <View style={styles.group}>
+          <View style={styles.card}>
+            <Pressable accessibilityRole="button" onPress={() => router.push('/spaces')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+              <View style={styles.spaceText}>
+                <Text style={styles.rowLabel}>나의 공간</Text>
+                <Text style={styles.rowValueText} numberOfLines={1}>{currentSpace?.name ?? '공간 바꾸기 · 관리'}</Text>
+              </View>
+              <Text style={styles.rowArrow}>›</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -188,6 +201,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   // 터치 영역을 44px 이상으로 유지한다 (BOTTOM_NAVIGATION_SPEC.md 7절).
   row: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 52, paddingHorizontal: spacing.lg, paddingVertical: 14 },
   rowLabel: { color: colors.text, fontSize: typography.body, fontWeight: typography.regular },
+  spaceText: { flex: 1, gap: spacing.xs, marginRight: spacing.sm },
   // 항목 전체를 흐리게 하면 무엇이 준비 중인지 읽기 어려워진다. 글자색만 낮춘다.
   rowLabelMuted: { color: colors.muted },
   rowValue: { alignItems: 'center', flexDirection: 'row', gap: 8, marginRight: spacing.sm },

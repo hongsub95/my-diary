@@ -7,7 +7,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { useCurrentSpaceId } from '@/features/spaces/space-context';
-import { SpaceSwitcher } from '@/features/spaces/space-switcher';
 import { apiClient } from '@/shared/api/client';
 import type { Schedule } from '@/shared/api/types';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
@@ -56,7 +55,6 @@ export default function CollectionScreen() {
   const items = query.data?.pages.flatMap(page => page.items) ?? [];
   const hasFilters = Boolean(filters.q || filters.from || filters.to);
   return <SafeAreaView style={styles.safeArea}>
-    <SpaceSwitcher />
     <View style={styles.header}>
       <Pressable accessibilityRole="button" onPress={() => router.canGoBack() ? router.back() : router.replace('/(tabs)/more')} style={styles.back}><Text style={styles.link}>‹ 전체 메뉴</Text></Pressable>
       <Text style={styles.title}>모아보기</Text>
