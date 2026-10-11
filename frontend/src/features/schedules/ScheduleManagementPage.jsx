@@ -182,8 +182,6 @@ function ManagementForm({ schedule, access, mode }) {
     </header>
     {isEdit ? <form id="schedule-edit-form" ref={formElement} onSubmit={save} noValidate className="snew-form">
       <div className="schedule-manage-intro"><span className="snew-form__eyebrow">EDIT YOUR DAY</span><h2>계획이 바뀌었나요?</h2><p>저장해 둔 하루의 정보를 고쳐주세요.</p></div>
-      <div className="schedule-manage-space"><span>저장된 공간</span><strong>{schedule.space_name}</strong>
-        {access.space.data?.type === 'shared' && <p>함께 쓰는 공간의 일정은 변경 내용이 모두에게 보여요.</p>}</div>
       <fieldset disabled={busy || leaving} className="schedule-manage-fields">
         <div className="snew-form__field"><label className="snew-form__label" htmlFor="edit-title">하루의 이름 *</label>
           <input id="edit-title" name="title" required className="snew-form__input" value={form.title} onChange={e => set('title', e.target.value)} /></div>

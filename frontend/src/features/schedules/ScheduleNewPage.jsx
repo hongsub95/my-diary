@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { getSchedule, updateSchedule } from '../../shared/api/schedules'
 import { Icon } from '../../shared/components/Icon'
 import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
 import { useCreateSchedule } from '../../shared/api/queries'
@@ -31,22 +33,33 @@ function toUtcIso(date, timeText) {
 }
 
 export default function ScheduleNewPage() {
+  const [params] = useSearchParams()
+  const id = params.get('scheduleId')
+  const query = useQuery({ queryKey: ['schedules', 'step-one', id], queryFn: () => getSchedule(id), enabled: Boolean(id), staleTime: 0 })
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
+  if (id && query.isPending) return <div className="snew-page">하루를 불러오고 있어요.</div>
+  if (id && (query.isError || !query.data)) return <div className="snew-page"><button type="button" onClick={() => { showSnackbar('하루를 불러오지 못했어요. 다시 시도해 주세요.'); query.refetch() }}>하루 다시 불러오기</button><Snackbar notice={notice} onDismiss={dismissSnackbar} /></div>
+  return <ScheduleBasicsForm key={id ?? 'new'} existing={id ? query.data : null} />
+}
+
+function ScheduleBasicsForm({ existing }) {
   const navigate = useNavigate()
-  const { spaces, spacesQuery, currentSpaceId, selectSpace } = useSpaces()
-  const [selectedSpaceId, setSelectedSpaceId] = useState(null)
-  const targetSpaceId = selectedSpaceId ?? currentSpaceId
+  const queryClient = useQueryClient()
+  const update = useMutation({ mutationFn: changes => updateSchedule(existing.id, changes) })
+  const { spaces, spacesQuery, currentSpaceId } = useSpaces()
+  const targetSpaceId = existing?.space_id ?? currentSpaceId
   const targetSpace = spaces.find(space => space.id === targetSpaceId)
   const submitLock = useRef(false)
   const createSchedule = useCreateSchedule()
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
   const today = serviceDateFormatter.format(new Date())
   const [form, setForm] = useState({
-    title: '',
-    start_date: today,
-    end_date: today,
-    start_time: '12:00',
-    end_time: '15:00',
-    memo: '',
+    title: existing?.title ?? '',
+    start_date: existing ? serviceDateFormatter.format(new Date(existing.start_at)) : today,
+    end_date: existing ? serviceDateFormatter.format(new Date(existing.end_at)) : today,
+    start_time: existing ? new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(existing.start_at)) : '12:00',
+    end_time: existing ? new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(existing.end_at)) : '15:00',
+    memo: existing?.description ?? '',
   })
 
   const set = (key, val) => setForm((f) => ({ ...f, [key]: val }))
@@ -54,7 +67,7 @@ export default function ScheduleNewPage() {
   const handleSubmit = async (e) => {
     e.preventDefault()
     if (submitLock.current) return
-    if (!targetSpace || spacesQuery.isError) { showSnackbar('하루를 저장할 공간을 확인하고 다시 선택해 주세요.'); return }
+    if (!targetSpace || spacesQuery.isError) { showSnackbar('현재 공간을 확인하지 못했어요. 다시 시도해 주세요.'); void spacesQuery.refetch(); return }
     const invalid = !form.title.trim() ? ['하루의 이름을 입력해 주세요.', 'schedule-title']
       : !form.start_date ? ['시작일을 선택해 주세요.', 'schedule-start-date']
         : !form.end_date ? ['종료일을 선택해 주세요.', 'schedule-end-date']
@@ -81,17 +94,17 @@ export default function ScheduleNewPage() {
     dismissSnackbar()
     submitLock.current = true
     try {
-      const created = await createSchedule.mutateAsync({
+      const created = existing ? await update.mutateAsync({ title: form.title.trim(), description: form.memo.trim() || null, start_at: startAt, end_at: endAt }) : await createSchedule.mutateAsync({
         spaceId: targetSpaceId,
         title: form.title.trim(),
         description: form.memo.trim(),
         startAt,
         endAt,
       })
+      await queryClient.invalidateQueries({ queryKey: ['schedules'] })
       // 만든 일정으로 바로 들어가야 장소를 이어서 추가할 수 있다.
       // 저장하고 끝내지 않고 곧바로 갈 곳을 정하러 보낸다. 제품이 말하는 하루는
       // 제목과 시간이 아니라 장소와 순서다(3.2절).
-      selectSpace(targetSpaceId)
       navigate(`/schedules/${created.id}/plan`, { replace: true })
     } catch (caught) {
       showSnackbar(getApiErrorMessage(caught))
@@ -103,19 +116,13 @@ export default function ScheduleNewPage() {
   return (
     <div className="snew-page">
       <div className="snew-header">
-        <button onClick={() => navigate(-1)} className="sdetail-back-btn">
+        <button type="button" aria-label="뒤로 가기" disabled={createSchedule.isPending || update.isPending} onClick={() => existing ? navigate(`/schedules/${existing.id}/plan`, { replace: true }) : navigate(-1)} className="sdetail-back-btn">
           <Icon raw={arrowLeftRaw} size={20} />
         </button>
         <h1 className="snew-header__title">새 일정</h1>
       </div>
 
       <form onSubmit={handleSubmit} className="snew-form" noValidate>
-        <div className="snew-form__field"><label className="snew-form__label" htmlFor="schedule-space">저장할 공간</label>
-          <select id="schedule-space" className="snew-form__input" value={targetSpace?.id ?? ''} disabled={createSchedule.isPending || spacesQuery.isPending || spacesQuery.isError} onChange={event => setSelectedSpaceId(event.target.value)}>
-            <option value="" disabled>공간을 선택해 주세요</option>{spaces.map(space => <option key={space.id} value={space.id}>{space.name}{space.type === 'personal' ? ' · 개인 공간' : ' · 공유 공간'}</option>)}
-          </select><p className="space-hint">이 하루를 저장할 공간만 바꿔요. 앱을 시작할 때 여는 공간은 그대로예요.</p>
-          {spacesQuery.isError && <button type="button" className="space-button" onClick={() => spacesQuery.refetch()}>공간 다시 불러오기</button>}
-        </div>
         <div className="snew-form__intro">
           <span className="snew-form__eyebrow">NEW PLAN</span>
           <h2>어떤 하루를 보내고 싶나요?</h2>
@@ -231,8 +238,8 @@ export default function ScheduleNewPage() {
           </div>
         </section>
 
-        <button type="submit" className="snew-form__submit" disabled={createSchedule.isPending}>
-          {createSchedule.isPending ? '저장 중…' : '갈 곳 정하기 →'}
+        <button type="submit" className="snew-form__submit" disabled={createSchedule.isPending || update.isPending}>
+          {createSchedule.isPending || update.isPending ? '저장 중…' : '갈 곳 정하기 →'}
         </button>
       </form>
       <Snackbar notice={notice} onDismiss={dismissSnackbar} />

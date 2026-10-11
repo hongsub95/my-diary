@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -39,19 +39,18 @@ export default function SchedulePlanScreen() {
 
   const schedule = useSchedule(scheduleId);
   const { addPlace, removePlace, reorderPlaces, updatePlaceNote } = useScheduleActions(scheduleId);
-  const [error, setError] = useState<string | null>(null);
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
 
-  // 끝내면 상세로 간다. 뒤로 가기로 1단계에 돌아가지 않게 replace를 쓴다 — 하루는 이미
-  // 저장됐으니 1단계로 돌아가 다시 저장하면 같은 하루가 둘이 된다.
+  // 완료하면 상세로 이동한다. 1단계 복귀는 같은 하루 ID로 수정한다.
   const done = () =>
     router.replace({ pathname: '/schedules/[id]', params: { id: String(scheduleId) } });
 
   async function run(action: () => Promise<unknown>) {
-    setError(null);
+    dismissSnackbar();
     try {
       await action();
     } catch (caught) {
-      setError(getApiError(caught).message);
+      showSnackbar(getApiError(caught).message);
     }
   }
 
@@ -91,8 +90,9 @@ export default function SchedulePlanScreen() {
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <View style={styles.header}>
-          {/* 왼쪽 자리는 비워 둔다. 1단계로 돌아가는 뒤로 가기를 두지 않는 이유는 done 참고. */}
-          <View style={styles.headerButton} />
+          <Pressable accessibilityLabel="1단계로 돌아가기" accessibilityRole="button" disabled={busy} onPress={() => router.replace({ pathname: '/schedules/new', params: { scheduleId: String(scheduleId) } })} style={styles.headerButton}>
+            <Text style={styles.back}>‹</Text>
+          </Pressable>
           <Text style={styles.headerTitle}>하루 만들기</Text>
           <Pressable accessibilityLabel="닫기" accessibilityRole="button" onPress={done} style={styles.headerButton}>
             <Text style={styles.close}>×</Text>
@@ -199,7 +199,6 @@ export default function SchedulePlanScreen() {
             )}
           </View>
 
-          {error ? <Text style={styles.error}>{error}</Text> : null}
 
           {/* 장소가 없을 때만 "장소 없이 끝내기"를 보인다. 담은 뒤에 이 문구가 남아 있으면
               담은 장소가 버려지는 것처럼 읽힌다. 둘 다 하는 일은 같다 — 상세로 간다. */}
@@ -219,6 +218,7 @@ export default function SchedulePlanScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
   );
 }
@@ -228,6 +228,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   flex: { flex: 1 },
   header: { alignItems: 'center', backgroundColor: colors.background, flexDirection: 'row', minHeight: 58, paddingHorizontal: spacing.sm },
   headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
+  back: { color: colors.text, fontSize: 35, lineHeight: 38 },
   close: { color: colors.muted, fontSize: 25 },
   headerTitle: { color: colors.text, flex: 1, fontSize: 18, fontWeight: '600', textAlign: 'center' },
   content: { padding: spacing.lg, paddingBottom: 50 },

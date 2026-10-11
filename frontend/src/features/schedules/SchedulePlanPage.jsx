@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
 import mapPinRaw from '../../assets/icons/map-pin.svg?raw'
+import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
 import { useSchedule, useSchedulePlaceMutations } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import PlacePicker from './PlacePicker'
@@ -25,7 +26,7 @@ export default function SchedulePlanPage() {
   const navigate = useNavigate()
   const { data: schedule, isPending } = useSchedule(id)
   const { add, remove, reorder, updateNote } = useSchedulePlaceMutations(id)
-  const [error, setError] = useState('')
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
 
   const places = schedule?.places ?? []
   const done = () => navigate(`/schedules/${id}`, { replace: true })
@@ -43,20 +44,20 @@ export default function SchedulePlanPage() {
     const next = moveItem(places, index, step)
     if (next === places) return
 
-    setError('')
+    dismissSnackbar()
     try {
       await reorder.mutateAsync(next.map((place) => place.id))
     } catch (caught) {
-      setError(getApiErrorMessage(caught))
+      showSnackbar(getApiErrorMessage(caught))
     }
   }
 
   const handleRemove = async (schedulePlaceId) => {
-    setError('')
+    dismissSnackbar()
     try {
       await remove.mutateAsync(schedulePlaceId)
     } catch (caught) {
-      setError(getApiErrorMessage(caught))
+      showSnackbar(getApiErrorMessage(caught))
     }
   }
 
@@ -66,6 +67,9 @@ export default function SchedulePlanPage() {
   return (
     <div className="splan-page">
       <header className="splan-page__header">
+        <button type="button" className="sdetail-back-btn" aria-label="1단계로 돌아가기" disabled={add.isPending || remove.isPending || reorder.isPending || updateNote.isPending} onClick={() => navigate(`/schedules/new?scheduleId=${id}`, { replace: true })}>
+          <Icon raw={arrowLeftRaw} size={20} />
+        </button>
         <p className="splan-page__step">2 / 2 · 갈 곳 정하기</p>
         <h1 className="splan-page__title">{schedule.title}</h1>
         <p className="splan-page__hint">
@@ -83,7 +87,6 @@ export default function SchedulePlanPage() {
           return last ? { latitude: Number(last.latitude), longitude: Number(last.longitude) } : undefined
         })()} />
 
-        {error && <p className="splan-page__error" role="alert">{error}</p>}
 
         <section className="splan-picked">
           <h2 className="splan-picked__title">담은 장소 {places.length > 0 && `· ${places.length}곳`}</h2>
@@ -173,6 +176,7 @@ export default function SchedulePlanPage() {
           하루 완성하기
         </button>
       </footer>
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </div>
   )
 }

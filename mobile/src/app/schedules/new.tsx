@@ -1,4 +1,4 @@
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
@@ -6,8 +6,10 @@ import { Calendar, DateData } from 'react-native-calendars';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSpaces } from '@/features/spaces/space-context';
-import { createSpaceStyles, SpaceButton } from '@/features/spaces/space-ui';
-import { createSchedule } from '@/features/schedules/schedule-api';
+import { createSchedule, getSchedule, updateSchedule } from '@/features/schedules/schedule-api';
+import type { Schedule } from '@/shared/api/types';
+import { LoadingScreen } from '@/shared/components/loading-screen';
+import { ErrorState } from '@/shared/components/error-state';
 import { SelectButton, TIME_PATTERN, TimeSelect } from '@/features/schedules/time-select';
 import { getApiError } from '@/shared/api/api-error';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
@@ -25,28 +27,38 @@ const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
  * 저장하지 않는 이유는 2단계 화면(plan.tsx) 머리 주석에 있다.
  */
 export default function NewScheduleScreen() {
+  const params = useLocalSearchParams<{ scheduleId?: string | string[] }>();
+  const id = Array.isArray(params.scheduleId) ? params.scheduleId[0] : params.scheduleId;
+  const query = useQuery({ queryKey: ['schedules', 'step-one', id], queryFn: () => getSchedule(Number(id)), enabled: Boolean(id), staleTime: 0 });
+  if (id && query.isPending) return <LoadingScreen message="하루를 불러오고 있어요." />;
+  if (id && (query.isError || !query.data)) return <ErrorState message="하루를 불러오지 못했어요. 다시 시도해 주세요." onRetry={() => query.refetch()} />;
+  return <ScheduleBasicsForm key={id ?? 'new'} existing={id ? query.data : undefined} />;
+}
+
+function seoulTime(value: string) {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(value));
+}
+
+function ScheduleBasicsForm({ existing }: { existing?: Schedule }) {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { spaces, spacesQuery, currentSpaceId, selectSpace } = useSpaces();
-  const [selectedSpaceId, setSelectedSpaceId] = useState<string | null>(null);
-  const [choosingSpace, setChoosingSpace] = useState(false);
-  const targetSpaceId = selectedSpaceId ?? currentSpaceId;
+  const { spaces, spacesQuery, currentSpaceId } = useSpaces();
+  const targetSpaceId = existing?.space_id ?? currentSpaceId;
   const targetSpace = spaces.find(space => space.id === targetSpaceId);
-  const spaceStyles = useThemedStyles(createSpaceStyles);
   const params = useLocalSearchParams<{ date?: string | string[] }>();
   const initialDate = useMemo(() => {
     const value = Array.isArray(params.date) ? params.date[0] : params.date;
     return value && DATE_PATTERN.test(value) ? value : seoulDateKey(new Date().toISOString());
   }, [params.date]);
 
-  const [title, setTitle] = useState('');
-  const [startDate, setStartDate] = useState(initialDate);
-  const [endDate, setEndDate] = useState(initialDate);
+  const [title, setTitle] = useState(existing?.title ?? '');
+  const [startDate, setStartDate] = useState(existing ? seoulDateKey(existing.start_at) : initialDate);
+  const [endDate, setEndDate] = useState(existing ? seoulDateKey(existing.end_at) : initialDate);
   const [calendarTarget, setCalendarTarget] = useState<'start' | 'end' | null>(null);
-  const [startTime, setStartTime] = useState('12:00');
-  const [endTime, setEndTime] = useState('15:00');
-  const [description, setDescription] = useState('');
+  const [startTime, setStartTime] = useState(existing ? seoulTime(existing.start_at) : '12:00');
+  const [endTime, setEndTime] = useState(existing ? seoulTime(existing.end_at) : '15:00');
+  const [description, setDescription] = useState(existing?.description ?? '');
   const [submitting, setSubmitting] = useState(false);
   // 상태값(submitting)은 다음 렌더에야 반영돼서, 빠르게 두 번 누르면 둘 다 통과한다.
   // 그러면 같은 하루가 둘 생긴다. 즉시 바뀌는 ref로 한 번 더 막는다.
@@ -59,7 +71,7 @@ export default function NewScheduleScreen() {
     if (endDate < startDate) return '종료일은 시작일보다 빠를 수 없어요.';
     if (!TIME_PATTERN.test(startTime) || !TIME_PATTERN.test(endTime)) return '시간을 HH:mm 형식으로 입력해 주세요.';
     if (startDate === endDate && endTime <= startTime) return '종료 시간은 시작 시간보다 늦어야 해요.';
-    if (!targetSpace || spacesQuery.isError) return '하루를 저장할 공간을 확인하고 다시 선택해 주세요.';
+    if (!targetSpace || spacesQuery.isError) { void spacesQuery.refetch(); return '현재 공간을 확인하지 못했어요. 다시 시도해 주세요.'; }
     return null;
   }
 
@@ -72,7 +84,11 @@ export default function NewScheduleScreen() {
     dismissSnackbar();
     setSubmitting(true);
     try {
-      const schedule = await createSchedule({
+      const schedule = existing ? await updateSchedule(existing.id, {
+        title: title.trim(), description: description.trim() || null,
+        start_at: new Date(`${startDate}T${startTime}:00+09:00`).toISOString(),
+        end_at: new Date(`${endDate}T${endTime}:00+09:00`).toISOString(),
+      }) : await createSchedule({
         spaceId: targetSpaceId as string,
         title: title.trim(),
         description: description.trim(),
@@ -82,9 +98,7 @@ export default function NewScheduleScreen() {
         endTime,
       });
       await queryClient.invalidateQueries({ queryKey: ['schedules'] });
-      selectSpace(targetSpaceId as string);
-      // replace를 쓴다. 2단계에서 뒤로 가기로 이 화면에 돌아와 다시 누르면 같은 하루가
-      // 또 만들어진다.
+      // 단계 이동은 같은 하루 ID를 유지하며 기존 하루는 수정 저장한다.
       router.replace({ pathname: '/schedules/[id]/plan', params: { id: String(schedule.id) } });
     } catch (caught) {
       showSnackbar(getApiError(caught).message);
@@ -94,25 +108,18 @@ export default function NewScheduleScreen() {
     }
   }
 
+  const back = () => existing ? router.replace({ pathname: '/schedules/[id]/plan', params: { id: String(existing.id) } }) : router.back();
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.flex}>
         <View style={styles.header}>
-          <Pressable accessibilityLabel="뒤로 가기" onPress={() => router.back()} style={styles.headerButton}><Text style={styles.back}>‹</Text></Pressable>
+          <Pressable accessibilityLabel="뒤로 가기" accessibilityRole="button" disabled={submitting} onPress={back} style={styles.headerButton}><Text style={styles.back}>‹</Text></Pressable>
           <Text style={styles.headerTitle}>하루 만들기</Text>
-          <Pressable accessibilityLabel="닫기" onPress={() => router.back()} style={styles.headerButton}><Text style={styles.close}>×</Text></Pressable>
+          <Pressable accessibilityLabel="닫기" accessibilityRole="button" disabled={submitting} onPress={back} style={styles.headerButton}><Text style={styles.close}>×</Text></Pressable>
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={spaceStyles.card}>
-            <Text style={styles.label}>저장할 공간</Text>
-            <Pressable accessibilityRole="button" accessibilityLabel={`저장할 공간 바꾸기, 현재 ${targetSpace?.name ?? '선택 없음'}`} accessibilityState={{ expanded: choosingSpace, disabled: submitting || spacesQuery.isPending || spacesQuery.isError }} disabled={submitting || spacesQuery.isPending || spacesQuery.isError} style={spaceStyles.button} onPress={() => setChoosingSpace(value => !value)}>
-              <Text style={spaceStyles.buttonText}>{targetSpace?.name ?? (spacesQuery.isPending ? '공간 확인 중' : '공간을 선택해 주세요')} · 바꾸기</Text>
-            </Pressable>
-            {choosingSpace && spaces.map(space => <SpaceButton key={space.id} disabled={submitting} kind={space.id === targetSpaceId ? 'selected' : 'secondary'} onPress={() => { setSelectedSpaceId(space.id); setChoosingSpace(false); }}>{space.name} · {space.type === 'personal' ? '개인 공간' : '공유 공간'}</SpaceButton>)}
-            <Text style={spaceStyles.hint}>이 하루를 저장할 공간만 바꿔요. 앱을 시작할 때 여는 공간은 그대로예요.</Text>
-            {spacesQuery.isError && <SpaceButton onPress={() => { void spacesQuery.refetch(); }}>공간 다시 불러오기</SpaceButton>}
-          </View>
           <View style={styles.progress}><View style={styles.progressOn} /><View style={styles.progressOff} /><Text style={styles.progressText}>1 / 2</Text></View>
 
           <Text style={styles.eyebrow}>STEP 1 · 하루 정하기</Text>

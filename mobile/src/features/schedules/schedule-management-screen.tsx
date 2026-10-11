@@ -163,7 +163,6 @@ function ManagementForm({ schedule, access, mode }: { schedule: Schedule; access
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <View style={styles.intro}><Text style={styles.eyebrow}>{isEdit ? 'EDIT YOUR DAY' : 'DELETE YOUR DAY'}</Text><Text accessibilityRole="header" style={styles.title}>{isEdit ? '계획이 바뀌었나요?' : '이 일정을 지울까요?'}</Text><Text style={styles.text}>{isEdit ? '저장해 둔 하루의 정보를 고쳐주세요.' : '지우기 전에 어떤 하루인지 확인해 주세요.'}</Text></View>
         {isEdit ? <>
-          <View style={styles.card}><Text style={styles.hint}>저장된 공간</Text><Text style={styles.name}>{schedule.space_name}</Text>{shared && <Text style={styles.hint}>함께 쓰는 공간의 일정은 변경 내용이 모두에게 보여요.</Text>}</View>
           <View style={styles.field}><Text style={styles.label}>하루의 이름 *</Text><TextInput ref={titleInput} accessibilityLabel="하루의 이름, 필수" editable={!busy} style={styles.input} value={form.title} onChangeText={value => set('title', value)} /></View>
           <View style={styles.card}>{(['start', 'end'] as const).map(edge => <View key={edge} style={styles.timingRow}>
             <View style={styles.dateField}><Text style={styles.label}>{edge === 'start' ? '시작일' : '종료일'} *</Text><SelectButton disabled={busy} accessibilityLabel={edge === 'start' ? '시작일 선택' : '종료일 선택'} label={form[edge + '_date' as keyof ScheduleForm]} onPress={() => setCalendar(edge)} /></View>
