@@ -47,7 +47,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "check:map": "node scripts/check-map.cjs"
+    "check:map": "node scripts/check-map.cjs",
+    "check:home": "node scripts/check-home.cjs"
   },
   "private": true
 }

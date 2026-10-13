@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Constants from 'expo-constants';
 import { Pressable, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
@@ -13,14 +13,24 @@ export function KakaoMap({
   onSelect,
   fullBleed = false,
   showEmptyMap = false,
+  homeAppearance,
 }: MapProps) {
+  const frame = useRef<WebView>(null);
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const extra = Constants.expoConfig?.extra;
+  const primary = homeAppearance?.primary;
+  const primaryDark = homeAppearance?.primaryDark;
+  const bottomInset = homeAppearance?.bottomInset ?? 0;
   const html = useMemo(
-    () => mapHtml(extra?.kakaoJavaScriptKey ?? '', places, selectedId),
-    [extra?.kakaoJavaScriptKey, places, selectedId],
+    () => mapHtml(extra?.kakaoJavaScriptKey ?? '', places, undefined, false, undefined,
+      primary && primaryDark ? { primary, primaryDark, bottomInset: 0 } : undefined),
+    [extra?.kakaoJavaScriptKey, places, primary, primaryDark],
   );
+  const syncSelection = useCallback(() => {
+    frame.current?.injectJavaScript(`window.setMapBottomInset?.(${JSON.stringify(bottomInset)});window.setSelectedPlace?.(${JSON.stringify(selectedId ?? '')});true;`);
+  }, [selectedId, bottomInset]);
+  useEffect(syncSelection, [syncSelection, html]);
 
   if (!showEmptyMap && !places.some(hasCoordinates)) {
     return <Text style={{ color: '#736d62', padding: 12 }}>좌표가 있는 장소를 추가하면 지도에 표시돼요.</Text>;
@@ -46,12 +56,14 @@ export function KakaoMap({
         </Pressable>
       ) : (
         <WebView
+          ref={frame}
           key={attempt}
           source={{ html, baseUrl: extra?.kakaoMapBaseUrl ?? 'http://localhost:8081/' }}
           originWhitelist={['*']}
           javaScriptEnabled
           scrollEnabled={false}
           geolocationEnabled={false}
+          onLoadEnd={syncSelection}
           onError={() => setFailed(true)}
           onHttpError={() => setFailed(true)}
           onShouldStartLoadWithRequest={(request) =>

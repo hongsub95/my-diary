@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Constants from 'expo-constants';
 import { Text } from 'react-native';
 
@@ -10,10 +10,19 @@ export function KakaoMap({
   onSelect,
   fullBleed = false,
   showEmptyMap = false,
+  homeAppearance,
 }: MapProps) {
   const frame = useRef<HTMLIFrameElement>(null);
   const key = Constants.expoConfig?.extra?.kakaoJavaScriptKey ?? '';
-  const html = useMemo(() => mapHtml(key, places, selectedId), [key, places, selectedId]);
+  const primary = homeAppearance?.primary;
+  const primaryDark = homeAppearance?.primaryDark;
+  const bottomInset = homeAppearance?.bottomInset ?? 0;
+  const html = useMemo(() => mapHtml(key, places, undefined, false, undefined,
+    primary && primaryDark ? { primary, primaryDark, bottomInset: 0 } : undefined), [key, places, primary, primaryDark]);
+  const syncSelection = useCallback(() => {
+    frame.current?.contentWindow?.postMessage(JSON.stringify({ type: 'kakao-set-selection', id: selectedId ?? '', bottomInset }), window.location.origin);
+  }, [selectedId, bottomInset]);
+  useEffect(syncSelection, [syncSelection, html]);
 
   useEffect(() => {
     function receive(event: MessageEvent) {
@@ -40,6 +49,7 @@ export function KakaoMap({
       ref={frame}
       title="카카오 장소 지도"
       srcDoc={html}
+      onLoad={syncSelection}
       referrerPolicy="strict-origin-when-cross-origin"
       style={{
         width: '100%',

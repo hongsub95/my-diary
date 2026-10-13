@@ -88,9 +88,9 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
                       accessibilityState={{ selected }}
                       accessibilityLabel={`${date.getMonth() + 1}월 ${date.getDate()}일 ${WEEKDAYS[index]}요일${key === today ? ', 오늘' : ''}`}
                       onPress={() => onSelect(key)}
-                      style={styles.dayButton}>
-                      <Text style={[styles.weekday, index === 0 && styles.sunday, index === 6 && styles.saturday]}>{WEEKDAYS[index]}</Text>
-                      <View style={[styles.dateCircle, selected && styles.selectedDateCircle]}>
+                      style={[styles.dayButton, selected && styles.selectedDayButton]}>
+                      <Text style={[styles.weekday, index === 0 && styles.sunday, index === 6 && styles.saturday, selected && styles.selectedWeekday]}>{WEEKDAYS[index]}</Text>
+                      <View style={styles.dateCircle}>
                         <Text style={[styles.dateNumber, selected && styles.selectedDateNumber]}>{date.getDate()}</Text>
                       </View>
                       <View style={[styles.todayDot, key === today && !selected && styles.todayDotVisible]} />
@@ -139,21 +139,22 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   root: { zIndex: 3, backgroundColor: colors.surface, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8, borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 5 },
   monthButton: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
-  monthTitle: { color: colors.text, fontSize: 17, fontWeight: '700', letterSpacing: -0.4 },
+  monthTitle: { color: colors.text, fontSize: 16, fontWeight: '600', letterSpacing: -0.4 },
   chevronDown: { width: 9, height: 9, borderBottomWidth: 2, borderRightWidth: 2, borderColor: colors.muted, transform: [{ rotate: '45deg' }], marginTop: -4 },
   todayButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   todayText: { color: palette.primaryDark, fontSize: 12, fontWeight: '600' },
   divider: { height: 1, backgroundColor: colors.border, marginBottom: 10 },
-  viewport: { overflow: 'hidden', height: 58 },
-  weekRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  dayButton: { flex: 1, alignItems: 'center', minHeight: 55 },
-  weekday: { color: colors.muted, fontSize: 10, fontWeight: '600' },
+  viewport: { overflow: 'hidden', height: 74 },
+  weekRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
+  dayButton: { flex: 1, alignItems: 'center', borderRadius: 18, minHeight: 70, paddingVertical: 6 },
+  selectedDayButton: { backgroundColor: palette.primarySoft },
+  weekday: { color: colors.muted, fontSize: 12, fontWeight: '600' },
+  selectedWeekday: { color: palette.primaryDark },
   sunday: { color: palette.primary },
   saturday: { color: '#47749E' },
   dateCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 3 },
-  selectedDateCircle: { backgroundColor: palette.primary },
-  dateNumber: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  selectedDateNumber: { color: '#FFFFFF', fontWeight: '700' },
+  dateNumber: { color: colors.text, fontSize: 18, fontWeight: '600' },
+  selectedDateNumber: { color: palette.primaryDark, fontWeight: '700' },
   todayDot: { width: 3, height: 3, borderRadius: 2, marginTop: 2 },
   todayDotVisible: { backgroundColor: palette.primary },
   modal: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,25,23,0.35)' },

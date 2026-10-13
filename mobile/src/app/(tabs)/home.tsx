@@ -1,6 +1,8 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import {
+  AccessibilityInfo,
   Animated,
   PanResponder,
   Pressable,
@@ -16,13 +18,14 @@ import { HomeWeekStrip } from '@/features/calendar/home-week-strip';
 import { parseDate } from '@/features/calendar/calendar-dates';
 import { KakaoMap } from '@/features/places/kakao-map';
 import { useSchedules } from '@/features/schedules/schedule-queries';
+import { HomePlaceCard } from '@/features/schedules/home-place-card';
+import { homePlaceFocus, orderedHomePlaces } from '@/features/schedules/home-place-model';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
+import { useSpaces } from '@/features/spaces/space-context';
 import { getApiError } from '@/shared/api/api-error';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
-import { useThemedStyles } from '@/shared/theme-context';
+import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
-
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
 const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
   timeZone: 'Asia/Seoul',
@@ -65,17 +68,31 @@ function scheduleStateLabel(schedule: ScheduleView): string {
 
 export default function HomeScreen() {
   const styles = useThemedStyles(createStyles);
+  const palette = useTheme();
   const router = useRouter();
+  const { currentSpaceId } = useSpaces();
   const { height: windowHeight } = useWindowDimensions();
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
-  const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
-  const [activeScheduleId, setActiveScheduleId] = useState<number | null>(null);
+  const [selectedDate, setSelectedDate] = useState(() => parseDate(seoulDateKey(new Date().toISOString())));
+  const [weekStart, setWeekStart] = useState(() => startOfWeek(selectedDate));
+  const [selection, setSelection] = useState<{ context: string; scheduleId: number; placeId: number } | null>(null);
+  const [mapHeight, setMapHeight] = useState(windowHeight * 0.7);
+  const [previewHeight, setPreviewHeight] = useState(240);
+  const [reduceMotion, setReduceMotion] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    void AccessibilityInfo.isReduceMotionEnabled().then(value => { if (mounted) setReduceMotion(value); });
+    const listener = AccessibilityInfo.addEventListener('reduceMotionChanged', setReduceMotion);
+    return () => { mounted = false; listener.remove(); };
+  }, []);
 
   const weekDates = useMemo(
     () => Array.from({ length: 7 }, (_, index) => shiftDate(weekStart, index)),
     [weekStart],
   );
   const selectedDateKey = toDateKey(selectedDate);
+  const context = `${currentSpaceId}:${selectedDateKey}`;
+  const activeSelection = selection?.context === context ? selection : null;
   const rangeFrom = toDateKey(weekDates[0]);
   const rangeTo = toDateKey(weekDates[6]);
 
@@ -89,13 +106,14 @@ export default function HomeScreen() {
   );
 
   const mapData = useMemo(() => {
-    const scheduleByMarker = new Map<string, number>();
+    const scheduleByMarker = new Map<string, { scheduleId: number; placeId: number }>();
     const places = daySchedules.flatMap((schedule) =>
-      schedule.places.map((place) => {
+      orderedHomePlaces(schedule).map((place, index) => {
         const id = `${schedule.id}:${place.id}`;
-        scheduleByMarker.set(id, schedule.id);
+        scheduleByMarker.set(id, { scheduleId: schedule.id, placeId: place.id });
         return {
           id,
+          order: index + 1,
           name: place.name,
           latitude: place.latitude,
           longitude: place.longitude,
@@ -105,15 +123,28 @@ export default function HomeScreen() {
     return { places, scheduleByMarker };
   }, [daySchedules]);
 
-  const sheetHeight = Math.min(540, Math.max(390, windowHeight * 0.7));
-  const peekHeight = 184;
+  const activeSchedule = daySchedules.find(schedule => schedule.id === activeSelection?.scheduleId) ?? daySchedules[0];
+  const focusedPlace = activeSchedule ? homePlaceFocus(activeSchedule, activeSelection?.placeId).place : undefined;
+  const selectedMarkerId = activeSchedule && focusedPlace ? `${activeSchedule.id}:${focusedPlace.id}` : undefined;
+  const peekHeight = Math.min(mapHeight, previewHeight + 28);
+  const sheetHeight = Math.min(mapHeight, Math.max(peekHeight, Math.min(560, mapHeight * 0.88)));
   const collapsedY = Math.max(0, sheetHeight - peekHeight);
   const [sheetY] = useState(() => new Animated.Value(collapsedY));
   const [expanded, setExpanded] = useState(false);
 
+  const mapAppearance = useMemo(() => ({
+    primary: palette.primary,
+    primaryDark: palette.primaryDark,
+    bottomInset: peekHeight,
+  }), [palette.primary, palette.primaryDark, peekHeight]);
+
   const moveSheet = useCallback(
     (open: boolean) => {
       setExpanded(open);
+      if (reduceMotion) {
+        sheetY.setValue(open ? 0 : collapsedY);
+        return;
+      }
       Animated.spring(sheetY, {
         toValue: open ? 0 : collapsedY,
         useNativeDriver: true,
@@ -122,8 +153,23 @@ export default function HomeScreen() {
         mass: 0.9,
       }).start();
     },
-    [collapsedY, sheetY],
+    [collapsedY, reduceMotion, sheetY],
   );
+
+  useEffect(() => {
+    if (reduceMotion) {
+      sheetY.setValue(expanded ? 0 : collapsedY);
+    } else {
+      Animated.spring(sheetY, {
+        toValue: expanded ? 0 : collapsedY,
+        useNativeDriver: true,
+        damping: 24,
+        stiffness: 230,
+        mass: 0.9,
+      }).start();
+    }
+    return () => sheetY.stopAnimation();
+  }, [collapsedY, expanded, reduceMotion, sheetY]);
 
   const sheetPanResponder = useMemo(
     () =>
@@ -171,19 +217,21 @@ export default function HomeScreen() {
             const date = parseDate(key);
             setSelectedDate(date);
             setWeekStart(startOfWeek(date));
-            setActiveScheduleId(null);
+            setSelection(null);
           }}
         />
 
-        <View style={styles.mapArea}>
+        <View style={styles.mapArea} onLayout={event => setMapHeight(event.nativeEvent.layout.height)}>
           <KakaoMap
             places={mapData.places}
+            selectedId={selectedMarkerId}
+            homeAppearance={mapAppearance}
             fullBleed
             showEmptyMap
             onSelect={(markerId) => {
-              const scheduleId = mapData.scheduleByMarker.get(markerId);
-              if (scheduleId) {
-                setActiveScheduleId(scheduleId);
+              const point = mapData.scheduleByMarker.get(markerId);
+              if (point) {
+                setSelection({ context, ...point });
                 moveSheet(true);
               }
             }}
@@ -207,31 +255,33 @@ export default function HomeScreen() {
           <View style={styles.dragArea} {...sheetPanResponder.panHandlers}>
             <View style={styles.dragHandle} />
           </View>
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={expanded ? '일정 목록 접기' : '일정 목록 펼치기'}
-            onPress={() => moveSheet(!expanded)}
-            style={styles.sheetHeader}>
-            <View>
-              <Text style={styles.sheetEyebrow}>
-                {selectedDate.getMonth() + 1}월 {selectedDate.getDate()}일 {WEEKDAYS[selectedDate.getDay()]}요일
-              </Text>
-              <Text style={styles.sheetTitle}>
-                {schedules.isLoading ? '일정을 불러오는 중' : `일정 ${daySchedules.length}개`}
-              </Text>
-            </View>
-            <Pressable onPress={openNewSchedule} hitSlop={10} style={styles.addButton}>
-              <Text style={styles.addButtonText}>＋ 일정</Text>
-            </Pressable>
-          </Pressable>
-
           <ScrollView
-            scrollEnabled={expanded}
+            scrollEnabled={expanded || collapsedY === 0}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.sheetContent}>
+            <View onLayout={event => setPreviewHeight(event.nativeEvent.layout.height)}>
+              <View style={styles.sheetHeader}>
+                <View style={styles.sheetHeading}>
+                  <Text numberOfLines={2} accessibilityRole="header" style={styles.sheetTitle}>
+                    {schedules.isLoading ? '하루를 불러오는 중' : activeSchedule?.title ?? '이날의 하루'}
+                  </Text>
+                  <Text numberOfLines={1} style={styles.sheetSubtitle}>
+                    {activeSchedule ? `${activeSchedule.space_name} · 장소 ${activeSchedule.place_count}곳` : `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`}
+                  </Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={expanded ? '일정 목록 접기' : '일정 목록 펼치기'}
+                  accessibilityState={{ expanded }}
+                  onPress={() => moveSheet(!expanded)}
+                  style={styles.expandButton}>
+                  <SymbolView name={{ ios: expanded ? 'chevron.down' : 'chevron.up', android: expanded ? 'expand_more' : 'expand_less', web: expanded ? 'expand_more' : 'expand_less' }} size={16} tintColor={colors.muted} fallback={<Text style={styles.smallChevron}>{expanded ? '⌄' : '⌃'}</Text>} />
+                  <Text style={styles.expandText}>{expanded ? '접기' : '펼치기'}</Text>
+                </Pressable>
+              </View>
             {schedules.isError ? (
               <View style={styles.messageCard}>
-                <Text style={styles.messageTitle}>일정을 불러오지 못했어요</Text>
+                <Text style={styles.messageTitle}>하루를 불러오지 못했어요</Text>
                 <Text style={styles.messageBody}>{getApiError(schedules.error).message}</Text>
                 <Pressable onPress={() => schedules.refetch()} style={styles.retryButton}>
                   <Text style={styles.retryText}>다시 시도</Text>
@@ -241,22 +291,36 @@ export default function HomeScreen() {
 
             {!schedules.isLoading && !schedules.isError && daySchedules.length === 0 ? (
               <Pressable onPress={openNewSchedule} style={styles.messageCard}>
-                <Text style={styles.messageTitle}>아직 일정이 없어요</Text>
+                <Text style={styles.messageTitle}>이날은 예정된 하루가 없어요</Text>
                 <Text style={styles.messageBody}>이날의 장소와 할 일을 가볍게 계획해 보세요.</Text>
-                <Text style={styles.emptyAction}>새 일정 만들기 →</Text>
+                <Text style={styles.emptyAction}>새 하루 만들기 →</Text>
               </Pressable>
             ) : null}
 
-            {daySchedules.map((schedule) => (
+            {activeSchedule ? (
+              <HomePlaceCard
+                key={activeSchedule.id}
+                schedule={activeSchedule}
+                selectedPlaceId={activeSelection?.placeId}
+                onOpen={() => router.push({ pathname: '/schedules/[id]', params: { id: activeSchedule.id } })}
+              />
+            ) : null}
+            </View>
+
+            {expanded && daySchedules.length > 1 ? <Text style={styles.otherTitle}>이날의 다른 하루 · {daySchedules.length - 1}개</Text> : null}
+            {expanded ? daySchedules.filter(schedule => schedule.id !== activeSchedule?.id).map((schedule) => (
               <ScheduleCard
                 key={schedule.id}
                 schedule={schedule}
-                active={schedule.id === activeScheduleId}
+                active={false}
                 onPress={() =>
                   router.push({ pathname: '/schedules/[id]', params: { id: schedule.id } })
                 }
               />
-            ))}
+            )) : null}
+            {expanded ? <Pressable accessibilityRole="button" onPress={openNewSchedule} style={styles.newDayButton}>
+              <Text style={styles.newDayText}>＋ 새 하루 만들기</Text>
+            </Pressable> : null}
           </ScrollView>
         </Animated.View>
       </View>
@@ -274,7 +338,7 @@ function ScheduleCard({
   onPress: () => void;
 }) {
   const styles = useThemedStyles(createStyles);
-  const placeNames = schedule.places.map((place) => place.name);
+  const placeNames = orderedHomePlaces(schedule).map((place) => place.name);
   const placeSummary = placeNames.length > 0 ? placeNames.slice(0, 2).join(' · ') : '장소 미정';
   const remainingPlaces = Math.max(0, placeNames.length - 2);
 
@@ -312,10 +376,11 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.surface },
   screen: { flex: 1, overflow: 'hidden', backgroundColor: colors.background },
   mapArea: { flex: 1, backgroundColor: colors.sand },
+  smallChevron: { color: colors.muted, fontSize: 18 },
   sheet: {
     backgroundColor: colors.surface,
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
     bottom: 0,
     elevation: 15,
     left: 0,
@@ -324,8 +389,8 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
     right: 0,
     shadowColor: '#2B211E',
     shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.14,
-    shadowRadius: 20,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
   },
   dragArea: { alignItems: 'center', height: 28, justifyContent: 'center' },
   dragHandle: { backgroundColor: '#D7CEC8', borderRadius: radii.full, height: 4, width: 42 },
@@ -333,15 +398,18 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
-    minHeight: 58,
-    paddingBottom: 8,
-    paddingHorizontal: spacing.lg,
+    gap: 8,
+    paddingBottom: 16,
   },
-  sheetEyebrow: { color: palette.primaryDark, fontSize: 11, fontWeight: '600' },
-  sheetTitle: { color: colors.text, fontSize: 20, fontWeight: '700', letterSpacing: -0.5, marginTop: 2 },
-  addButton: { backgroundColor: palette.primarySoft, borderRadius: radii.full, paddingHorizontal: 13, paddingVertical: 9 },
-  addButtonText: { color: palette.primaryDark, fontSize: 12, fontWeight: '700' },
-  sheetContent: { gap: 10, paddingBottom: 28, paddingHorizontal: spacing.md },
+  sheetHeading: { flex: 1, gap: 4 },
+  sheetTitle: { color: colors.text, fontSize: 21, fontWeight: '700', letterSpacing: -0.5 },
+  sheetSubtitle: { color: colors.muted, fontSize: 12 },
+  expandButton: { alignItems: 'center', flexDirection: 'row', gap: 4, justifyContent: 'center', minHeight: 44, minWidth: 64 },
+  expandText: { color: colors.muted, fontSize: 12 },
+  sheetContent: { gap: 10, paddingBottom: 20, paddingHorizontal: spacing.lg },
+  otherTitle: { color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 2 },
+  newDayButton: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: radii.lg, justifyContent: 'center', minHeight: 44 },
+  newDayText: { color: palette.primaryDark, fontSize: 13, fontWeight: '600' },
   scheduleCard: {
     alignItems: 'stretch',
     backgroundColor: colors.surfaceMuted,
