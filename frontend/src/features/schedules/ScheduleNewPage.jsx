@@ -138,6 +138,17 @@ function ScheduleBasicsForm({ existing }) {
             </div>
           </div>
 
+          {/* 저장될 공간과 보는 사람을 늘 보여준다(SPACE_MODEL_SPEC 9.3, 2026-10-13 결정).
+              공유 공간을 열어 둔 채 혼자만의 하루를 만들면, 표시가 없을 땐 모르고 함께하는
+              사람에게 보이게 된다. 고르는 칸은 두지 않는다 — 다른 곳에 저장하려면 공간을
+              바꾼 뒤 만든다. */}
+          {targetSpace && (
+            <p className="snew-space-target">
+              <strong>{targetSpace.name}</strong>에 저장돼요 ·{' '}
+              {targetSpace.type === 'shared' ? `${targetSpace.member_count}명이 함께 봐요` : '나만 볼 수 있어요'}
+            </p>
+          )}
+
           <div className="snew-form__field">
             <label className="snew-form__label" htmlFor="schedule-title">하루의 이름 <span className="snew-form__required" aria-hidden="true">*</span></label>
             <input

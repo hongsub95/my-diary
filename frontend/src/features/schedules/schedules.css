@@ -1343,3 +1343,19 @@
 .splace-note__memo:hover {
   border-color: var(--color-text-disabled);
 }
+
+/* 하루 만들기 1단계: 저장될 공간. 입력칸이 아니라 안내라서 칸처럼 보이지 않게 연한 바탕만 둔다. */
+.snew-space-target {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-light);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-secondary);
+}
+
+.snew-space-target strong {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-primary-text);
+}

@@ -127,6 +127,16 @@ function ScheduleBasicsForm({ existing }: { existing?: Schedule }) {
           <Text style={styles.description}>세부 일정표보다 그날의 모습을 먼저 떠올려 보세요.</Text>
 
           <View style={styles.form}>
+          {/* 저장될 공간과 보는 사람을 늘 보여준다(SPACE_MODEL_SPEC 9.3, 2026-10-13 결정).
+              공유 공간을 열어 둔 채 혼자만의 하루를 만들면, 표시가 없을 땐 모르고 함께하는
+              사람에게 보이게 된다. 고르는 칸은 두지 않는다 — 다른 곳에 저장하려면 공간을
+              바꾼 뒤 만든다. */}
+            {targetSpace ? (
+              <Text style={styles.spaceTarget}>
+                <Text style={styles.spaceTargetName}>{targetSpace.name}</Text>에 저장돼요 ·{' '}
+                {targetSpace.type === 'shared' ? `${targetSpace.member_count}명이 함께 봐요` : '나만 볼 수 있어요'}
+              </Text>
+            ) : null}
             <Field label="하루의 이름" required>
               <TextInput accessibilityLabel="하루의 이름, 필수" onChangeText={setTitle} placeholder="하루의 이름을 작성해주세요" placeholderTextColor={colors.muted} style={styles.input} value={title} />
             </Field>
@@ -248,6 +258,9 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   eyebrow: { color: palette.primaryDark, fontSize: 14, fontWeight: '600', letterSpacing: 1.1, marginTop: 28 },
   title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1, lineHeight: 35, marginTop: 9 },
   description: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 7 },
+  // 저장될 공간. 입력칸이 아니라 안내라서 칸처럼 보이지 않게 연한 바탕만 둔다.
+  spaceTarget: { backgroundColor: palette.primarySoft, borderRadius: 12, color: colors.muted, fontSize: 13, lineHeight: 19, paddingHorizontal: 14, paddingVertical: 10 },
+  spaceTargetName: { color: palette.primaryDark, fontWeight: '600' },
   form: { gap: 15, marginTop: 25 },
   field: { gap: 7 },
   label: { color: colors.text, fontSize: 14, fontWeight: '600' },
