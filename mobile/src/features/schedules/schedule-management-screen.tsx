@@ -39,7 +39,7 @@ export function ScheduleManagementScreen({ mode }: { mode: Mode }) {
     return <SafeAreaView style={styles.screen}><View style={styles.body}><Text style={styles.title}>{mode === 'edit' ? '일정 고치기' : '일정 지우기'}</Text>
       <Text style={styles.text}>{blocked ? '일정을 찾을 수 없거나 접근할 수 없어요.' : '일정을 불러오지 못했어요.'}</Text>
       {!blocked && <SpaceButton onPress={() => { void query.refetch(); void access.space.refetch(); }}>다시 불러오기</SpaceButton>}
-      <SpaceButton onPress={() => router.replace('/(tabs)/schedules')}>일정 목록으로</SpaceButton></View></SafeAreaView>;
+      <SpaceButton onPress={() => router.dismissTo('/(tabs)/schedules')}>일정 목록으로</SpaceButton></View></SafeAreaView>;
   }
   if (query.isPending || (query.isFetching && !query.isFetchedAfterMount) || !access.canEdit) {
     return <SafeAreaView style={styles.screen}><View style={styles.body}><LoadingIndicator message="일정을 불러오고 있어요." /></View></SafeAreaView>;
@@ -70,10 +70,14 @@ function ManagementForm({ schedule, access, mode }: { schedule: Schedule; access
     if (!lock.current) setPendingAction(data.action);
   });
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
+  // 끝나면 replace가 아니라 dismissTo로 돌아간다. 이 화면은 상세 위에 열리므로, replace로
+  // 상세를 다시 띄우면 상세가 두 겹이 되고, 지운 뒤 목록을 replace로 띄우면 지운 하루의
+  // 상세가 목록 아래에 남아 뒤로 가면 "찾을 수 없음"이 뜬다. dismissTo는 대상 화면이 나올
+  // 때까지 위 화면을 걷어내고, 스택에 없으면(주소로 바로 들어온 경우) 그 자리를 바꾼다.
   useEffect(() => {
     if (!destination) return;
-    if (destination.list) router.replace({ pathname: '/(tabs)/schedules', params: { notice: destination.notice } });
-    else router.replace({ pathname: '/schedules/[id]', params: { id: String(schedule.id), notice: destination.notice } });
+    if (destination.list) router.dismissTo({ pathname: '/(tabs)/schedules', params: { notice: destination.notice } });
+    else router.dismissTo({ pathname: '/schedules/[id]', params: { id: String(schedule.id), notice: destination.notice } });
   }, [destination, router, schedule.id]);
 
   async function refresh(deleted = false) {
@@ -87,7 +91,8 @@ function ManagementForm({ schedule, access, mode }: { schedule: Schedule; access
     await refresh(true);
     if (alive.current) setDestination({ list: true, notice: '일정을 찾을 수 없거나 접근할 수 없어요. 목록을 확인해 주세요.' });
   }
-  const back = () => router.replace({ pathname: '/schedules/[id]', params: { id: String(schedule.id) } });
+  // 아래에 있는 상세로 돌아간다. 이유는 위 dismissTo 주석과 같다.
+  const back = () => router.dismissTo({ pathname: '/schedules/[id]', params: { id: String(schedule.id) } });
   const set = (key: keyof ScheduleForm, value: string) => setForm(before => ({ ...before, [key]: value }));
 
   async function save() {

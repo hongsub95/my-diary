@@ -48,7 +48,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "check:map": "node scripts/check-map.cjs",
-    "check:home": "node scripts/check-home.cjs"
+    "check:home": "node scripts/check-home.cjs",
+    "check:create-flow": "node scripts/check-create-flow-ui.cjs"
   },
   "private": true
 }

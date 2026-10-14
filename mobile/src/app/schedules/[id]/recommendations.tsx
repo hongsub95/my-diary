@@ -54,12 +54,28 @@ export default function RecommendationScreen() {
   const checkedIndexes = selectedRank == null ? [] : checksByRank[selectedRank] ?? [];
   const selectionLocked = busy || placementPending;
   const eligible = schedule.data?.status === 'planned' && ['upcoming', 'today'].includes(schedule.data.experience_phase);
-  // 하루 만들기 2단계에서 왔으면 2단계로 돌아간다. 상세로 보내면 "하루 완성하기"를 못 누른
-  // 채 흐름에서 빠져나온다. 웹의 recommendationReturnPath와 같은 규칙이다.
-  const back = () =>
-    params.from === 'plan'
-      ? router.replace({ pathname: '/schedules/[id]/plan', params: { id: String(scheduleId) } })
-      : router.replace({ pathname: '/schedules/[id]', params: { id: String(scheduleId) } });
+  /**
+   * 들어온 화면(하루 만들기 2단계 또는 상세)으로 돌아간다.
+   *
+   * 그 화면은 이 화면 바로 아래에 있으므로 back으로 이 화면만 걷어낸다. 예전처럼 replace로
+   * 같은 화면을 다시 띄우면 아래에 원래 화면이 하나 더 남는다. 2단계가 두 겹이 되면 하루를
+   * 끝낸 뒤 뒤로 갔을 때 2단계로 되돌아가 빠져나올 수 없었다.
+   *
+   * 주소로 바로 들어와 아래 화면이 없을 때만 from 값으로 갈 곳을 정한다. 2단계에서 왔으면
+   * 2단계로 보낸다. 상세로 보내면 "하루 완성하기"를 못 누른 채 흐름에서 빠져나온다.
+   * 웹의 recommendationReturnPath와 같은 규칙이다.
+   */
+  const back = () => {
+    if (router.canGoBack()) {
+      router.back();
+      return;
+    }
+    router.replace(
+      params.from === 'plan'
+        ? { pathname: '/schedules/[id]/plan', params: { id: String(scheduleId) } }
+        : { pathname: '/schedules/[id]', params: { id: String(scheduleId) } },
+    );
+  };
   /** 코스를 찾는다. reroll이면 지금까지 본 장소를 빼 달라고 함께 보낸다. */
   async function request(next: CourseRequest, { reroll = false }: { reroll?: boolean } = {}) {
     if (locked.current || placementPending) return;

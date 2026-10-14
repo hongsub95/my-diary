@@ -41,9 +41,12 @@ export default function SchedulePlanScreen() {
   const { addPlace, removePlace, reorderPlaces, updatePlaceNote } = useScheduleActions(scheduleId);
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
 
-  // 완료하면 상세로 이동한다. 1단계 복귀는 같은 하루 ID로 수정한다.
+  // 끝내면 일정 탭으로 나간다. dismissTo는 일정 탭이 나올 때까지 그 위 화면을 모두 걷어낸다.
+  // 하루 만들기 단계와 그 사이에 열었던 화면(코스 추천)이 스택에 남지 않아, 이후 뒤로 가도
+  // 만들기 단계로 되돌아오지 않는다. 예전처럼 상세로 replace하면 상세 아래에 만들기 단계가
+  // 남을 수 있었다. 하루는 1단계에서 이미 저장돼 있어 닫기(×)도 같은 동작이다.
   const done = () =>
-    router.replace({ pathname: '/schedules/[id]', params: { id: String(scheduleId) } });
+    router.dismissTo({ pathname: '/(tabs)/schedules', params: { notice: '하루를 만들었어요.' } });
 
   async function run(action: () => Promise<unknown>) {
     dismissSnackbar();
@@ -202,7 +205,7 @@ export default function SchedulePlanScreen() {
 
 
           {/* 장소가 없을 때만 "장소 없이 끝내기"를 보인다. 담은 뒤에 이 문구가 남아 있으면
-              담은 장소가 버려지는 것처럼 읽힌다. 둘 다 하는 일은 같다 — 상세로 간다. */}
+              담은 장소가 버려지는 것처럼 읽힌다. 둘 다 하는 일은 같다 — 일정 탭으로 간다. */}
           <View style={styles.actions}>
             {places.length === 0 ? (
               <Pressable accessibilityRole="button" onPress={done} style={styles.secondaryButton}>
