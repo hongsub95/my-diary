@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
+import { LoadingIndicator } from '@/shared/components/loading-indicator';
 
 export function SpaceFrame({ title, back = '/spaces', children, overlay }: PropsWithChildren<{ title: string; back?: Href; overlay?: React.ReactNode }>) {
   const router = useRouter();
@@ -18,10 +19,13 @@ export function SpaceFrame({ title, back = '/spaces', children, overlay }: Props
   </SafeAreaView>;
 }
 
-export function SpaceButton({ children, onPress, disabled = false, kind = 'secondary' }: PropsWithChildren<{ onPress: () => void; disabled?: boolean; kind?: 'primary' | 'secondary' | 'danger' | 'selected' }>) {
+export function SpaceButton({ children, onPress, disabled = false, kind = 'secondary', loadingMessage }: PropsWithChildren<{ onPress: () => void; disabled?: boolean; kind?: 'primary' | 'secondary' | 'danger' | 'selected'; loadingMessage?: string }>) {
   const s = useThemedStyles(createSpaceStyles);
-  return <Pressable accessibilityRole="button" accessibilityState={{ disabled, selected: kind === 'selected' }} disabled={disabled} onPress={onPress} style={({ pressed }) => [s.button, kind === 'primary' && s.primary, kind === 'danger' && s.danger, kind === 'selected' && s.selected, (disabled || pressed) && s.faded]}>
-    <Text style={[s.buttonText, kind === 'primary' && s.primaryText, kind === 'danger' && s.dangerText, kind === 'selected' && s.accentText]}>{children}</Text>
+  const blocked = disabled || !!loadingMessage;
+  const textStyle = [s.buttonText, kind === 'primary' && s.primaryText, kind === 'danger' && s.dangerText, kind === 'selected' && s.accentText];
+  const color = StyleSheet.flatten(textStyle).color;
+  return <Pressable accessibilityRole="button" accessibilityState={{ disabled: blocked, busy: !!loadingMessage, selected: kind === 'selected' }} disabled={blocked} onPress={onPress} style={({ pressed }) => [s.button, kind === 'primary' && s.primary, kind === 'danger' && s.danger, kind === 'selected' && s.selected, (blocked || pressed) && s.faded]}>
+    {loadingMessage ? <LoadingIndicator variant="ring" message={loadingMessage} inline color={color} textStyle={textStyle} /> : <Text style={textStyle}>{children}</Text>}
   </Pressable>;
 }
 

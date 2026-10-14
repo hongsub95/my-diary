@@ -127,6 +127,7 @@ export default function SchedulePlanScreen() {
             {/* run()으로 감싸지 않는다. PlacePicker가 실패를 직접 보여주고, 성공했을 때만
                 입력을 비운다. 여기서 오류를 삼키면 실패해도 담긴 것처럼 입력창이 비워진다. */}
             <PlacePicker
+              onNotice={showSnackbar}
               onPick={(place) => addPlace.mutateAsync(place)}
               busy={busy}
               initialCenter={

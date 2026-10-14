@@ -209,6 +209,7 @@ export default function ScheduleDetailScreen() {
         <>
           <PlacePicker
             busy={addPlace.isPending}
+            onNotice={showSnackbar}
             onPick={(place) => addPlace.mutateAsync(place)}
           />
           <Pressable onPress={() => setPicking(false)} style={styles.closePicker}>
@@ -275,7 +276,7 @@ export default function ScheduleDetailScreen() {
   );
 
   const diarySection = (
-    <DiarySection scheduleId={scheduleId} dateKey={day.dateKey} places={day.places} />
+    <DiarySection scheduleId={scheduleId} dateKey={day.dateKey} places={day.places} onNotice={showSnackbar} />
   );
 
   return (

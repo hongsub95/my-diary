@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { SchedulePlaceView } from '@/features/schedules/schedule-adapter';
 import { colors, typography, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
+import { LoadingIndicator } from '@/shared/components/loading-indicator';
 import { ChoiceField } from './choice-field';
 import { type CourseRequest, type RecommendationOptions } from './recommendation-api';
 
@@ -35,7 +36,7 @@ export function ConditionForm({ options, places, initial, busy, onSubmit, onNoti
     </View></View>)}
     <Pressable accessibilityRole="button" disabled={busy || items.length >= options.max_item_count} onPress={() => setItems([...items, { category: options.categories[0].code, subcategory: 'any' }])} style={styles.add}><Text style={styles.action}>+ 코스 항목 추가</Text></Pressable>
     <Text style={styles.hint}>거리 반경은 직선 기준이에요. 방문 순서는 선택한 순서 그대로 유지돼요.</Text>
-    <Pressable accessibilityRole="button" disabled={busy} onPress={submit} style={[styles.primary, busy && styles.disabled]}><Text style={styles.primaryText}>{busy ? '어울리는 장소를 찾는 중…' : '코스 추천받기'}</Text></Pressable>
+    <Pressable accessibilityRole="button" accessibilityState={{ disabled: busy, busy }} disabled={busy} onPress={submit} style={[styles.primary, busy && styles.disabled]}>{busy ? <LoadingIndicator message="어울리는 장소를 찾는 중…" inline color="#fff" textStyle={styles.primaryText} /> : <Text style={styles.primaryText}>코스 추천받기</Text>}</Pressable>
   </View>;
 }
 const createStyles = (palette: ThemePalette) => StyleSheet.create({

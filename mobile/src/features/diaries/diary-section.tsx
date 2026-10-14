@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-nativ
 import { useAuth } from '@/features/auth/auth-context';
 import type { SchedulePlaceView } from '@/features/schedules/schedule-adapter';
 import { getApiError } from '@/shared/api/api-error';
+import { LoadingIndicator } from '@/shared/components/loading-indicator';
 import { colors, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { useDiary } from './diary-queries';
@@ -40,10 +41,12 @@ export function DiarySection({
   scheduleId,
   dateKey,
   places,
+  onNotice,
 }: {
   scheduleId: number;
   dateKey: string;
   places: SchedulePlaceView[];
+  onNotice: (message: string) => void;
 }) {
   const { user } = useAuth();
   const styles = useThemedStyles(createStyles);
@@ -62,7 +65,6 @@ export function DiarySection({
   const [editing, setEditing] = useState(false);
   const [content, setContent] = useState('');
   const [mood, setMood] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
   const [addingItem, setAddingItem] = useState(false);
   const [itemTime, setItemTime] = useState('12:00');
@@ -75,23 +77,21 @@ export function DiarySection({
   const otherEntries = allEntries.filter((entry) => entry.author.id !== user?.id);
 
   async function handlePickPhotos() {
-    setError(null);
-    const picked = await pickPhotos();
-    if (picked.length === 0) return;
     try {
+      const picked = await pickPhotos();
+      if (picked.length === 0) return;
       await addPhotos.mutateAsync(picked);
     } catch (caught) {
-      setError(getApiError(caught).message);
+      onNotice(getApiError(caught).message);
     }
   }
 
   async function handleRemovePhoto(photoId: number) {
-    setError(null);
     try {
       await removePhoto.mutateAsync(photoId);
     } catch (caught) {
       // 남이 올린 사진은 서버가 막는다. 조용히 넘어가면 왜 안 지워지는지 알 수 없다.
-      setError(getApiError(caught).message);
+      onNotice(getApiError(caught).message);
     }
   }
 
@@ -102,19 +102,19 @@ export function DiarySection({
   }
 
   async function handleSaveEntry() {
-    if (!content.trim()) return setError('오늘을 한 문장으로라도 남겨보세요.');
-    setError(null);
+    if (saveEntry.isPending) return;
+    if (!content.trim()) return onNotice('오늘을 한 문장으로라도 남겨보세요.');
     try {
       await saveEntry.mutateAsync({ content: content.trim(), mood: mood.trim() || null });
       setEditing(false);
     } catch (caught) {
-      setError(getApiError(caught).message);
+      onNotice(getApiError(caught).message);
     }
   }
 
   async function handleAddTimeline() {
-    if (!itemTitle.trim()) return setError('무엇을 했는지 입력해 주세요.');
-    setError(null);
+    if (addTimeline.isPending) return;
+    if (!itemTitle.trim()) return onNotice('무엇을 했는지 입력해 주세요.');
     try {
       await addTimeline.mutateAsync({
         occurredAt: toUtcIso(dateKey, itemTime),
@@ -126,20 +126,19 @@ export function DiarySection({
       setItemPlaceId(null);
       setAddingItem(false);
     } catch (caught) {
-      setError(getApiError(caught).message);
+      onNotice(getApiError(caught).message);
     }
   }
 
   return (
     <View style={styles.container}>
-      {error ? <Text style={styles.error}>{error}</Text> : null}
 
       {/* 사진 */}
       <View style={styles.section}>
         <View style={styles.sectionHead}>
           <Text style={styles.sectionTitle}>사진</Text>
           <Pressable onPress={handlePickPhotos} disabled={addPhotos.isPending}>
-            <Text style={styles.action}>{addPhotos.isPending ? '올리는 중…' : '+ 추가'}</Text>
+            {addPhotos.isPending ? <LoadingIndicator variant="ring" message="올리는 중…" inline textStyle={styles.action} /> : <Text style={styles.action}>+ 추가</Text>}
           </Pressable>
         </View>
 
@@ -201,7 +200,7 @@ export function DiarySection({
                 onPress={handleSaveEntry}
                 disabled={saveEntry.isPending}
                 style={styles.primaryButton}>
-                <Text style={styles.primaryText}>{saveEntry.isPending ? '저장 중…' : '저장'}</Text>
+                {saveEntry.isPending ? <LoadingIndicator variant="ring" message="저장 중…" inline color="#fff" textStyle={styles.primaryText} /> : <Text style={styles.primaryText}>저장</Text>}
               </Pressable>
             </View>
           </View>
@@ -286,9 +285,7 @@ export function DiarySection({
                 onPress={handleAddTimeline}
                 disabled={addTimeline.isPending}
                 style={styles.primaryButton}>
-                <Text style={styles.primaryText}>
-                  {addTimeline.isPending ? '남기는 중…' : '남기기'}
-                </Text>
+                {addTimeline.isPending ? <LoadingIndicator variant="ring" message="남기는 중…" inline color="#fff" textStyle={styles.primaryText} /> : <Text style={styles.primaryText}>남기기</Text>}
               </Pressable>
             </View>
           </View>
@@ -321,7 +318,6 @@ export function DiarySection({
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   container: { gap: spacing.lg },
-  error: { color: colors.danger, fontSize: 12 },
 
   section: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 18, borderWidth: 1, gap: spacing.sm, padding: spacing.lg },
   sectionHead: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },

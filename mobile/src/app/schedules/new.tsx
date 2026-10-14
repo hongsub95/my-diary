@@ -9,6 +9,7 @@ import { useSpaces } from '@/features/spaces/space-context';
 import { createSchedule, getSchedule, updateSchedule } from '@/features/schedules/schedule-api';
 import type { Schedule } from '@/shared/api/types';
 import { LoadingScreen } from '@/shared/components/loading-screen';
+import { LoadingIndicator } from '@/shared/components/loading-indicator';
 import { ErrorState } from '@/shared/components/error-state';
 import { SelectButton, TIME_PATTERN, TimeSelect } from '@/features/schedules/time-select';
 import { getApiError } from '@/shared/api/api-error';
@@ -158,7 +159,7 @@ function ScheduleBasicsForm({ existing }: { existing?: Schedule }) {
             </Field>
           </View>
           <Pressable disabled={submitting} onPress={saveAndContinue} style={[styles.primaryButton, submitting && styles.disabled]}>
-            <Text style={styles.primaryText}>{submitting ? '하루를 만드는 중…' : '갈 곳 정하기  →'}</Text>
+            {submitting ? <LoadingIndicator variant="ring" message="하루를 만드는 중…" inline color="#fff" textStyle={styles.primaryText} /> : <Text style={styles.primaryText}>갈 곳 정하기  →</Text>}
           </Pressable>
         </ScrollView>
         <DatePickerModal

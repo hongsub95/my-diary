@@ -11,6 +11,7 @@ import { SpaceButton } from '@/features/spaces/space-ui';
 import { getApiError } from '@/shared/api/api-error';
 import type { Schedule } from '@/shared/api/types';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
+import { LoadingIndicator } from '@/shared/components/loading-indicator';
 import { colors, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { deleteSchedule, getSchedule, updateSchedule, type UpdateScheduleInput } from './schedule-api';
@@ -41,7 +42,7 @@ export function ScheduleManagementScreen({ mode }: { mode: Mode }) {
       <SpaceButton onPress={() => router.replace('/(tabs)/schedules')}>일정 목록으로</SpaceButton></View></SafeAreaView>;
   }
   if (query.isPending || (query.isFetching && !query.isFetchedAfterMount) || !access.canEdit) {
-    return <SafeAreaView style={styles.screen}><View style={styles.body}><Text accessibilityRole="text" style={styles.text}>일정을 불러오고 있어요.</Text></View></SafeAreaView>;
+    return <SafeAreaView style={styles.screen}><View style={styles.body}><LoadingIndicator message="일정을 불러오고 있어요." /></View></SafeAreaView>;
   }
   return <ManagementForm key={user!.id + ':' + id + ':' + mode} schedule={query.data} access={access} mode={mode} />;
 }
@@ -178,7 +179,7 @@ function ManagementForm({ schedule, access, mode }: { schedule: Schedule; access
         </>}
       </ScrollView>
       <View style={styles.footer} onLayout={event => setFooterHeight(event.nativeEvent.layout.height)}>
-        {isEdit ? <SpaceButton kind="primary" disabled={busy || !dirty || !!destination} onPress={() => { void save(); }}>{busy ? '저장 중…' : '저장하기'}</SpaceButton> : <>
+        {isEdit ? <SpaceButton kind="primary" disabled={busy || !dirty || !!destination} loadingMessage={busy ? '저장 중…' : undefined} onPress={() => { void save(); }}>저장하기</SpaceButton> : <>
           <SpaceButton disabled={busy || !!destination} onPress={back}>돌아가기</SpaceButton>
           {access.canDelete && <SpaceButton kind="danger" disabled={busy || !!destination} onPress={() => { void remove(); }}>{busy ? '지우는 중…' : '일정 지우기'}</SpaceButton>}
         </>}
