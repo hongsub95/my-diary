@@ -10,7 +10,7 @@
 
 - 썸네일 생성은 app/core/images.py와 app/diaries/photo_service.py에 구현 코드가 있다. 아래 9월 9일 미구현 진단은 과거 상태다. HEIC·손상·비효율 이미지의 원본 대체는 유지한다.
 - 카카오 검색·주소/역지오코딩·SchedulePlace.address_detail 코드가 있다. 공급자 설정과 실제 연결 검증은 코드 존재와 구분한다.
-- S3FileStorage는 여전히 NotImplementedError다. 이번 작업에서는 백엔드 테스트·DB 마이그레이션을 실행하지 않았다.
+- S3FileStorage는 여전히 NotImplementedError다 → **2026-10-14 구현됨**(`S3FileStorage`, `tests/test_s3_storage.py`). AWS 설정은 DEPLOYMENT_CHECKLIST.md 1.1. 이번 작업에서는 백엔드 테스트·DB 마이그레이션을 실행하지 않았다.
 - 최신 기획 정합성은 PLANNING_RECONCILIATION_2026-10-06.md, 공간 확정 정책은 SPACE_COLLABORATION_UI_SPEC.md와 API_SPEC.md를 함께 읽는다.
 
 ## 0. 2026-09-09 재점검 — 아래 과거 상태보다 우선
@@ -18,7 +18,7 @@
 - 일기 본문·공용 사진·타임라인 CRUD와 기록 피드가 구현되고 `app/api/router.py`에 등록돼 있다. 아래 ‘일기 API 없음’ 진단은 해소됐다.
 - `app/schedules/service.py`의 `has_diary`는 이제 본문·사진·타임라인을 합산한 `content.has_any`다. 사진·타임라인 누락 진단은 해소됐다.
 - `experience_phase`, `record_summary`, 커서 페이지네이션, 서버 연월 필터, 사진 재정렬·대표 지정 API가 존재한다.
-- `app/core/storage.py`는 로컬 저장을 구현했지만 S3는 아직 NotImplementedError다. 사진 썸네일도 생성하지 않는다.
+- `app/core/storage.py`는 로컬 저장을 구현했지만 S3는 아직 NotImplementedError다. 사진 썸네일도 생성하지 않는다. → 둘 다 해소: 썸네일 구현(0-A), S3 2026-10-14 구현.
 - 첫 기록 저장 시 자동 완료는 기획 요구와 달리 미구현이다. 당일 사진 추가가 전체 일정 완료를 유발할지 정책 정리가 필요하다.
 - 파일 기준 migration head는 `c3e81d47a9f2`이며 `05bedffbec2c` 다음에 기록 메뉴를 활성화한다. 작성 중 `195474f`에 커밋됐다. DB 적용 여부는 확인하지 않았다.
 - 테스트는 정적 집계 247개 함수다. 이번 `.venv/Scripts/python.exe -m pytest --collect-only -q` 및 Alembic 실행은 가상환경의 원래 Python 3.10 실행 파일이 없어 실패했다. 과거 247개 통과 보고는 `UX_BACKEND_HANDOFF.md`의 2026-09-07 기록이며 이번 통과 결과가 아니다.
@@ -481,7 +481,7 @@ owner가 공유 스페이스를 보관할 때 현재 요청자인 owner의 `defa
 
 ### P2 — 실제 장소 검색 공급자가 없음
 
-`PLACE_SEARCH_PROVIDER=mock`만 동작한다. 카카오 이름은 스키마에 정의되어 있지만 어댑터와 키 설정, 오류/쿼터 처리, 약관 검토는 미구현이다.
+`PLACE_SEARCH_PROVIDER=mock`만 동작한다. 카카오 이름은 스키마에 정의되어 있지만 어댑터와 키 설정, 오류/쿼터 처리, 약관 검토는 미구현이다. → **해소:** 카카오 어댑터(`app/places/providers.py`)가 구현돼 있고 실서버 템플릿도 `kakao`다(2026-10-14 확인).
 
 ### P2 — 감사 로그와 도메인 변경이 비원자적임
 

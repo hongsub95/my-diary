@@ -1,7 +1,7 @@
 import os
 from functools import lru_cache
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # 어떤 환경으로 띄울지는 OS 환경변수 APP_ENV로 정한다.
@@ -94,8 +94,10 @@ class Settings(BaseSettings):
     media_base_url: str = "http://127.0.0.1:8000/uploads"
 
     # ── AWS S3 (storage_backend=s3일 때만 사용) ────
+    # 접근 키는 비워 두는 것을 권장한다. 비어 있으면 boto3가 EC2 IAM 역할 등 기본 경로로
+    # 자격 증명을 찾는다. 역할을 쓸 수 없는 곳에서 띄울 때만 채운다.
     aws_access_key_id: str = ""
-    aws_secret_access_key: str = ""
+    aws_secret_access_key: SecretStr = SecretStr("")
     aws_s3_bucket_name: str = ""
     aws_region: str = "ap-northeast-2"
 
@@ -120,6 +122,22 @@ class Settings(BaseSettings):
         # 여기서 선언하지 않은 값은 무시해야 앱이 뜬다.
         extra="ignore",
     )
+
+    @model_validator(mode="after")
+    def _check_storage(self) -> "Settings":
+        """저장소 설정이 맞는지 시작할 때 확인한다.
+
+        잘못된 값으로 떠도 서버는 멀쩡해 보이고, 첫 사진을 올리는 순간에야 500이 난다.
+        그때는 이미 사용자가 겪은 뒤라 시작 단계에서 막는다.
+        """
+        if self.storage_backend not in (STORAGE_BACKEND_LOCAL, STORAGE_BACKEND_S3):
+            raise ValueError(
+                f"STORAGE_BACKEND는 {STORAGE_BACKEND_LOCAL} 또는 {STORAGE_BACKEND_S3}여야 합니다: "
+                f"{self.storage_backend!r}"
+            )
+        if self.storage_backend == STORAGE_BACKEND_S3 and not self.aws_s3_bucket_name:
+            raise ValueError("STORAGE_BACKEND=s3이면 AWS_S3_BUCKET_NAME이 필요합니다.")
+        return self
 
     @property
     def cors_origins_list(self) -> list[str]:

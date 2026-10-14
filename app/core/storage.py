@@ -14,12 +14,12 @@ DB에는 전체 URL이 아니라 **저장 키**만 담는다. 전체 URL을 넣�
 
 from functools import lru_cache
 from pathlib import Path
-from typing import TYPE_CHECKING, Protocol
+from typing import Protocol
+
+import boto3
+from botocore.client import BaseClient
 
 from app.core.config import get_settings
-
-if TYPE_CHECKING:
-    from mypy_boto3_s3 import S3Client
 
 settings = get_settings()
 
@@ -81,7 +81,7 @@ class S3FileStorage:
     (docs/DEPLOYMENT_CHECKLIST.md 1.1).
     """
 
-    def __init__(self, bucket: str, client: "S3Client") -> None:
+    def __init__(self, bucket: str, client: BaseClient) -> None:
         self._bucket = bucket
         self._client = client
 
@@ -131,7 +131,7 @@ def _content_type(key: str) -> str:
 
 
 @lru_cache
-def _s3_client() -> "S3Client":
+def _s3_client() -> BaseClient:
     """S3 클라이언트를 한 번만 만든다.
 
     저장소 객체와 달리 클라이언트는 캐시한다. 만들 때 서비스 정의를 읽고 연결 풀을
@@ -140,8 +140,6 @@ def _s3_client() -> "S3Client":
     접근 키가 비어 있으면 boto3 기본 경로(EC2 IAM 역할 등)로 자격 증명을 찾는다.
     서버에 키를 파일로 두지 않는 쪽이 안전해서 실서버는 IAM 역할을 권장한다.
     """
-    import boto3
-
     credentials = {}
     if settings.aws_access_key_id:
         credentials = {

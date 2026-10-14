@@ -35,5 +35,9 @@ httpx==0.28.1
 # 넘어가므로 동작은 깨지지 않는다. HEIC 썸네일이 필요해지면 pillow-heif를 추가한다.
 Pillow==12.3.0
 
+# 실서버 사진 저장소 (STORAGE_BACKEND=s3). 테스트는 botocore에 들어 있는 Stubber로
+# 요청을 가로채므로 실제 AWS에 접속하지 않는다.
+boto3==1.43.113
+
 # Test
 pytest==8.3.5

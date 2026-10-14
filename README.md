@@ -142,6 +142,10 @@ $env:APP_ENV="production"; uvicorn ...   # .env + .env.production
 저장 키(`diaries/7/abc.jpg`)만 넣고 응답을 만들 때 `MEDIA_BASE_URL`을 앞에 붙이므로,
 저장소를 바꿔도 기존 데이터를 고칠 필요가 없습니다.
 
+S3는 `app/core/storage.py`의 `S3FileStorage`가 맡습니다. 테스트는 botocore Stubber로 요청을
+가로채므로 AWS 계정 없이 돕니다. 버킷·IAM 권한·공개 설정은
+[docs/DEPLOYMENT_CHECKLIST.md](docs/DEPLOYMENT_CHECKLIST.md) 1.1을 따릅니다.
+
 ## 백엔드 테스트
 
 테스트는 개발용 저장소를 건드리지 않습니다. DB는 별도의 `nailgi_test`를 자동 생성해
