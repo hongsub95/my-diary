@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.config import get_settings
 from app.diaries.errors import InvalidDiaryCursorError
 from app.diaries.models import DiaryEntry
-from app.schedules.models import Schedule
+from app.schedules.models import SCHEDULE_IN_USE, Schedule
 from app.schedules.service import _SUMMARY_COLUMNS, _place_count_column
 from app.spaces.models import Space
 
@@ -153,7 +153,12 @@ def list_space_diaries(
     limit = max(1, min(limit, MAX_LIMIT))
     sort_at = sort_at_column()
 
-    conditions = [Schedule.space_id == space.id, *_past_or_completed_condition()]
+    conditions = [
+        Schedule.space_id == space.id,
+        # 지운 하루는 기록이 남아 있어도 기록 탭에 오르지 않는다.
+        Schedule.use == SCHEDULE_IN_USE,
+        *_past_or_completed_condition(),
+    ]
     if not include_pending:
         conditions.append(_has_content_condition())
     if year is not None and month is not None:

@@ -13,7 +13,7 @@ from sqlalchemy.orm import joinedload
 
 from app.auth.dependencies import CurrentUser, DbSession
 from app.schedules.errors import ScheduleNotFoundError
-from app.schedules.models import Schedule
+from app.schedules.models import SCHEDULE_IN_USE, Schedule
 from app.spaces.dependencies import get_active_membership
 from app.spaces.models import SpaceMember
 
@@ -37,16 +37,19 @@ def require_schedule_member(
 ) -> ScheduleContext:
     """일정을 찾고 요청자가 그 스페이스의 활성 멤버인지 확인한다.
 
-    :raises ScheduleNotFoundError: 없거나 접근 권한이 없을 때 (둘을 구분하지 않는다)
+    :raises ScheduleNotFoundError: 없거나, 지웠거나, 접근 권한이 없을 때 (셋을 구분하지 않는다)
 
     없는 일정과 남의 일정에 같은 404를 주는 이유: 구분하면 id를 1씩 올려가며
     "몇 번까지 일정이 존재하는가"를 알아낼 수 있다.
+
+    지운 일정(use=0)도 여기서 걸러진다. 일정 하위 API(장소·일기·사진·타임라인·추천)가
+    모두 이 의존성을 거치므로, 지운 하루의 기록이 어느 경로로도 새어 나가지 않는다.
     """
     schedule = db.scalar(
         select(Schedule)
         # 응답을 만들 때 바로 필요하므로 여기서 함께 읽는다.
         .options(joinedload(Schedule.space), joinedload(Schedule.created_by_user))
-        .where(Schedule.id == schedule_id)
+        .where(Schedule.id == schedule_id, Schedule.use == SCHEDULE_IN_USE)
     )
     if schedule is None:
         raise ScheduleNotFoundError()

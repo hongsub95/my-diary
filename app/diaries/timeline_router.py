@@ -27,7 +27,7 @@ from app.diaries.schemas import (
 )
 from app.places.models import SchedulePlace
 from app.schedules.dependencies import ScheduleMemberContext
-from app.schedules.models import Schedule
+from app.schedules.models import SCHEDULE_IN_USE, Schedule
 from app.spaces.dependencies import get_active_membership
 from app.spaces.models import SpaceMember
 
@@ -53,6 +53,9 @@ def require_timeline_member(
     """항목을 찾고 요청자가 그 일정이 속한 스페이스의 활성 멤버인지 확인한다.
 
     :raises DiaryTimelineItemNotFoundError: 없거나 볼 수 없을 때 (둘을 구분하지 않는다)
+
+    일정을 지워도 타임라인 행은 남는다(소프트 삭제). 항목 id만 알면 일정 의존성을
+    거치지 않고 들어오므로, 일정이 지워졌는지를 여기서 따로 확인해야 한다.
     """
     item = db.scalar(
         select(DiaryTimelineItem)
@@ -63,7 +66,7 @@ def require_timeline_member(
         )
         .where(DiaryTimelineItem.id == item_id)
     )
-    if item is None:
+    if item is None or item.schedule.use != SCHEDULE_IN_USE:
         raise DiaryTimelineItemNotFoundError()
 
     membership = get_active_membership(db, item.schedule.space, current_user.id)

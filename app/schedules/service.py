@@ -30,7 +30,7 @@ from app.schedules.schemas import (
     ScheduleResponse,
     CollectionResponse,
 )
-from app.schedules.models import Schedule
+from app.schedules.models import SCHEDULE_IN_USE, SCHEDULE_NOT_IN_USE, Schedule
 from app.spaces.models import SPACE_ROLE_OWNER, Space, SpaceMember
 from app.users.models import User
 
@@ -49,7 +49,7 @@ def list_collection(
 
     if from_date and to_date and from_date > to_date:
         raise InvalidDateRangeError()
-    conditions = [Schedule.space_id == space.id]
+    conditions = [Schedule.space_id == space.id, Schedule.use == SCHEDULE_IN_USE]
     if kind == "records":
         conditions.extend([*_past_or_completed_condition(), _has_content_condition()])
     tz = _service_timezone()
@@ -301,6 +301,8 @@ def list_schedules(
     # 순간 일정은 그 논리로 지우면 안 되므로, 시작이 범위 안이면 살린다.
     conditions = [
         Schedule.space_id == space.id,
+        # 지운 일정은 캘린더·홈·일정 목록 어디에도 나오지 않는다.
+        Schedule.use == SCHEDULE_IN_USE,
         Schedule.start_at < range_end,
         or_(Schedule.end_at > range_start, Schedule.start_at >= range_start),
     ]
@@ -443,13 +445,22 @@ def ensure_can_delete(db: Session, schedule: Schedule, membership: SpaceMember, 
 
 
 def delete_schedule(db: Session, schedule: Schedule) -> None:
-    """일정을 삭제한다.
+    """일정을 지운다. 행은 남기고 사용 안 함(use=0)으로 표시한다.
 
-    장소·일기·사진·공유링크는 외래키가 CASCADE라 함께 사라진다. 보관(소프트 삭제)이
-    아니라 실제 삭제인 이유: 스페이스와 달리 일정은 잘못 만든 것을 지우는 일이 흔하고,
-    목록에 남으면 캘린더가 지저분해진다.
+    :param schedule: 지울 일정 (권한 검사는 ensure_can_delete에서 끝남)
+
+    행을 실제로 지우지 않는 이유: 외래키가 CASCADE라 장소·모든 작성자의 일기·사진·
+    타임라인이 한 번에 사라진다. 공유 공간에서는 남이 쓴 기록까지 날아가는데, 잘못
+    누른 삭제를 되돌릴 길이 없다. 표시만 바꾸면 운영자가 DB에서 되살릴 수 있다.
+
+    딸린 행과 사진 파일은 건드리지 않는다. 일정이 모든 조회에서 걸러지므로 그 아래
+    기록도 함께 보이지 않는다. 화면에서 다시 볼 수 없다는 점은 실제 삭제와 같다.
+
+    use와 deleted_at은 한 커밋에서 함께 바꾼다. 둘이 어긋나면 "지웠는데 언제 지웠는지
+    모르는" 행이 생겨 보관 기간을 셀 수 없다.
     """
-    db.delete(schedule)
+    schedule.use = SCHEDULE_NOT_IN_USE
+    schedule.deleted_at = func.now()
     db.commit()
 
 

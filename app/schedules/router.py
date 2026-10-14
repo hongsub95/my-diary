@@ -236,7 +236,8 @@ def optimization_preview(context: ScheduleMemberContext) -> OptimizationPreviewR
     summary="일정 삭제",
     description=(
         "일정을 삭제한다. 스페이스 owner는 모든 일정을, 일반 멤버는 본인이 만든 일정만 "
-        "지울 수 있다. 딸린 장소·일기·사진도 함께 사라진다."
+        "지울 수 있다. 지운 일정과 딸린 장소·일기·사진·타임라인은 이후 모든 조회에서 "
+        "404다. 행은 지우지 않고 사용 안 함으로 표시한다(소프트 삭제)."
     ),
 )
 def delete_schedule(
@@ -247,20 +248,16 @@ def delete_schedule(
 ) -> None:
     """일정 삭제."""
     service.ensure_can_delete(db, context.schedule, context.membership, current_user)
-
-    # 삭제 후에는 읽을 수 없으므로 감사 로그에 남길 값을 미리 꺼내 둔다.
-    schedule_id = context.schedule.id
-    title = context.schedule.title
-
     service.delete_schedule(db, context.schedule)
+    # 소프트 삭제라 커밋 뒤에도 행이 남아 있어 id·제목을 그대로 읽을 수 있다.
     audit.record(
         db,
         AuditAction.SCHEDULE_DELETED,
         user_id=current_user.id,
         actor_email=current_user.email,
         resource_type=RESOURCE_SCHEDULE,
-        resource_id=schedule_id,
+        resource_id=context.schedule.id,
         request=request,
-        detail={"title": title},
+        detail={"title": context.schedule.title},
     )
     return None

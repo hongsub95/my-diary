@@ -25,7 +25,7 @@ from app.diaries.schemas import (
     DiaryPhotoResponse,
 )
 from app.schedules.dependencies import ScheduleMemberContext
-from app.schedules.models import Schedule
+from app.schedules.models import SCHEDULE_IN_USE, Schedule
 from app.spaces.dependencies import get_active_membership
 
 schedule_photos_router = APIRouter(prefix="/schedules/{schedule_id}/diary", tags=["diary-photos"])
@@ -48,13 +48,16 @@ def require_photo_member(
     """사진을 찾고 요청자가 그 일정이 속한 스페이스의 활성 멤버인지 확인한다.
 
     :raises DiaryPhotoNotFoundError: 없거나 볼 수 없을 때 (둘을 구분하지 않는다)
+
+    일정을 지워도 사진 행은 남는다(소프트 삭제). 사진 id만 알면 일정 의존성을 거치지
+    않고 들어오므로, 일정이 지워졌는지를 여기서 따로 확인해야 한다.
     """
     photo = db.scalar(
         select(DiaryPhoto)
         .options(joinedload(DiaryPhoto.uploader), joinedload(DiaryPhoto.schedule).joinedload(Schedule.space))
         .where(DiaryPhoto.id == photo_id)
     )
-    if photo is None:
+    if photo is None or photo.schedule.use != SCHEDULE_IN_USE:
         raise DiaryPhotoNotFoundError()
 
     membership = get_active_membership(db, photo.schedule.space, current_user.id)
@@ -120,8 +123,11 @@ def reorder_photos(
 ) -> DiaryPhotoListResponse:
     """사진 순서 변경. 대상 일정은 본문의 schedule_id로 지정한다."""
     # 이 경로에는 일정이 드러나지 않아 본문으로 받는다. 권한은 일정 기준으로 검사한다.
+    # 지운 일정은 없는 일정과 같게 다룬다.
     schedule = db.scalar(
-        select(Schedule).options(joinedload(Schedule.space)).where(Schedule.id == payload.schedule_id)
+        select(Schedule)
+        .options(joinedload(Schedule.space))
+        .where(Schedule.id == payload.schedule_id, Schedule.use == SCHEDULE_IN_USE)
     )
     if schedule is None or get_active_membership(db, schedule.space, current_user.id) is None:
         raise DiaryPhotoNotFoundError()

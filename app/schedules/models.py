@@ -5,6 +5,19 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 
+# 일정 사용 여부 플래그. 계정의 use(app/users/models.py)와 같은 규칙이다.
+#
+# 일정을 지워도 행을 지우지 않고 이 값을 0으로 내린다. 행을 바로 지우면 외래키
+# CASCADE로 장소·모든 작성자의 일기·사진·타임라인이 한 번에 사라져, 공유 공간에서
+# 잘못 누른 삭제를 되돌릴 길이 없다. 지운 일정은 모든 조회에서 없는 것처럼 다룬다.
+#
+# | 값 | 뜻 |
+# |---|---|
+# | 0 | 삭제됨. 어떤 API로도 보이지 않는다 |
+# | 1 | 사용 중 |
+SCHEDULE_NOT_IN_USE = 0
+SCHEDULE_IN_USE = 1
+
 
 class Schedule(Base):
     """약속/일정 하나. 캘린더·리스트·지도 화면의 중심 엔티티이며, 장소(SchedulePlace)와
@@ -29,6 +42,14 @@ class Schedule(Base):
     # 지난 일정을 뒤늦게 완료한 경우 목록 맨 앞에 와야 할 하루가 아래로 묻힌다.
     # 종료 시각이 지났다는 이유만으로는 채우지 않는다 (docs/UX_BACKEND_HANDOFF.md 4절).
     completed_at: Mapped[datetime | None] = mapped_column()
+    # 사용 여부. 위 SCHEDULE_IN_USE / SCHEDULE_NOT_IN_USE 표 참고.
+    # server_default를 두는 이유: 이미 쌓여 있던 일정도 마이그레이션 시점에 전부
+    # 사용 중으로 메워진다. 이게 없으면 NOT NULL 컬럼을 기존 행에 추가할 수 없다.
+    use: Mapped[int] = mapped_column(nullable=False, server_default=str(SCHEDULE_IN_USE))
+    # 삭제 시각. use=0과 짝으로 움직인다.
+    # 플래그만으로는 "언제 지웠는가"를 모른다. 보관 기간이 지난 일정을 파기하려면
+    # 이 값이 기준이 되므로, 두 값은 항상 같은 트랜잭션에서 함께 바꾼다.
+    deleted_at: Mapped[datetime | None] = mapped_column()
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now(), onupdate=func.now())
 
