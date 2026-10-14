@@ -5,6 +5,7 @@ import { ArrowLeftIcon, MapPinIcon, SparklesIcon } from '@heroicons/react/24/out
 import { useSchedule } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
+import LoadingIndicator from '../../shared/components/LoadingIndicator'
 import RecommendationResults from './RecommendationResults'
 import { addRecommendedCourse, getRecommendationOptions, previewCourse } from './recommendationApi'
 import { mergeShownKeys, recommendedIndexes, recommendationReturnPath, relaxConditions, rerollNotice, shownPlaceKeys, toBatchPlaces } from './recommendationModel'
@@ -56,7 +57,7 @@ function ConditionForm({ options, places, initial, busy, onSubmit }) {
     </li>)}</ol>
     <button type="button" className="course-form__add" disabled={busy || items.length >= options.max_item_count} onClick={() => setItems([...items, { category: options.categories[0].code, subcategory: 'any' }])}>+ 코스 항목 추가</button>
     <p className="course-muted">거리 반경은 직선 기준이에요. 방문 순서는 선택한 순서 그대로 유지돼요.</p>
-    <button className="course-primary" disabled={busy}>{busy ? '어울리는 장소를 찾는 중…' : '코스 추천받기'}</button>
+    <button className="course-primary" disabled={busy}>{busy ? <LoadingIndicator inline>어울리는 장소를 찾는 중…</LoadingIndicator> : '코스 추천받기'}</button>
     <Snackbar notice={notice} onDismiss={dismissSnackbar} />
   </form>
 }
@@ -144,7 +145,7 @@ export default function RecommendationPage() {
   return <main className="course-page">
     <header className="course-header"><button type="button" className="course-back" aria-label={searchParams.get('from') === 'plan' ? '갈 곳 정하기로 돌아가기' : '일정으로 돌아가기'} disabled={busy} onClick={() => navigate(returnPath, { replace: true })}><ArrowLeftIcon /></button><span>{schedule.data?.title ?? '하루의 코스'}</span></header>
     <div className="course-intro"><span className="course-eyebrow"><SparklesIcon /> 하루를 잇는 작은 제안</span><h1>{result ? '이런 하루는 어때요?' : '함께 갈 곳을 찾아볼까요?'}</h1><p>마음에 드는 코스를 골라, 나만의 하루에 담아 보세요.</p></div>
-    {schedule.isPending || options.isPending ? <div className="course-state" role="status">추천 화면을 준비하고 있어요.</div>
+    {schedule.isPending || options.isPending ? <div className="course-state"><LoadingIndicator>추천 화면을 준비하고 있어요.</LoadingIndicator></div>
       : schedule.isError || options.isError ? <div className="course-state"><h2>추천 화면을 불러오지 못했어요</h2><p>{getApiErrorMessage(schedule.error ?? options.error)}</p><button type="button" onClick={() => { schedule.refetch(); options.refetch() }}>다시 시도</button></div>
         : !eligible ? <div className="course-state"><h2>계획 중인 하루에서 추천받을 수 있어요</h2><button type="button" onClick={() => navigate(returnPath, { replace: true })}>이전 화면으로 돌아가기</button></div>
           : <>
@@ -154,6 +155,7 @@ export default function RecommendationPage() {
               <RecommendationResults result={result} selected={selected} options={options.data} conditions={conditions} busy={busy} saving={apply.isPending} selectedPlace={selectedPlace} checkedIndexes={checkedIndexes} placementPending={placementPending} onTogglePlace={index => setChecksByRank(current => ({ ...current, [selectedRank]: checkedIndexes.includes(index) ? checkedIndexes.filter(value => value !== index) : [...checkedIndexes, index] }))} onChoose={rank => { setSelectedRank(rank); setSelectedPlace(null) }} onRefresh={() => request(conditions, { reroll: true })} onSave={save} onSelectPlace={setSelectedPlace} onNotice={showSnackbar} />
             </>}
           </>}
+    {!editing && !selected && preview.isPending && <div className="course-state"><LoadingIndicator>일정에 맞는 코스를 찾고 있어요.</LoadingIndicator></div>}
     <Snackbar notice={notice} onDismiss={dismissSnackbar} />
   </main>
 }

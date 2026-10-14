@@ -7,6 +7,7 @@ import { listDiaryTimeline } from '../../shared/api/diaries'
 import { toServiceDateKey } from '../../shared/api/scheduleAdapter'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
+import LoadingIndicator from '../../shared/components/LoadingIndicator'
 import { TIME_OPTIONS } from '../../shared/utils/time'
 import { SpaceConfirm } from '../spaces/SpaceUI'
 import { formError, periodLabel, refreshScheduleViews, sameField, scheduleChanges, scheduleForm, scheduleWhen, useScheduleAccess } from './scheduleManagement'
@@ -26,7 +27,7 @@ export default function ScheduleManagementPage({ mode }) {
   const blocked = query.error?.response?.status === 404 || access.space.error?.response?.status === 404
   if (!/^\d+$/.test(id) || Number(id) < 1) return <main className="schedule-manage-loading"><h1>{heading}</h1><p>일정을 찾을 수 없어요.</p><button className="space-button" onClick={() => navigate('/schedules', { replace: true })}>일정 목록으로</button></main>
   if (query.isPending || (query.isFetching && !query.isFetchedAfterMount) || (query.data && access.space.isPending)) {
-    return <main className="schedule-manage-loading" role="status">일정을 불러오고 있어요.</main>
+    return <main className="schedule-manage-loading"><LoadingIndicator>일정을 불러오고 있어요.</LoadingIndicator></main>
   }
   if (query.isError || access.space.isError || !query.data || !access.canEdit) {
     return <main className="schedule-manage-loading"><h1>{heading}</h1><p>{blocked ? '일정을 찾을 수 없거나 접근할 수 없어요.' : '일정을 불러오지 못했어요.'}</p>
@@ -207,7 +208,7 @@ function ManagementForm({ schedule, access, mode }) {
         {access.space.data?.type === 'shared' && <p>함께 남긴 다른 사람의 기록도 지워지고, 모든 멤버의 화면에서 사라져요.</p>}</div>
       {!access.canDelete && <p className="schedule-manage-hint">일정 작성자나 공간 소유자만 지울 수 있어요.</p>}
     </div>}
-    <footer className="schedule-manage-footer">{isEdit ? <button form="schedule-edit-form" className="snew-form__submit" type="submit" disabled={busy || !dirty || leaving}>{busy ? '저장 중…' : '저장하기'}</button> :
+    <footer className="schedule-manage-footer">{isEdit ? <button form="schedule-edit-form" className="snew-form__submit" type="submit" disabled={busy || !dirty || leaving}>{busy ? <LoadingIndicator variant="ring" inline>저장 중…</LoadingIndicator> : '저장하기'}</button> :
       <div className="schedule-manage-actions"><button type="button" className="space-button" disabled={busy || leaving} onClick={() => navigate('/schedules/' + schedule.id, { replace: true })}>돌아가기</button>
         {access.canDelete && <button type="button" className="schedule-delete-button" disabled={busy || leaving} onClick={remove}>{busy ? '지우는 중…' : '일정 지우기'}</button>}</div>}
     </footer>

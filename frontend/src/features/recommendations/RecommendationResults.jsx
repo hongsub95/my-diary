@@ -1,5 +1,6 @@
 import { ArrowPathIcon, CheckIcon } from '@heroicons/react/24/outline'
 import KakaoMap from '../../shared/map/KakaoMap'
+import LoadingIndicator from '../../shared/components/LoadingIndicator'
 import { formatDistance } from '../../shared/utils/distance'
 import { formatCourseLeg, toBatchPlaces, WARNING_LABELS } from './recommendationModel'
 
@@ -11,7 +12,7 @@ export default function RecommendationResults({ result, selected, options, condi
   return <>
     <div className="course-section-heading">
       <h2>추천 코스 <span>{result.candidates.length}</span></h2>
-      <button type="button" disabled={selectionLocked} onClick={onRefresh}><ArrowPathIcon /> 다시 추천</button>
+      <button type="button" disabled={selectionLocked} onClick={onRefresh}>{busy && !saving ? <LoadingIndicator inline>다시 찾는 중…</LoadingIndicator> : <><ArrowPathIcon /> 다시 추천</>}</button>
     </div>
     <div className="course-candidates" role="group" aria-label="추천 코스 선택">
       {result.candidates.map(candidate => <button type="button" key={candidate.rank}
@@ -64,7 +65,7 @@ export default function RecommendationResults({ result, selected, options, condi
     <footer className="course-footer">
       <div><strong>코스 {selected.rank} · {count}곳 선택</strong><p>선택한 장소만 내 하루에 더해요.</p></div>
       <button type="button" className="course-primary" onClick={onSave} disabled={busy || !count}>
-        {saving ? '저장하는 중…' : placementPending ? '기준 장소 앞 순서 다시 맞추기' : '선택한 장소 일정에 담기'}
+        {saving ? <LoadingIndicator variant="ring" inline>저장하는 중…</LoadingIndicator> : placementPending ? '기준 장소 앞 순서 다시 맞추기' : '선택한 장소 일정에 담기'}
       </button>
     </footer>
   </>

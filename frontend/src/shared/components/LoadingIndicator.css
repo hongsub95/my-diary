@@ -1,0 +1,45 @@
+.loading-indicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  max-width: 100%;
+  vertical-align: middle;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.loading-indicator__animation {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 20px;
+  color: var(--color-primary);
+}
+
+.loading-indicator--inline {
+  color: inherit;
+  font: inherit;
+}
+
+.loading-indicator--inline .loading-indicator__animation {
+  color: inherit;
+}
+
+/* LDRS React renders regular DOM, so this also reaches its pseudo-elements. */
+@media (prefers-reduced-motion: reduce) {
+  .loading-indicator__animation *,
+  .loading-indicator__animation *::before,
+  .loading-indicator__animation *::after {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+    will-change: auto !important;
+  }
+
+  .loading-indicator--ring circle:last-child {
+    stroke-dasharray: 70 100;
+  }
+}

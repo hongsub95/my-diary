@@ -7,6 +7,7 @@ import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
 import { useCreateSchedule } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
 import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
+import LoadingIndicator from '../../shared/components/LoadingIndicator'
 import { TIME_OPTIONS } from '../../shared/utils/time'
 import './schedules.css'
 import { useSpaces } from '../spaces/SpaceContext'
@@ -37,7 +38,7 @@ export default function ScheduleNewPage() {
   const id = params.get('scheduleId')
   const query = useQuery({ queryKey: ['schedules', 'step-one', id], queryFn: () => getSchedule(id), enabled: Boolean(id), staleTime: 0 })
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
-  if (id && query.isPending) return <div className="snew-page">하루를 불러오고 있어요.</div>
+  if (id && query.isPending) return <div className="snew-page"><LoadingIndicator>하루를 불러오고 있어요.</LoadingIndicator></div>
   if (id && (query.isError || !query.data)) return <div className="snew-page"><button type="button" onClick={() => { showSnackbar('하루를 불러오지 못했어요. 다시 시도해 주세요.'); query.refetch() }}>하루 다시 불러오기</button><Snackbar notice={notice} onDismiss={dismissSnackbar} /></div>
   return <ScheduleBasicsForm key={id ?? 'new'} existing={id ? query.data : null} />
 }
@@ -250,7 +251,7 @@ function ScheduleBasicsForm({ existing }) {
         </section>
 
         <button type="submit" className="snew-form__submit" disabled={createSchedule.isPending || update.isPending}>
-          {createSchedule.isPending || update.isPending ? '저장 중…' : '갈 곳 정하기 →'}
+          {createSchedule.isPending || update.isPending ? <LoadingIndicator variant="ring" inline>저장 중…</LoadingIndicator> : '갈 곳 정하기 →'}
         </button>
       </form>
       <Snackbar notice={notice} onDismiss={dismissSnackbar} />

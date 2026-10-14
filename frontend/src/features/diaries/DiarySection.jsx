@@ -5,6 +5,8 @@ import plusRaw from '../../assets/icons/plus.svg?raw'
 import { useAuth } from '../../shared/contexts/AuthContext'
 import { useDiary } from '../../shared/api/queries'
 import { getApiErrorMessage } from '../../shared/api/apiError'
+import LoadingIndicator from '../../shared/components/LoadingIndicator'
+import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 import TimelineSection from './TimelineSection'
 import './diary.css'
 
@@ -19,26 +21,27 @@ import './diary.css'
 function DiaryEditor({ entry, mutation, onClose }) {
   const [content, setContent] = useState(entry?.content ?? '')
   const [mood, setMood] = useState(entry?.mood ?? '')
-  const [error, setError] = useState('')
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
 
   const handleSubmit = async (event) => {
     event.preventDefault()
+    if (mutation.isPending) return
     if (!content.trim()) {
-      setError('오늘을 한 문장으로라도 남겨보세요.')
+      showSnackbar('오늘을 한 문장으로라도 남겨보세요.')
       return
     }
 
-    setError('')
+    dismissSnackbar()
     try {
       await mutation.mutateAsync({ content: content.trim(), mood: mood.trim() })
       onClose()
     } catch (caught) {
-      setError(getApiErrorMessage(caught))
+      showSnackbar(getApiErrorMessage(caught))
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="diary-editor">
+    <form onSubmit={handleSubmit} className="diary-editor" noValidate>
       <textarea
         value={content}
         onChange={(event) => setContent(event.target.value)}
@@ -55,11 +58,11 @@ function DiaryEditor({ entry, mutation, onClose }) {
         placeholder="오늘의 기분 (선택)"
         maxLength={20}
       />
-      {error && <p className="diary-editor__error" role="alert">{error}</p>}
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
       <div className="diary-editor__actions">
         <button type="button" onClick={onClose} className="diary-editor__cancel">취소</button>
         <button type="submit" className="diary-editor__submit" disabled={mutation.isPending}>
-          {mutation.isPending ? '저장 중…' : '저장'}
+          {mutation.isPending ? <LoadingIndicator variant="ring" inline>저장 중…</LoadingIndicator> : '저장'}
         </button>
       </div>
     </form>
@@ -91,8 +94,7 @@ export default function DiarySection({ scheduleId, dateKey, places = [] }) {
     removeTimeline,
   } = useDiary(scheduleId)
   const [editing, setEditing] = useState(false)
-  const [uploadError, setUploadError] = useState('')
-  const [photoError, setPhotoError] = useState('')
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar()
   const fileInput = useRef(null)
 
   const allEntries = entries.data ?? []
@@ -106,21 +108,21 @@ export default function DiarySection({ scheduleId, dateKey, places = [] }) {
     event.target.value = ''
     if (files.length === 0) return
 
-    setUploadError('')
+    dismissSnackbar()
     try {
       await addPhotos.mutateAsync(files)
     } catch (caught) {
-      setUploadError(getApiErrorMessage(caught))
+      showSnackbar(getApiErrorMessage(caught))
     }
   }
 
   const handleRemovePhoto = async (photoId) => {
-    setPhotoError('')
+    dismissSnackbar()
     try {
       await removePhoto.mutateAsync(photoId)
     } catch (caught) {
       // 남이 올린 사진은 서버가 막는다. 조용히 넘어가면 사용자는 왜 안 지워지는지 모른다.
-      setPhotoError(getApiErrorMessage(caught))
+      showSnackbar(getApiErrorMessage(caught))
     }
   }
 
@@ -136,8 +138,7 @@ export default function DiarySection({ scheduleId, dateKey, places = [] }) {
             onClick={() => fileInput.current?.click()}
             disabled={addPhotos.isPending}
           >
-            <Icon raw={plusRaw} size={14} />
-            {addPhotos.isPending ? '올리는 중…' : '추가'}
+            {addPhotos.isPending ? <LoadingIndicator variant="ring" inline>올리는 중…</LoadingIndicator> : <><Icon raw={plusRaw} size={14} />추가</>}
           </button>
         </div>
 
@@ -150,8 +151,7 @@ export default function DiarySection({ scheduleId, dateKey, places = [] }) {
           className="diary-photos__input"
         />
 
-        {uploadError && <p className="diary-editor__error" role="alert">{uploadError}</p>}
-        {photoError && <p className="diary-editor__error" role="alert">{photoError}</p>}
+        <Snackbar notice={notice} onDismiss={dismissSnackbar} />
 
         {photos.data?.length > 0 ? (
           <div className="diary-photos">

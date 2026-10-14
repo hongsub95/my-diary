@@ -1,3 +1,4 @@
+import LoadingIndicator from './LoadingIndicator'
 import './SplashScreen.css'
 
 /**
@@ -7,9 +8,8 @@ import './SplashScreen.css'
  */
 export default function SplashScreen({ message = '로그인 정보를 확인하고 있어요.' }) {
   return (
-    <div className="splash" role="status" aria-live="polite">
-      <span className="splash__spinner" aria-hidden="true" />
-      <p className="splash__message">{message}</p>
+    <div className="splash">
+      <LoadingIndicator>{message}</LoadingIndicator>
     </div>
   )
 }
