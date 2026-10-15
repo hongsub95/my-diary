@@ -284,6 +284,11 @@
   flex-direction: column;
 }
 
+.sdetail-places > .kakao-map,
+.sdetail-places > .kakao-map__notice {
+  margin-bottom: 20px;
+}
+
 .sdetail-place {
   display: flex;
   gap: 12px;

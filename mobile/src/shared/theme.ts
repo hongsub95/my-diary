@@ -17,6 +17,9 @@ export const colors = {
   sage: '#6C8069',
   // 기록 대기 표시용. 웹의 --color-orange와 같은 값이다.
   orange: '#B7773F',
+  // 기록 대기 칩의 바탕과 글자. 글자는 바탕 위에서 4.5:1을 넘게 orange보다 어둡게 잡았다.
+  orangeSoft: '#F6EBDF',
+  orangeDark: '#8A5626',
   sand: '#E9E1D6',
   danger: '#D64545',
 };

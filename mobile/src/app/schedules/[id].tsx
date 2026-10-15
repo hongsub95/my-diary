@@ -419,7 +419,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   empty: { color: colors.muted, fontSize: 12 },
   memo: { color: colors.text, fontSize: 13, lineHeight: 21 },
 
-  placeList: { gap: spacing.sm },
+  placeList: { gap: spacing.sm, marginTop: 20 },
   // 위쪽 정렬이다. 메모가 붙어 가운데 칸이 길어져도 번호와 버튼이 이름 줄에 맞는다.
   place: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md },
   placeOrder: { backgroundColor: palette.primarySoft, borderRadius: 13, color: palette.primary, fontSize: 14, fontWeight: '600', height: 26, lineHeight: 26, textAlign: 'center', width: 26 },

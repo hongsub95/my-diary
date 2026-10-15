@@ -4,7 +4,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
-import { colors } from '@/shared/theme';
+import { colors, type ThemePalette } from '@/shared/theme';
 import { useTheme } from '@/shared/theme-context';
 import { dateKey, dateLabel, moveDate, parseDate, periodLabel, weekDates, type CalendarMode } from './calendar-dates';
 
@@ -17,6 +17,39 @@ const fillTheme = {
   },
 };
 const noHeader = () => null;
+
+type ChipKind = 'plan' | 'pending' | 'done';
+const chipLabels: Record<ChipKind, string> = { plan: '예정', pending: '남기기 전', done: '남긴 하루' };
+
+/**
+ * 서버가 계산한 experience_phase를 칩 모양 세 가지로 묶는다 (CALENDAR_SCREEN_SPEC 2026-10-15).
+ *
+ * @param phase 일정 응답의 experience_phase
+ * @returns 예정(plan) · 남기기 전(pending) · 남긴 하루(done)
+ */
+function chipKind(phase: string): ChipKind {
+  if (phase === 'recorded') return 'done';
+  if (phase === 'record_pending') return 'pending';
+  // upcoming·today가 예정이다. canceled는 노출 여부가 아직 열린 결정이라 이전처럼 예정 모양으로 둔다.
+  return 'plan';
+}
+
+/**
+ * 월간 날짜 칸과 범례에 쓰는 상태 칩.
+ * 색을 구분하기 어려운 사람도 알아보게 모양을 달리한다: 예정은 테두리만, 남기기 전은 주황 점,
+ * 남긴 하루는 채운 바탕에 체크.
+ *
+ * @param label 칩에 쓸 글자 (하루 제목 또는 범례 이름)
+ * @param kind 칩 모양
+ * @param palette 사용자가 고른 테마. 예정 칩만 테마 색을 따른다
+ */
+function PhaseChip({ label, kind, palette }: { label: string; kind: ChipKind; palette: ThemePalette }) {
+  return <View style={[s.chip, kind === 'plan' && [s.chipPlan, { borderColor: palette.primary }], kind === 'pending' && s.chipPending, kind === 'done' && s.chipDone]}>
+    <Text numberOfLines={1} style={[s.chipText, kind === 'plan' && { color: palette.primaryDark }, kind === 'pending' && s.chipPendingText]}>
+      {kind === 'pending' && <Text style={s.chipDot}>● </Text>}{kind === 'done' && '✓ '}{label}
+    </Text>
+  </View>;
+}
 
 export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules, loading, failed, retry }: {
   selectedDate: string;
@@ -93,9 +126,11 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
               {mode === 'month' ? <Calendar key={key.slice(0, 7)} current={key} customHeader={noHeader} hideExtraDays firstDay={0} style={{ height: size.height }} theme={{ calendarBackground: colors.surface, ...fillTheme }} dayComponent={({ date }) => {
                 if (!date) return null;
                 const items = schedules[date.dateString] ?? [];
-                return <Pressable accessibilityRole="button" accessibilityLabel={`${dateLabel(date.dateString)}, 일정 ${items.length}개`} onPress={() => onOpenDay(date.dateString)} style={[s.cell, selectedDate === date.dateString && active]}>
+                // 칩 모양은 화면 읽기 도구에 전달되지 않으니 상태 이름을 라벨에 함께 읽어 준다.
+                const states = items.map(item => `${item.title} ${chipLabels[chipKind(item.experience_phase)]}`);
+                return <Pressable accessibilityRole="button" accessibilityLabel={[`${dateLabel(date.dateString)}, 일정 ${items.length}개`, ...states].join(', ')} onPress={() => onOpenDay(date.dateString)} style={[s.cell, selectedDate === date.dateString && active]}>
                   <Text style={[s.dayNumber, date.dateString === dateKey(new Date()) && accent]}>{date.day}</Text>
-                  {items.slice(0, 2).map(item => <Text key={item.id} numberOfLines={1} style={[s.chip, { backgroundColor: item.experience_phase === 'recorded' ? colors.sage : item.experience_phase === 'record_pending' ? colors.orange : palette.primary }]}>{item.title}</Text>)}
+                  {items.slice(0, 2).map(item => <PhaseChip key={item.id} label={item.title} kind={chipKind(item.experience_phase)} palette={palette} />)}
                   {items.length > 2 && <Text style={s.more}>+{items.length - 2}</Text>}
                 </Pressable>;
               }} /> : <View style={s.viewport}>
@@ -106,6 +141,9 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
           })}
         </ScrollView>}
       </View>
+      {mode === 'month' && <View style={s.legend}>
+        {(['plan', 'pending', 'done'] as const).map(kind => <PhaseChip key={kind} label={chipLabels[kind]} kind={kind} palette={palette} />)}
+      </View>}
     </View>
     <Modal visible={picker} transparent animationType="slide" onRequestClose={() => setPicker(false)}>
       <View style={s.modal}>
@@ -143,7 +181,13 @@ const s = StyleSheet.create({
   dateButton: { flex: 1, minHeight: 44, justifyContent: 'center' }, dateTitle: { fontSize: 16, fontWeight: '600', textAlign: 'center', color: colors.text },
   arrow: { fontSize: 24, color: colors.text }, viewport: { flex: 1 },
   cell: { flex: 1, width: '100%', padding: 2, borderRadius: 8 }, dayNumber: { textAlign: 'center', fontSize: 14, color: colors.text, marginVertical: 6 },
-  chip: { fontSize: 10, color: '#fff', borderRadius: 3, padding: 2, marginBottom: 2 }, more: { fontSize: 11, textAlign: 'center', color: colors.muted },
+  // 칩 높이를 모양과 상관없이 맞추려고, 테두리 1을 쓰는 예정 칩은 안쪽 여백을 1만큼 줄인다.
+  chip: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 2, marginBottom: 2 }, chipText: { fontSize: 10, color: '#fff' },
+  chipPlan: { backgroundColor: colors.surface, borderWidth: 1, paddingHorizontal: 2, paddingVertical: 1 },
+  chipPending: { backgroundColor: colors.orangeSoft }, chipPendingText: { color: colors.orangeDark }, chipDot: { color: colors.orange, fontSize: 8 },
+  chipDone: { backgroundColor: colors.sage },
+  more: { fontSize: 11, textAlign: 'center', color: colors.muted },
+  legend: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border },
   weekStrip: { flexDirection: 'row', padding: 4 }, weekDate: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 8 },
   agenda: { padding: 12, gap: 16 }, agendaDay: { gap: 8 }, dayHeading: { fontSize: 14, fontWeight: '600', paddingVertical: 8 }, empty: { color: colors.muted, paddingVertical: 16 },
   status: { padding: 8, textAlign: 'center', fontSize: 12, color: colors.muted },
