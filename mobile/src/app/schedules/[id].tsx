@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { DiarySection } from '@/features/diaries/diary-section';
 import { PlacePicker } from '@/features/places/place-picker';
@@ -17,7 +17,6 @@ import { LoadingScreen } from '@/shared/components/loading-screen';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
-import { SpaceButton } from '@/features/spaces/space-ui';
 import { scheduleWhen, useScheduleAccess } from '@/features/schedules/schedule-management';
 
 const PHASE_LABELS: Record<string, string> = {
@@ -140,6 +139,7 @@ function PlaceList({
 export default function ScheduleDetailScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ id?: string | string[]; notice?: string }>();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
   const scheduleId = Number(rawId);
@@ -161,6 +161,12 @@ export default function ScheduleDetailScreen() {
   }, [params.notice, router, showSnackbar]);
   const [picking, setPicking] = useState(false);
   const [managementOpen, setManagementOpen] = useState(false);
+  const [headerHeight, setHeaderHeight] = useState(56);
+  useEffect(() => {
+    if (!managementOpen) return;
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => { setManagementOpen(false); return true; });
+    return () => subscription.remove();
+  }, [managementOpen]);
   const [selection, setSelection] = useState<{ id: number; tab: 'plan' | 'record' } | null>(null);
   const defaultTab = schedule.data && ['recorded', 'record_pending'].includes(schedule.data.experience_phase)
     && schedule.data.record_summary.has_content ? 'record' : 'plan';
@@ -290,7 +296,7 @@ export default function ScheduleDetailScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
+      <View style={styles.header} onLayout={event => setHeaderHeight(event.nativeEvent.layout.height)}>
         <Pressable
           accessibilityLabel="뒤로 가기"
           accessibilityRole="button"
@@ -314,12 +320,6 @@ export default function ScheduleDetailScreen() {
           <Text style={styles.title}>{day.title}</Text>
           <Text style={styles.when}>{scheduleWhen(day)}</Text>
         </View>
-
-        {access.canEdit && managementOpen && <View style={styles.section}>
-          <Text style={styles.sectionTitle}>일정 관리</Text>
-          <SpaceButton onPress={() => router.push({ pathname: '/schedules/[id]/edit', params: { id: String(scheduleId) } })}>일정 고치기</SpaceButton>
-          {access.canDelete && <SpaceButton kind="danger" onPress={() => router.push({ pathname: '/schedules/[id]/delete', params: { id: String(scheduleId) } })}>일정 지우기</SpaceButton>}
-        </View>}
 
         <View accessibilityRole="tablist" style={styles.tabs}>
           {([{ key: 'plan', label: '장소·계획' }, { key: 'record', label: '사진·기록' }] as const).map(tab => (
@@ -369,6 +369,19 @@ export default function ScheduleDetailScreen() {
           {diarySection}
         </View>
       </ScrollView>
+      {access.canEdit && managementOpen && (
+        <View style={styles.menuLayer}>
+          <Pressable accessibilityRole="button" accessibilityLabel="일정 관리 메뉴 닫기" onPress={() => setManagementOpen(false)} style={StyleSheet.absoluteFill} />
+          <View accessibilityLabel="일정 관리 메뉴" style={[styles.managementMenu, { top: insets.top + headerHeight }]}>
+            <Pressable accessibilityRole="button" onPress={() => { setManagementOpen(false); router.push({ pathname: '/schedules/[id]/edit', params: { id: String(scheduleId) } }); }} style={({ pressed }) => [styles.menuItem, pressed && styles.menuItemPressed]}>
+              <Text style={styles.menuText}>수정</Text>
+            </Pressable>
+            {access.canDelete && <Pressable accessibilityRole="button" onPress={() => { setManagementOpen(false); router.push({ pathname: '/schedules/[id]/delete', params: { id: String(scheduleId) } }); }} style={({ pressed }) => [styles.menuItem, styles.menuDivider, pressed && styles.menuItemPressed]}>
+              <Text style={[styles.menuText, styles.menuDelete]}>삭제</Text>
+            </Pressable>}
+          </View>
+        </View>
+      )}
       <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
   );
@@ -380,6 +393,13 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   backButton: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 },
   backMark: { color: colors.text, fontSize: 28, lineHeight: 30 },
   headerTitle: { color: colors.text, fontSize: 18, fontWeight: '600' },
+  menuLayer: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 20 },
+  managementMenu: { position: 'absolute', right: spacing.md, width: 160, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, borderRadius: radii.md, padding: spacing.xs, elevation: 8, shadowColor: colors.ink, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.14, shadowRadius: 16 },
+  menuItem: { minHeight: 48, justifyContent: 'center', paddingHorizontal: spacing.md, borderRadius: radii.sm },
+  menuItemPressed: { backgroundColor: colors.surfaceMuted },
+  menuText: { color: colors.text, fontSize: 14 },
+  menuDelete: { color: colors.danger },
+  menuDivider: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
 
   content: { gap: spacing.lg, padding: spacing.lg, paddingBottom: 60 },
   summary: { gap: 5 },
