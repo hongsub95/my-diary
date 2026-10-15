@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { KakaoMap } from '@/features/places/kakao-map';
 import { PlacePicker } from '@/features/places/place-picker';
 import { PlaceNoteEditor } from '@/features/schedules/place-note-editor';
-import { formatRangeShort, periodBetween } from '@/features/schedules/schedule-dates';
+import { formatRangeShort } from '@/features/schedules/schedule-dates';
 import { useSchedule, useScheduleActions } from '@/features/schedules/schedule-queries';
 import { StepIndicator } from '@/features/schedules/step-indicator';
 import { getApiError } from '@/shared/api/api-error';
@@ -110,9 +110,12 @@ export default function SchedulePlanScreen() {
           {/* 1단계의 "어떤 하루인가요?"와 짝을 이루는 질문. 하루 이름이 길어도 제목이 밀리지 않게
               이름과 기간은 아래 한 줄로 뺐다. */}
           <Text style={styles.title}>어디로 갈까요?</Text>
-          <Text numberOfLines={1} style={styles.subtitle}>
-            {day.title} · {formatRangeShort(seoulDateKey(day.start_at), seoulDateKey(day.end_at))} · {periodBetween(seoulDateKey(day.start_at), seoulDateKey(day.end_at))}
-          </Text>
+          {/* 이름과 기간을 한 줄에 이어 쓰지 않고 줄마다 하나씩 둔다. 박수(당일·1박 2일)는
+              두지 않는다(2026-10-15 사용자 요청). 한 줄로 이으면 이름이 길 때 기간이 잘려 나갔다. */}
+          <View style={styles.dayInfo}>
+            <Text style={styles.dayName}>{day.title}</Text>
+            <Text style={styles.subtitle}>{formatRangeShort(seoulDateKey(day.start_at), seoulDateKey(day.end_at))}</Text>
+          </View>
 
           {/* 보조 동작이라 테두리만 둔다. "하루 완성하기"와 같은 무게로 두면 둘 중 무엇이
               다음 단계인지 헷갈린다. 추천 화면은 from=plan을 보고 여기로 돌아온다. */}
@@ -244,7 +247,9 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   headerTitle: { color: colors.text, flex: 1, fontSize: 18, fontWeight: '600', textAlign: 'center' },
   content: { padding: spacing.lg, paddingBottom: 50 },
   title: { color: colors.text, fontSize: 24, fontWeight: '600', letterSpacing: -0.6, lineHeight: 32, marginTop: 12 },
-  subtitle: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 4 },
+  dayInfo: { gap: 2, marginTop: 8 },
+  dayName: { color: colors.text, fontSize: 16, fontWeight: '600', lineHeight: 22 },
+  subtitle: { color: colors.muted, fontSize: 13, lineHeight: 19 },
   mapSection: { marginTop: 20 },
   recommend: { alignItems: 'center', borderColor: palette.primary, borderRadius: radii.lg, borderStyle: 'dashed', borderWidth: 1, justifyContent: 'center', marginTop: 20, minHeight: 48, paddingHorizontal: 14 },
   recommendText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },

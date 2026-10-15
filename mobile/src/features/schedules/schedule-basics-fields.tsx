@@ -54,7 +54,8 @@ export const ScheduleBasicsFields = forwardRef<TextInput, {
       </View>
 
       <View style={styles.group}>
-        {/* 날짜 행 전체가 버튼이다. 값이 두 줄(기간 + 박수)이라 칸 하나로는 좁다. */}
+        {/* 날짜 행 전체가 버튼이다. 박수(당일·1박 2일) 배지는 화면에 두지 않는다(2026-10-15
+            사용자 결정). 날짜 시트 위쪽에서 고르는 동안 보여 주고, 화면 읽기 도구에는 계속 알린다. */}
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`날짜, ${range}, ${period}, 바꾸기`}
@@ -64,7 +65,6 @@ export const ScheduleBasicsFields = forwardRef<TextInput, {
           <Text style={styles.rowLabel}>날짜</Text>
           <View style={styles.rowValue}>
             <Text style={styles.dateText}>{range}</Text>
-            {period ? <Text style={styles.period}>{period}</Text> : null}
           </View>
           <Text style={styles.chevron}>›</Text>
         </Pressable>
@@ -118,7 +118,6 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   rowLabel: { color: colors.muted, fontSize: 14, width: 32 },
   rowValue: { flex: 1, gap: 4 },
   dateText: { color: colors.text, fontSize: 15, fontWeight: '600' },
-  period: { alignSelf: 'flex-start', backgroundColor: palette.primarySoft, borderRadius: 8, color: palette.primaryDark, fontSize: 12, fontWeight: '600', overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 2 },
   chevron: { color: colors.muted, fontSize: 22 },
   times: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 8 },
   timeBox: { flex: 1, maxWidth: 120 },
