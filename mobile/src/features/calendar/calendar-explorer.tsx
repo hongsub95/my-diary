@@ -4,7 +4,8 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-nati
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
-import { colors, type ThemePalette } from '@/shared/theme';
+import { PhaseTag, phaseColors, phaseKind, phaseKindLabels } from '@/features/schedules/phase-tag';
+import { colors } from '@/shared/theme';
 import { useTheme } from '@/shared/theme-context';
 import { dateKey, dateLabel, moveDate, parseDate, periodLabel, weekDates, type CalendarMode } from './calendar-dates';
 
@@ -18,37 +19,28 @@ const fillTheme = {
 };
 const noHeader = () => null;
 
-type ChipKind = 'plan' | 'pending' | 'done';
-const chipLabels: Record<ChipKind, string> = { plan: '예정', pending: '남기기 전', done: '남긴 하루' };
-
 /**
- * 서버가 계산한 experience_phase를 칩 모양 세 가지로 묶는다 (CALENDAR_SCREEN_SPEC 2026-10-15).
+ * 주간 보기 위쪽 날짜 줄의 날짜 하나. 날짜 아래 점으로 그날 첫 하루의 상태를 보여 준다.
+ * 점은 작아서 모양으로 나누기 어렵다. 예정은 속 빈 고리, 나머지는 채운 점으로만 구분하고,
+ * 정확한 상태는 아래 카드 배지와 화면 읽기 라벨이 전한다.
  *
- * @param phase 일정 응답의 experience_phase
- * @returns 예정(plan) · 남기기 전(pending) · 남긴 하루(done)
+ * @param day 'YYYY-MM-DD'
+ * @param weekday 요일 한 글자
+ * @param items 그날 걸친 일정 (시작 시간 순)
+ * @param selected 지금 고른 날짜인지
+ * @param onPress 날짜를 눌렀을 때
  */
-function chipKind(phase: string): ChipKind {
-  if (phase === 'recorded') return 'done';
-  if (phase === 'record_pending') return 'pending';
-  // upcoming·today가 예정이다. canceled는 노출 여부가 아직 열린 결정이라 이전처럼 예정 모양으로 둔다.
-  return 'plan';
-}
-
-/**
- * 월간 날짜 칸과 범례에 쓰는 상태 칩.
- * 색을 구분하기 어려운 사람도 알아보게 모양을 달리한다: 예정은 테두리만, 남기기 전은 주황 점,
- * 남긴 하루는 채운 바탕에 체크.
- *
- * @param label 칩에 쓸 글자 (하루 제목 또는 범례 이름)
- * @param kind 칩 모양
- * @param palette 사용자가 고른 테마. 예정 칩만 테마 색을 따른다
- */
-function PhaseChip({ label, kind, palette }: { label: string; kind: ChipKind; palette: ThemePalette }) {
-  return <View style={[s.chip, kind === 'plan' && [s.chipPlan, { borderColor: palette.primary }], kind === 'pending' && s.chipPending, kind === 'done' && s.chipDone]}>
-    <Text numberOfLines={1} style={[s.chipText, kind === 'plan' && { color: palette.primaryDark }, kind === 'pending' && s.chipPendingText]}>
-      {kind === 'pending' && <Text style={s.chipDot}>● </Text>}{kind === 'done' && '✓ '}{label}
-    </Text>
-  </View>;
+function WeekDate({ day, weekday, items, selected, onPress }: { day: string; weekday: string; items: ScheduleView[]; selected: boolean; onPress: () => void }) {
+  const palette = useTheme();
+  const kind = items.length ? phaseKind(items[0].experience_phase) : null;
+  const tone = kind && phaseColors(kind, palette);
+  const states = items.map(item => `${item.title} ${phaseKindLabels[phaseKind(item.experience_phase)]}`);
+  return <Pressable accessibilityRole="button" accessibilityLabel={[dateLabel(day), ...states].join(', ')} onPress={onPress} style={[s.weekDate, selected && { backgroundColor: palette.primarySoft }]}>
+    <Text style={s.muted}>{weekday}</Text>
+    <Text style={s.dayNumber}>{Number(day.slice(8))}</Text>
+    {/* 일정이 없어도 자리를 남겨 날짜 숫자 높이가 칸마다 흔들리지 않게 한다. */}
+    <View style={[s.weekDot, tone && (kind === 'plan' ? { borderWidth: 1.5, borderColor: tone.dot } : { backgroundColor: tone.dot })]} />
+  </Pressable>;
 }
 
 export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules, loading, failed, retry }: {
@@ -127,14 +119,14 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
                 if (!date) return null;
                 const items = schedules[date.dateString] ?? [];
                 // 칩 모양은 화면 읽기 도구에 전달되지 않으니 상태 이름을 라벨에 함께 읽어 준다.
-                const states = items.map(item => `${item.title} ${chipLabels[chipKind(item.experience_phase)]}`);
+                const states = items.map(item => `${item.title} ${phaseKindLabels[phaseKind(item.experience_phase)]}`);
                 return <Pressable accessibilityRole="button" accessibilityLabel={[`${dateLabel(date.dateString)}, 일정 ${items.length}개`, ...states].join(', ')} onPress={() => onOpenDay(date.dateString)} style={[s.cell, selectedDate === date.dateString && active]}>
                   <Text style={[s.dayNumber, date.dateString === dateKey(new Date()) && accent]}>{date.day}</Text>
-                  {items.slice(0, 2).map(item => <PhaseChip key={item.id} label={item.title} kind={chipKind(item.experience_phase)} palette={palette} />)}
+                  {items.slice(0, 2).map(item => <PhaseTag key={item.id} size="chip" label={item.title} kind={phaseKind(item.experience_phase)} />)}
                   {items.length > 2 && <Text style={s.more}>+{items.length - 2}</Text>}
                 </Pressable>;
               }} /> : <View style={s.viewport}>
-                {mode === 'week' && <View style={s.weekStrip}>{days.map((day, index) => <Pressable key={day} accessibilityRole="button" accessibilityLabel={dateLabel(day)} onPress={() => onSelect(day)} style={[s.weekDate, selectedDate === day && active]}><Text style={s.muted}>{weekdays[index]}</Text><Text style={s.dayNumber}>{Number(day.slice(8))}</Text></Pressable>)}</View>}
+                {mode === 'week' && <View style={s.weekStrip}>{days.map((day, index) => <WeekDate key={day} day={day} weekday={weekdays[index]} items={schedules[day] ?? []} selected={selectedDate === day} onPress={() => onSelect(day)} />)}</View>}
                 <ScrollView contentContainerStyle={s.agenda}>{mode === 'week' ? days.map(day => renderDay(day, true)) : renderDay(key)}</ScrollView>
               </View>}
             </View>;
@@ -142,7 +134,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
         </ScrollView>}
       </View>
       {mode === 'month' && <View style={s.legend}>
-        {(['plan', 'pending', 'done'] as const).map(kind => <PhaseChip key={kind} label={chipLabels[kind]} kind={kind} palette={palette} />)}
+        {(['plan', 'pending', 'done'] as const).map(kind => <PhaseTag key={kind} size="chip" label={phaseKindLabels[kind]} kind={kind} />)}
       </View>}
     </View>
     <Modal visible={picker} transparent animationType="slide" onRequestClose={() => setPicker(false)}>
@@ -181,14 +173,10 @@ const s = StyleSheet.create({
   dateButton: { flex: 1, minHeight: 44, justifyContent: 'center' }, dateTitle: { fontSize: 16, fontWeight: '600', textAlign: 'center', color: colors.text },
   arrow: { fontSize: 24, color: colors.text }, viewport: { flex: 1 },
   cell: { flex: 1, width: '100%', padding: 2, borderRadius: 8 }, dayNumber: { textAlign: 'center', fontSize: 14, color: colors.text, marginVertical: 6 },
-  // 칩 높이를 모양과 상관없이 맞추려고, 테두리 1을 쓰는 예정 칩은 안쪽 여백을 1만큼 줄인다.
-  chip: { borderRadius: 4, paddingHorizontal: 3, paddingVertical: 2, marginBottom: 2 }, chipText: { fontSize: 10, color: '#fff' },
-  chipPlan: { backgroundColor: colors.surface, borderWidth: 1, paddingHorizontal: 2, paddingVertical: 1 },
-  chipPending: { backgroundColor: colors.orangeSoft }, chipPendingText: { color: colors.orangeDark }, chipDot: { color: colors.orange, fontSize: 8 },
-  chipDone: { backgroundColor: colors.sage },
   more: { fontSize: 11, textAlign: 'center', color: colors.muted },
   legend: { flexDirection: 'row', justifyContent: 'center', gap: 8, paddingVertical: 8, borderTopWidth: 1, borderTopColor: colors.border },
   weekStrip: { flexDirection: 'row', padding: 4 }, weekDate: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 8 },
+  weekDot: { width: 6, height: 6, borderRadius: 3, marginTop: -2 },
   agenda: { padding: 12, gap: 16 }, agendaDay: { gap: 8 }, dayHeading: { fontSize: 14, fontWeight: '600', paddingVertical: 8 }, empty: { color: colors.muted, paddingVertical: 16 },
   status: { padding: 8, textAlign: 'center', fontSize: 12, color: colors.muted },
   modal: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,25,23,0.35)' },

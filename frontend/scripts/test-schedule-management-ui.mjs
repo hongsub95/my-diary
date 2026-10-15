@@ -59,7 +59,7 @@ await page.route('**/api/v1/**', async route => {
   else data = { items: [], next_cursor: null }
   await route.fulfill({ status, headers, ...(status === 204 ? {} : { contentType: 'application/json', body: JSON.stringify(data) }) })
 })
-async function openMenu() { await page.getByText('일정 관리', { exact: true }).click() }
+async function openMenu() { await page.getByLabel('일정 관리', { exact: true }).click() }
 async function shot(name) {
   await mkdir('test-results/schedule-management', { recursive: true })
   await page.screenshot({ path: 'test-results/schedule-management/' + name + '.png', fullPage: true })
@@ -68,7 +68,7 @@ async function shot(name) {
 try {
   await page.goto(origin + '/schedules/77')
   await openMenu()
-  await page.getByRole('button', { name: '일정 고치기', exact: true }).click()
+  await page.getByRole('button', { name: '수정', exact: true }).click()
   await expect(page.getByLabel('하루의 이름', { exact: false })).toHaveValue(initial.title)
   await expect(page.getByLabel('시작일', { exact: false })).toHaveValue('2026-10-30')
   await expect(page.getByLabel('시작 시간', { exact: false })).toHaveValue('12:00')
@@ -99,7 +99,7 @@ try {
   await expect(page).toHaveURL(/\/schedules\/77$/)
   assert.equal(schedule.title, initial.title)
   await openMenu()
-  await page.getByRole('button', { name: '일정 고치기', exact: true }).click()
+  await page.getByRole('button', { name: '수정', exact: true }).click()
   await page.getByLabel('하루의 이름', { exact: false }).fill('고친 여행')
 
   await page.getByLabel('종료일', { exact: false }).fill('2026-10-30')
@@ -131,14 +131,14 @@ try {
   assert.equal(timeline.length, 1)
 
   await openMenu()
-  await page.getByRole('button', { name: '일정 지우기', exact: true }).click()
+  await page.getByRole('button', { name: '삭제', exact: true }).click()
   await expect(page.getByText('함께 남긴 다른 사람의 기록도 지워지고, 모든 멤버의 화면에서 사라져요.', { exact: true })).toBeVisible()
   await expect(page.getByText('사진 3장', { exact: true })).toBeVisible()
   await shot('delete-390')
   await page.getByRole('button', { name: '돌아가기', exact: true }).click()
   assert.equal(deleteCount, 0)
   await openMenu()
-  await page.getByRole('button', { name: '일정 지우기', exact: true }).click()
+  await page.getByRole('button', { name: '삭제', exact: true }).click()
   failDelete = true
   await page.getByRole('button', { name: '일정 지우기', exact: true }).click()
   await expect(page.getByText('지우지 못했어요. 연결을 확인하고 다시 시도해 주세요.', { exact: true })).toBeVisible()
@@ -159,8 +159,8 @@ try {
   await expect(page.getByRole('button', { name: '일정 지우기', exact: true })).toHaveCount(0)
   await page.goto(origin + '/schedules/77')
   await openMenu()
-  await expect(page.getByRole('button', { name: '일정 고치기', exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '일정 지우기', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '수정', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '삭제', exact: true })).toHaveCount(0)
   schedule.created_by.id = 1
   await page.goto(origin + '/schedules/77/delete')
   await expect(page.getByRole('button', { name: '일정 지우기', exact: true })).toBeVisible()

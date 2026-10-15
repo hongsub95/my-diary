@@ -71,6 +71,16 @@ async function shot(name) {
 try {
   await page.goto(origin + '/schedules/77')
   await selected(plan())
+  await page.getByLabel('일정 관리', { exact: true }).click()
+  const editOption = page.getByRole('button', { name: '수정', exact: true })
+  const deleteOption = page.getByRole('button', { name: '삭제', exact: true })
+  await expect(editOption).toBeVisible()
+  await expect(deleteOption).toBeVisible()
+  assert.ok((await deleteOption.boundingBox()).y > (await editOption.boundingBox()).y, 'Menu options are stacked')
+  await shot('dropdown-390')
+  if (mobile) await page.getByRole('button', { name: '일정 관리 메뉴 닫기', exact: true }).click({ position: { x: 5, y: 300 } })
+  else { await editOption.focus(); await page.keyboard.press('Escape') }
+  await expect(editOption).toBeHidden()
   await expect(page.getByText('아직 담은 장소가 없어요.', { exact: true })).toBeVisible()
   await shot('plan-390')
   await record().click()

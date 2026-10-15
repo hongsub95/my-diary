@@ -33,3 +33,11 @@
 .sdetail-manage .sdetail-manage-delete { color: var(--color-danger, #b54444); }
 .sdetail-management-menu { margin-bottom: 4px; }
 .sdetail-management-menu summary { cursor: pointer; font-size: 14px; font-weight: 600; padding: 10px 4px; color: var(--color-text-secondary); }
+.sdetail-dropdown { position: relative; flex-shrink: 0; }
+.sdetail-dropdown > summary { list-style: none; cursor: pointer; display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; font-size: 24px; color: var(--color-text-primary); }
+.sdetail-dropdown > summary::-webkit-details-marker { display: none; }
+.sdetail-dropdown > summary:hover { background: var(--color-surface-hover); }
+.sdetail-dropdown__options { position: absolute; top: calc(100% + 4px); right: 0; z-index: 30; width: 160px; padding: 4px; border: 1px solid var(--color-border); border-radius: 14px; background: var(--color-surface); box-shadow: var(--shadow-md); }
+.sdetail-dropdown__options button { display: block; width: 100%; min-height: 48px; padding: 12px; text-align: left; border-radius: 10px; color: var(--color-text-primary); font-size: 14px; }
+.sdetail-dropdown__options button:hover { background: var(--color-surface-hover); }
+.sdetail-dropdown__options .sdetail-dropdown__delete { color: var(--color-danger, #b54444); border-top: 1px solid var(--color-border-light); }

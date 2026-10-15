@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
 import arrowLeftRaw from '../../assets/icons/arrow-left.svg?raw'
@@ -181,6 +181,15 @@ export default function ScheduleDetailPage() {
   const mutations = useSchedulePlaceMutations(id)
   const complete = useCompleteSchedule(id)
   const [picking, setPicking] = useState(false)
+  const managementRef = useRef(null)
+  useEffect(() => {
+    const closeOutside = event => {
+      const menu = managementRef.current
+      if (menu && !menu.contains(event.target)) menu.open = false
+    }
+    document.addEventListener('pointerdown', closeOutside)
+    return () => document.removeEventListener('pointerdown', closeOutside)
+  }, [])
   const [selection, setSelection] = useState(null)
   const defaultTab = schedule && ['recorded', 'record_pending'].includes(schedule.experience_phase)
     && schedule.record_summary.has_content ? 'record' : 'plan'
@@ -260,6 +269,15 @@ export default function ScheduleDetailPage() {
           <span className={`sdetail-header__badge sdetail-header__badge--${phase}`}>
             {PHASE_LABELS[phase] ?? phase}
           </span>
+          {access.canEdit && <details ref={managementRef} className="sdetail-dropdown" onKeyDown={event => {
+            if (event.key === 'Escape') { event.currentTarget.open = false; event.currentTarget.querySelector('summary').focus() }
+          }}>
+            <summary aria-label="일정 관리">⋯</summary>
+            <div className="sdetail-dropdown__options" role="group" aria-label="일정 관리 메뉴">
+              <button type="button" onClick={() => { managementRef.current.open = false; navigate(`/schedules/${id}/edit`) }}>수정</button>
+              {access.canDelete && <button type="button" className="sdetail-dropdown__delete" onClick={() => { managementRef.current.open = false; navigate(`/schedules/${id}/delete`) }}>삭제</button>}
+            </div>
+          </details>}
         </div>
         <p className="sdetail-header__time">
           {schedule.space_name} · {scheduleWhen(schedule)}
@@ -267,11 +285,6 @@ export default function ScheduleDetailPage() {
       </div>
 
       <div className="sdetail-body">
-        {access.canEdit && <details className="sdetail-management-menu"><summary>일정 관리</summary><div className="sdetail-manage">
-          <button type="button" onClick={() => navigate(`/schedules/${id}/edit`)}>일정 고치기</button>
-          {access.canDelete && <button type="button" className="sdetail-manage-delete" onClick={() => navigate(`/schedules/${id}/delete`)}>일정 지우기</button>}
-        </div></details>}
-
         <div className="sdetail-tabs" role="tablist" aria-label="하루 내용" onKeyDown={handleTabKey}>
           {[{ key: 'plan', label: '장소·계획' }, { key: 'record', label: '사진·기록' }].map(tab => (
             <button key={tab.key} type="button" role="tab" id={`day-${id}-${tab.key}-tab`} aria-controls={`day-${id}-${tab.key}-panel`} aria-selected={activeTab === tab.key} tabIndex={activeTab === tab.key ? 0 : -1} onClick={() => selectTab(tab.key)}>{tab.label}</button>
