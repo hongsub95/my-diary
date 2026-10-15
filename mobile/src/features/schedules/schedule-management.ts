@@ -4,6 +4,7 @@ import { useAuth } from '@/features/auth/auth-context';
 import { getSpace } from '@/features/spaces/space-api';
 import type { Schedule } from '@/shared/api/types';
 import { seoulDateKey } from '@/shared/utils/date';
+import { periodBetween } from './schedule-dates';
 import { TIME_OPTIONS } from './time-select';
 import type { UpdateScheduleInput } from './schedule-api';
 
@@ -44,8 +45,7 @@ export function sameField(field: keyof UpdateScheduleInput, a: unknown, b: unkno
   return field.endsWith('_at') ? new Date(String(a)).getTime() === new Date(String(b)).getTime() : (a ?? null) === (b ?? null);
 }
 export function periodLabel(form: ScheduleForm) {
-  const nights = (Date.parse(form.end_date + 'T00:00:00Z') - Date.parse(form.start_date + 'T00:00:00Z')) / 86400000;
-  return Number.isFinite(nights) && nights >= 0 ? nights === 0 ? '당일' : nights + '박 ' + (nights + 1) + '일' : '';
+  return periodBetween(form.start_date, form.end_date);
 }
 export function scheduleWhen(schedule: Pick<Schedule, 'title' | 'description' | 'start_at' | 'end_at'>) {
   const form = scheduleForm(schedule);

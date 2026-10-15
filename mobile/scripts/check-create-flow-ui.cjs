@@ -63,6 +63,7 @@ const options = {
     let made = false;
     let deleted = false;
     let current = { ...created };
+    let lastPost = null;
     await context.route('**/api/v1/**', async route => {
       const request = route.request();
       const method = request.method();
@@ -74,7 +75,7 @@ const options = {
       if (routePath === '/auth/me') data = { id: 1, nickname: '검증 사용자', email: 'ui@example.com', default_space_id: space.id, theme_key: 'rose' };
       else if (routePath === '/spaces') data = { spaces: [space] };
       else if (routePath === '/menus') data = { menus: ['home', 'calendar', 'schedules', 'records', 'more'].map((code, i) => ({ code, name: ['홈', '캘린더', '일정', '기록', '더보기'][i], icon: code, children: [] })) };
-      else if (routePath === `/spaces/${space.id}/schedules` && method === 'POST') { made = true; deleted = false; current = { ...created }; status = 201; data = current; }
+      else if (routePath === `/spaces/${space.id}/schedules` && method === 'POST') { made = true; deleted = false; lastPost = request.postDataJSON(); current = { ...created }; status = 201; data = current; }
       else if (routePath === `/spaces/${space.id}/schedules`) data = { items: made && !deleted ? [current] : [] };
       else if (routePath === '/schedules/201' && method === 'DELETE') { deleted = true; return route.fulfill({ status: 204, headers }); }
       else if (routePath === '/schedules/201' && deleted) { status = 404; data = { code: 'SCHEDULE_NOT_FOUND', message: '일정을 찾을 수 없습니다.', field: null }; }
@@ -173,6 +174,39 @@ const options = {
     await expect(page).toHaveURL(/\/schedules$/);
     assert.deepEqual(viaRecommendation, ['(tabs)/schedules'], '추천에 다녀와도 끝내면 일정 탭만 남아야 한다');
 
+    /** CREATE_FLOW_SHOTS 폴더가 주어지면 화면을 찍어 둔다. 눈으로 시안과 비교할 때 쓴다. */
+    async function shot(name) {
+      if (!process.env.CREATE_FLOW_SHOTS) return;
+      await page.waitForTimeout(500);
+      await page.screenshot({ path: `${process.env.CREATE_FLOW_SHOTS}/${name}.png` });
+    }
+
+    // 2-1) 날짜 시트에서 금~토 1박 2일을 고르면 그 기간 그대로 저장된다.
+    //      시트의 값은 "적용"을 눌러야 폼에 들어가고, 닫으면 버려진다.
+    await page.goto(origin + '/schedules');
+    await page.getByRole('button', { name: '새 일정 만들기' }).click();
+    await page.getByRole('textbox', { name: '하루의 이름, 필수' }).fill('성수 카페 투어');
+    await expect(page.getByRole('button', { name: /^날짜, 10월 13일 \(화\), 당일/ })).toBeVisible();
+    await shot('1-step-one');
+    await page.getByRole('button', { name: /^날짜,/ }).click();
+    await page.getByText('20', { exact: true }).last().click();
+    await page.getByRole('button', { name: '날짜 고르기 닫기' }).last().click();
+    await expect(page.getByRole('button', { name: /^날짜, 10월 13일 \(화\), 당일/ })).toBeVisible();
+    await page.getByRole('button', { name: /^날짜,/ }).click();
+    await page.getByText('16', { exact: true }).last().click();
+    await page.getByText('17', { exact: true }).last().click();
+    await expect(page.getByText('10월 16일 (금) – 10월 17일 (토)', { exact: true })).toBeVisible();
+    await shot('2-range-sheet');
+    await page.getByRole('button', { name: '1박 2일 적용' }).click();
+    await expect(page.getByRole('button', { name: /^날짜, 10월 16일 \(금\) ~ 17일 \(토\), 1박 2일/ })).toBeVisible();
+    await shot('3-step-one-applied');
+    await page.getByText(/갈 곳 정하기/).click();
+    await expect(page).toHaveURL(/\/schedules\/201\/plan$/, { timeout: 15000 });
+    // 한국 시간 금 12:00 ~ 토 15:00 = UTC 금 03:00 ~ 토 06:00
+    assert.equal(lastPost.start_at, '2026-10-16T03:00:00.000Z', '시작은 고른 첫날 12:00(한국)이어야 한다');
+    assert.equal(lastPost.end_at, '2026-10-17T06:00:00.000Z', '끝은 고른 마지막 날 15:00(한국)이어야 한다');
+    console.log('날짜 시트: 닫으면 버려지고, 적용한 1박 2일이 그대로 저장됨');
+
     /** 일정 탭에서 방금 만든 하루의 상세를 연다. */
     async function openDetail() {
       await page.goto(origin + '/schedules');
@@ -185,6 +219,7 @@ const options = {
     await openDetail();
     await page.getByRole('button', { name: '일정 고치기' }).click();
     await expect(page).toHaveURL(/\/schedules\/201\/edit$/, { timeout: 15000 });
+    await shot('4-edit');
     await page.getByRole('textbox', { name: '하루의 이름, 필수' }).last().fill('성수 산책 다시');
     await page.getByRole('button', { name: '저장하기' }).click();
     await expect(page).toHaveURL(/\/schedules\/201(\?.*)?$/, { timeout: 15000 });

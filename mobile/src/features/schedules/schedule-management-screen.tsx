@@ -15,9 +15,8 @@ import { LoadingIndicator } from '@/shared/components/loading-indicator';
 import { colors, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { deleteSchedule, getSchedule, updateSchedule, type UpdateScheduleInput } from './schedule-api';
-import { errorStatus, formError, periodLabel, sameField, scheduleChanges, scheduleForm, scheduleWhen, useScheduleAccess, type ScheduleForm } from './schedule-management';
-import { ScheduleDatePicker } from './schedule-date-picker';
-import { SelectButton, TimeSelect } from './time-select';
+import { errorStatus, formError, sameField, scheduleChanges, scheduleForm, scheduleWhen, useScheduleAccess, type ScheduleForm } from './schedule-management';
+import { ScheduleBasicsFields } from './schedule-basics-fields';
 
 type Mode = 'edit' | 'delete';
 type Access = ReturnType<typeof useScheduleAccess>;
@@ -58,7 +57,6 @@ function ManagementForm({ schedule, access, mode }: { schedule: Schedule; access
   const [destination, setDestination] = useState<{ list: boolean; notice?: string } | null>(null);
   const [pendingAction, setPendingAction] = useState<NavigationAction | null>(null);
   const [conflict, setConflict] = useState<Schedule | null>(null);
-  const [calendar, setCalendar] = useState<'start' | 'end' | null>(null);
   const [footerHeight, setFooterHeight] = useState(0);
   const lock = useRef(false);
   const alive = useRef(true);
@@ -93,7 +91,6 @@ function ManagementForm({ schedule, access, mode }: { schedule: Schedule; access
   }
   // 아래에 있는 상세로 돌아간다. 이유는 위 dismissTo 주석과 같다.
   const back = () => router.dismissTo({ pathname: '/schedules/[id]', params: { id: String(schedule.id) } });
-  const set = (key: keyof ScheduleForm, value: string) => setForm(before => ({ ...before, [key]: value }));
 
   async function save() {
     if (lock.current || destination) return;
@@ -167,14 +164,12 @@ function ManagementForm({ schedule, access, mode }: { schedule: Schedule; access
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <View style={styles.header}><Pressable accessibilityRole="button" accessibilityLabel="뒤로 가기" disabled={busy || !!destination} onPress={back} style={styles.back}><Text style={styles.backMark}>‹</Text></Pressable><Text accessibilityRole="header" style={styles.headerTitle}>{isEdit ? '일정 고치기' : '일정 지우기'}</Text><View style={styles.back} /></View>
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <View style={styles.intro}><Text style={styles.eyebrow}>{isEdit ? 'EDIT YOUR DAY' : 'DELETE YOUR DAY'}</Text><Text accessibilityRole="header" style={styles.title}>{isEdit ? '계획이 바뀌었나요?' : '이 일정을 지울까요?'}</Text><Text style={styles.text}>{isEdit ? '저장해 둔 하루의 정보를 고쳐주세요.' : '지우기 전에 어떤 하루인지 확인해 주세요.'}</Text></View>
+        {/* 고치기는 공용 입력이 질문(어떤 하루인가요?)으로 시작하므로 소개 문단을 두지 않는다. */}
+        {!isEdit && <View style={styles.intro}><Text style={styles.eyebrow}>DELETE YOUR DAY</Text><Text accessibilityRole="header" style={styles.title}>이 일정을 지울까요?</Text><Text style={styles.text}>지우기 전에 어떤 하루인지 확인해 주세요.</Text></View>}
         {isEdit ? <>
-          <View style={styles.field}><Text style={styles.label}>하루의 이름 *</Text><TextInput ref={titleInput} accessibilityLabel="하루의 이름, 필수" editable={!busy} style={styles.input} value={form.title} onChangeText={value => set('title', value)} /></View>
-          <View style={styles.card}>{(['start', 'end'] as const).map(edge => <View key={edge} style={styles.timingRow}>
-            <View style={styles.dateField}><Text style={styles.label}>{edge === 'start' ? '시작일' : '종료일'} *</Text><SelectButton disabled={busy} accessibilityLabel={edge === 'start' ? '시작일 선택' : '종료일 선택'} label={form[edge + '_date' as keyof ScheduleForm]} onPress={() => setCalendar(edge)} /></View>
-            <View style={styles.timeField}><Text style={styles.label}>{edge === 'start' ? '시작 시간' : '종료 시간'} *</Text><TimeSelect disabled={busy} accessibilityLabel={edge === 'start' ? '시작 시간 선택' : '종료 시간 선택'} value={form[edge + '_time' as keyof ScheduleForm]} onChange={value => set(edge + '_time' as keyof ScheduleForm, value)} /></View>
-          </View>)}<Text style={styles.period}>{periodLabel(form)}</Text></View>
-          <View style={styles.field}><Text style={styles.label}>메모</Text><TextInput accessibilityLabel="메모" editable={!busy} multiline textAlignVertical="top" style={[styles.input, styles.textarea]} value={form.description} onChangeText={value => set('description', value)} /></View>
+          {/* 저장된 공간과 공유 안내(SCHEDULE_EDIT_DELETE_SPEC 4·5절). 함께 쓰는 공간이면 고친 내용이 모두에게 보인다. */}
+          <View style={styles.spaceTarget}><View style={styles.spaceDot} /><Text style={styles.spaceText}><Text style={styles.spaceName}>{schedule.space_name}</Text>의 하루예요{shared ? ' · 함께 쓰는 공간의 일정은 변경 내용이 모두에게 보여요.' : ''}</Text></View>
+          <ScheduleBasicsFields ref={titleInput} disabled={busy} form={form} memoLabel="메모" onChange={patch => setForm(before => ({ ...before, ...patch }))} />
           <Text style={styles.hint}>담아 둔 장소와 사진·글·타임라인은 그대로 남아요.</Text>
         </> : <>
           <View style={styles.card}><Text style={styles.hint}>{schedule.space_name}</Text><Text style={styles.title}>{schedule.title}</Text><Text style={styles.text}>{scheduleWhen(schedule)}</Text>
@@ -189,7 +184,6 @@ function ManagementForm({ schedule, access, mode }: { schedule: Schedule; access
           {access.canDelete && <SpaceButton kind="danger" disabled={busy || !!destination} onPress={() => { void remove(); }}>{busy ? '지우는 중…' : '일정 지우기'}</SpaceButton>}
         </>}
       </View>
-      <ScheduleDatePicker target={calendar} startDate={form.start_date} endDate={form.end_date} onClose={() => setCalendar(null)} onSelect={date => { if (calendar) set(calendar + '_date' as keyof ScheduleForm, date); setCalendar(null); }} />
       <Modal transparent visible={!!pendingAction || !!conflict} onRequestClose={() => { setPendingAction(null); if (conflict) keepDraft(); }}>
         <View style={styles.scrim}><View accessibilityViewIsModal style={styles.dialog}>
           <Text accessibilityRole="header" style={styles.name}>{pendingAction ? '변경 내용을 저장하지 않고 나갈까요?' : '다른 사람이 일정을 고쳤어요.'}</Text>
@@ -215,8 +209,10 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   intro: { gap: 10, paddingVertical: 8 }, eyebrow: { color: palette.primaryDark, fontSize: 12 }, title: { color: colors.text, fontSize: 26, lineHeight: 36, fontWeight: '600' },
   text: { color: colors.muted, fontSize: 14, lineHeight: 23 }, hint: { color: colors.muted, fontSize: 12, lineHeight: 20 }, name: { color: colors.text, fontSize: 16, fontWeight: '600' },
   card: { borderRadius: 24, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, padding: 16, gap: 14 },
-  field: { gap: 8 }, label: { color: colors.text, fontSize: 14, fontWeight: '600' }, input: { borderRadius: 14, backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1, minHeight: 52, padding: 14, fontSize: 14, color: colors.text }, textarea: { minHeight: 110 },
-  timingRow: { flexDirection: 'row', gap: 10 }, dateField: { flex: 1, minWidth: 0, gap: 8 }, timeField: { width: 100, gap: 8 }, period: { color: palette.primaryDark, fontSize: 12, textAlign: 'right' },
+  // 저장된 공간 안내. 하루 만들기 1단계와 같은 모양이다.
+  spaceTarget: { alignItems: 'center', alignSelf: 'flex-start', backgroundColor: palette.primarySoft, borderRadius: 12, flexDirection: 'row', gap: 6, paddingHorizontal: 14, paddingVertical: 9 },
+  spaceDot: { backgroundColor: palette.primary, borderRadius: 3, height: 6, width: 6 },
+  spaceText: { color: colors.muted, flexShrink: 1, fontSize: 13, lineHeight: 19 }, spaceName: { color: palette.primaryDark, fontWeight: '600' },
   tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, tag: { backgroundColor: colors.surfaceMuted, borderRadius: 8, padding: 8, fontSize: 12, color: colors.muted },
   scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,.4)', justifyContent: 'center', padding: 24 }, dialog: { backgroundColor: colors.surface, borderRadius: 24, padding: 24, gap: 16 },
 });
