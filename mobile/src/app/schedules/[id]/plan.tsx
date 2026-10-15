@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -6,12 +7,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { KakaoMap } from '@/features/places/kakao-map';
 import { PlacePicker } from '@/features/places/place-picker';
 import { PlaceNoteEditor } from '@/features/schedules/place-note-editor';
+import { formatRangeShort, periodBetween } from '@/features/schedules/schedule-dates';
 import { useSchedule, useScheduleActions } from '@/features/schedules/schedule-queries';
+import { StepIndicator } from '@/features/schedules/step-indicator';
 import { getApiError } from '@/shared/api/api-error';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
+import { seoulDateKey } from '@/shared/utils/date';
 import { moveItem } from '@/shared/utils/reorder';
 
 /**
@@ -40,11 +44,12 @@ export default function SchedulePlanScreen() {
   const schedule = useSchedule(scheduleId);
   const { addPlace, removePlace, reorderPlaces, updatePlaceNote } = useScheduleActions(scheduleId);
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
+  const [footerHeight, setFooterHeight] = useState(0);
 
   // 끝내면 일정 탭으로 나간다. dismissTo는 일정 탭이 나올 때까지 그 위 화면을 모두 걷어낸다.
   // 하루 만들기 단계와 그 사이에 열었던 화면(코스 추천)이 스택에 남지 않아, 이후 뒤로 가도
   // 만들기 단계로 되돌아오지 않는다. 예전처럼 상세로 replace하면 상세 아래에 만들기 단계가
-  // 남을 수 있었다. 하루는 1단계에서 이미 저장돼 있어 닫기(×)도 같은 동작이다.
+  // 남을 수 있었다. 하루는 1단계에서 이미 저장돼 있어 "장소 없이 끝내기"도 같은 동작이다.
   const done = () =>
     router.dismissTo({ pathname: '/(tabs)/schedules', params: { notice: '하루를 만들었어요.' } });
 
@@ -96,21 +101,18 @@ export default function SchedulePlanScreen() {
           <Pressable accessibilityLabel="1단계로 돌아가기" accessibilityRole="button" disabled={busy} onPress={() => router.replace({ pathname: '/schedules/new', params: { scheduleId: String(scheduleId) } })} style={styles.headerButton}>
             <Text style={styles.back}>‹</Text>
           </Pressable>
-          <Text style={styles.headerTitle}>하루 만들기</Text>
-          <Pressable accessibilityLabel="닫기" accessibilityRole="button" onPress={done} style={styles.headerButton}>
-            <Text style={styles.close}>×</Text>
-          </Pressable>
+          <Text accessibilityRole="header" style={styles.headerTitle}>하루 만들기</Text>
+          {/* 닫기(×)는 두지 않는다. 아래 고정된 "하루 완성하기"와 같은 동작이라 1단계처럼 단계 표시만 둔다. */}
+          <StepIndicator current={2} total={2} />
         </View>
 
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={styles.progress}>
-            <View style={styles.progressOn} />
-            <View style={styles.progressOn} />
-            <Text style={styles.progressText}>2 / 2</Text>
-          </View>
-
-          <Text style={styles.eyebrow}>STEP 2 · 갈 곳 정하기</Text>
-          <Text style={styles.title}>{day.title}에{'\n'}어디를 담아볼까요?</Text>
+          {/* 1단계의 "어떤 하루인가요?"와 짝을 이루는 질문. 하루 이름이 길어도 제목이 밀리지 않게
+              이름과 기간은 아래 한 줄로 뺐다. */}
+          <Text style={styles.title}>어디로 갈까요?</Text>
+          <Text numberOfLines={1} style={styles.subtitle}>
+            {day.title} · {formatRangeShort(seoulDateKey(day.start_at), seoulDateKey(day.end_at))} · {periodBetween(seoulDateKey(day.start_at), seoulDateKey(day.end_at))}
+          </Text>
 
           {/* 보조 동작이라 테두리만 둔다. "하루 완성하기"와 같은 무게로 두면 둘 중 무엇이
               다음 단계인지 헷갈린다. 추천 화면은 from=plan을 보고 여기로 돌아온다. */}
@@ -143,8 +145,11 @@ export default function SchedulePlanScreen() {
 
           {/* 목록 위에 지도를 둔다. 마커 번호가 아래 순번과 같아서 "몇 번째로 어디를 가는지"를
               지도에서 바로 읽을 수 있다. 일정 상세와 같은 구성이다. */}
+          {/* 위의 장소 고르기 칸과 붙어 보이지 않게 간격을 둔다(2026-10-15 사용자 요청). */}
           {places.length ? (
-            <KakaoMap places={places.map((place) => ({ ...place, id: String(place.id) }))} />
+            <View style={styles.mapSection}>
+              <KakaoMap places={places.map((place) => ({ ...place, id: String(place.id) }))} />
+            </View>
           ) : null}
 
           <View style={styles.placeList}>
@@ -203,26 +208,29 @@ export default function SchedulePlanScreen() {
             )}
           </View>
 
-
-          {/* 장소가 없을 때만 "장소 없이 끝내기"를 보인다. 담은 뒤에 이 문구가 남아 있으면
-              담은 장소가 버려지는 것처럼 읽힌다. 둘 다 하는 일은 같다 — 일정 탭으로 간다. */}
-          <View style={styles.actions}>
-            {places.length === 0 ? (
-              <Pressable accessibilityRole="button" onPress={done} style={styles.secondaryButton}>
-                <Text style={styles.secondaryText}>장소 없이 끝내기</Text>
-              </Pressable>
-            ) : null}
-            <Pressable
-              accessibilityRole="button"
-              disabled={busy}
-              onPress={done}
-              style={[styles.primaryButton, styles.submit, busy && styles.disabled]}>
-              <Text style={styles.primaryText}>하루 완성하기</Text>
-            </Pressable>
-          </View>
         </ScrollView>
+        {/* 끝내기 버튼은 스크롤과 상관없이 아래에 고정한다. 장소를 여럿 담아도 내려 찾지 않게 한다. */}
+        {/* 장소가 없을 때만 "장소 없이 끝내기"를 보인다. 담은 뒤에 이 문구가 남아 있으면
+            담은 장소가 버려지는 것처럼 읽힌다. 둘 다 하는 일은 같다 — 일정 탭으로 간다. */}
+        <View onLayout={(event) => setFooterHeight(event.nativeEvent.layout.height)} style={styles.footer}>
+          {places.length === 0 ? (
+            <Pressable accessibilityRole="button" onPress={done} style={styles.secondaryButton}>
+              <Text style={styles.secondaryText}>장소 없이 끝내기</Text>
+            </Pressable>
+          ) : null}
+          <Pressable
+            accessibilityRole="button"
+            disabled={busy}
+            onPress={done}
+            style={[styles.primaryButton, styles.submit, busy && styles.disabled]}>
+            <Text style={styles.primaryText}>하루 완성하기</Text>
+          </Pressable>
+        </View>
+        {/* 고정 버튼에 가리지 않게 스낵바를 그 위에 띄운다. */}
+        <View pointerEvents="box-none" style={[styles.snackbarLayer, { bottom: footerHeight }]}>
+          <Snackbar notice={notice} onDismiss={dismissSnackbar} />
+        </View>
       </KeyboardAvoidingView>
-      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
   );
 }
@@ -233,14 +241,11 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   header: { alignItems: 'center', backgroundColor: colors.background, flexDirection: 'row', minHeight: 58, paddingHorizontal: spacing.sm },
   headerButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
   back: { color: colors.text, fontSize: 35, lineHeight: 38 },
-  close: { color: colors.muted, fontSize: 25 },
   headerTitle: { color: colors.text, flex: 1, fontSize: 18, fontWeight: '600', textAlign: 'center' },
   content: { padding: spacing.lg, paddingBottom: 50 },
-  progress: { alignItems: 'center', flexDirection: 'row', gap: 6 },
-  progressOn: { backgroundColor: palette.primary, borderRadius: 4, flex: 1, height: 4 },
-  progressText: { color: colors.muted, fontSize: 14, fontWeight: '600', marginLeft: 5 },
-  eyebrow: { color: palette.primaryDark, fontSize: 14, fontWeight: '600', letterSpacing: 1.1, marginTop: 28 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1, lineHeight: 35, marginTop: 9 },
+  title: { color: colors.text, fontSize: 24, fontWeight: '600', letterSpacing: -0.6, lineHeight: 32, marginTop: 12 },
+  subtitle: { color: colors.muted, fontSize: 13, lineHeight: 19, marginTop: 4 },
+  mapSection: { marginTop: 20 },
   recommend: { alignItems: 'center', borderColor: palette.primary, borderRadius: radii.lg, borderStyle: 'dashed', borderWidth: 1, justifyContent: 'center', marginTop: 20, minHeight: 48, paddingHorizontal: 14 },
   recommendText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
   pressed: { opacity: 0.75 },
@@ -267,10 +272,11 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   emptyPlacesIcon: { color: palette.primary, fontSize: 31 },
   emptyPlacesTitle: { color: colors.text, fontSize: 16, fontWeight: '600', marginTop: 8 },
   emptyPlacesText: { color: colors.muted, fontSize: 12, marginTop: 5 },
-  actions: { flexDirection: 'row', gap: 9 },
-  secondaryButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', marginTop: 22, minHeight: 52, paddingHorizontal: 20 },
+  footer: { backgroundColor: colors.surface, borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: 9, paddingBottom: 12, paddingHorizontal: spacing.lg, paddingTop: 12 },
+  snackbarLayer: { left: 0, position: 'absolute', right: 0 },
+  secondaryButton: { alignItems: 'center', borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 54, paddingHorizontal: 20 },
   secondaryText: { color: colors.text, fontSize: 14, fontWeight: '600' },
-  primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.lg, elevation: 2, justifyContent: 'center', marginTop: 22, minHeight: 54, paddingHorizontal: 18, shadowColor: palette.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12 },
+  primaryButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.lg, elevation: 2, justifyContent: 'center', minHeight: 54, paddingHorizontal: 18, shadowColor: palette.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.2, shadowRadius: 12 },
   primaryText: { color: '#FFFFFF', fontSize: 14, fontWeight: '600' },
   submit: { flex: 1 },
   disabled: { opacity: 0.5 },
