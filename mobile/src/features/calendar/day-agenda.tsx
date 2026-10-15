@@ -4,6 +4,7 @@ import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PhaseTag, phaseKind, phaseLabel } from '@/features/schedules/phase-tag';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { useSchedules } from '@/features/schedules/schedule-queries';
+import { EmptyState } from '@/shared/components/empty-state';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
@@ -172,7 +173,7 @@ export function DayAgenda({ day }: { day: string }) {
     <Text style={styles.state}>하루를 불러오지 못했어요. 다시 시도</Text>
   </Pressable>;
   const items = [...(query.data ?? [])].sort((a, b) => a.start_at.localeCompare(b.start_at) || a.id - b.id);
-  if (!items.length) return <Text style={styles.state}>이날은 예정된 하루가 없어요.</Text>;
+  if (!items.length) return <EmptyState compact icon="📅" title="이날은 예정된 하루가 없어요" description="다른 날짜를 골라 보세요." />;
   return <View style={styles.list}>{items.map(item => <DaySummaryCard key={item.id} schedule={item} />)}</View>;
 }
 

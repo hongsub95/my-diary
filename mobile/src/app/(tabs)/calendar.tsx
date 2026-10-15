@@ -4,13 +4,12 @@ import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDime
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSchedules } from '@/features/schedules/schedule-queries';
-import { ScheduleCard } from '@/features/schedules/schedule-card';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
-import { EmptyState } from '@/shared/components/empty-state';
 import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { CalendarExplorer } from '@/features/calendar/calendar-explorer';
-import { moveDate } from '@/features/calendar/calendar-dates';
+import { moveDate, parseDate } from '@/features/calendar/calendar-dates';
+import { DayAgenda } from '@/features/calendar/day-agenda';
 import { seoulDateKey } from '@/shared/utils/date';
 
 LocaleConfig.locales.ko = {
@@ -21,6 +20,7 @@ LocaleConfig.locales.ko = {
   today: '오늘',
 };
 LocaleConfig.defaultLocale = 'ko';
+const WEEKDAY_NAMES = LocaleConfig.locales.ko.dayNames as string[];
 
 /** 'YYYY-MM'이 가리키는 달의 말일을 'YYYY-MM-DD'로 돌려준다. */
 function lastDayOfMonth(yearMonth: string) {
@@ -107,11 +107,13 @@ export default function CalendarScreen() {
           <Animated.View style={[styles.drawer, { width: Math.min(width * 0.88, 380), transform: [{ translateX: drawerX }] }]}>
             <SafeAreaView edges={['top', 'bottom']} style={styles.drawerSafeArea}>
               <View style={styles.drawerHeader}>
-                <View><Text style={styles.drawerTitle}>{month}월 {day}일</Text><Text style={styles.drawerCount}>{selectedSchedules.length}개의 일정</Text></View>
+                <View><Text style={styles.drawerTitle}>{month}월 {day}일 {WEEKDAY_NAMES[parseDate(selectedDate).getDay()]}</Text><Text style={styles.drawerCount}>하루 {selectedSchedules.length}개</Text></View>
                 <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={closeDrawer} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable>
               </View>
+              {/* 일간 보기와 같은 상태별 요약 카드(CALENDAR_SCREEN_SPEC 2026-10-15). 카드에 장소가
+                  필요해서 그날 하루를 장소까지 따로 조회한다. 로딩·실패·빈 날도 DayAgenda가 보여 준다. */}
               <ScrollView contentContainerStyle={styles.drawerBody}>
-                {selectedSchedules.length > 0 ? <View style={styles.list}>{selectedSchedules.map((schedule) => <ScheduleCard key={schedule.id} schedule={schedule} />)}</View> : <EmptyState compact icon="📅" title="이날은 일정이 없어요" description="다른 날짜를 선택해 보세요." />}
+                <DayAgenda day={selectedDate} />
               </ScrollView>
             </SafeAreaView>
           </Animated.View>
@@ -160,7 +162,6 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   },
   sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
   sectionCount: { color: palette.primary, fontSize: 14, fontWeight: '600' },
-  list: { gap: spacing.md },
   drawerLayer: { flex: 1 },
   backdrop: { backgroundColor: 'rgba(28, 25, 23, 0.35)', bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
   drawer: { bottom: 0, left: 0, position: 'absolute', top: 0 },
