@@ -217,6 +217,7 @@ const options = {
 
     // 3) 일정 고치기에서 저장하면 상세로 돌아오고, 상세가 두 겹이 되지 않는다.
     await openDetail();
+    await page.getByRole('button', { name: '일정 관리', exact: true }).click();
     await page.getByRole('button', { name: '일정 고치기' }).click();
     await expect(page).toHaveURL(/\/schedules\/201\/edit$/, { timeout: 15000 });
     await shot('4-edit');
@@ -226,6 +227,7 @@ const options = {
     assert.deepEqual(await settle('고쳐서 저장'), detailStack, '저장하면 상세 하나만 남아야 한다');
 
     // 4) 고치지 않고 뒤로 가도 상세가 두 겹이 되지 않는다.
+    if (!await page.getByRole('button', { name: '일정 고치기' }).isVisible()) await page.getByRole('button', { name: '일정 관리', exact: true }).click();
     await page.getByRole('button', { name: '일정 고치기' }).click();
     await expect(page).toHaveURL(/\/schedules\/201\/edit$/, { timeout: 15000 });
     await page.getByRole('button', { name: '뒤로 가기' }).last().click();
@@ -233,6 +235,7 @@ const options = {
     assert.deepEqual(await settle('고치기에서 뒤로'), detailStack, '뒤로 가면 상세 하나만 남아야 한다');
 
     // 5) 지우면 일정 탭으로 나오고, 지운 하루의 상세가 아래에 남지 않는다.
+    if (!await page.getByRole('button', { name: '일정 지우기' }).isVisible()) await page.getByRole('button', { name: '일정 관리', exact: true }).click();
     await page.getByRole('button', { name: '일정 지우기' }).click();
     await expect(page).toHaveURL(/\/schedules\/201\/delete$/, { timeout: 15000 });
     await page.getByRole('button', { name: '일정 지우기' }).last().click();

@@ -39,7 +39,7 @@ const PHASE_LABELS = {
  * @param {object} props.mutations useSchedulePlaceMutations
  * @param {(message: string) => void} props.onError 실패 문구 전달
  */
-function PlaceList({ places, checkable, reorderable, editable, mutations, onError }) {
+function PlaceList({ places, checkable, reorderable, editable, mutations, onError, active }) {
   const act = async (run) => {
     onError('')
     try {
@@ -65,7 +65,7 @@ function PlaceList({ places, checkable, reorderable, editable, mutations, onErro
     <div className="sdetail-places">
       {/* 목록 위에 지도를 둔다. 마커 번호가 아래 목록의 순번과 같아서 "몇 번째로
           어디를 가는지"를 지도에서 바로 읽을 수 있다. */}
-      <KakaoMap places={places} />
+      {active && <KakaoMap places={places} />}
 
       {/* 순서를 바꿀 수 있는 하루에만 둔다. 목록 바로 위에 두어 "아래 순서를 다듬는
           버튼"이라는 것이 읽히게 한다. */}
@@ -143,7 +143,7 @@ function PlaceList({ places, checkable, reorderable, editable, mutations, onErro
             >
               {place.visited ? '취소' : '다녀왔어요'}
             </button>
-          ) : (
+          ) : reorderable ? (
             <button
               type="button"
               className="sdetail-place__remove"
@@ -153,7 +153,7 @@ function PlaceList({ places, checkable, reorderable, editable, mutations, onErro
             >
               ×
             </button>
-          )}
+          ) : null}
         </div>
       ))}
     </div>
@@ -161,11 +161,11 @@ function PlaceList({ places, checkable, reorderable, editable, mutations, onErro
 }
 
 /**
- * 하루 상세. 같은 화면이지만 시간 상태에 따라 무엇을 앞에 두는지가 달라진다.
+ * 하루 상세. 공통 요약 아래에서 장소·계획과 사진·기록을 전환한다.
  *
  * - 예정: 장소 흐름이 먼저다. 어디를 어떤 순서로 갈지 정하는 화면이다
  * - 당일: 다음 장소와 진행 상태가 먼저다. 지금 뭘 하면 되는지만 보면 된다
- * - 완료: 사진과 일기가 먼저다. 시간표가 아니라 그날의 기억을 보러 오는 화면이다
+ * - 기록 있는 지난 하루: 사진·기록 탭을 먼저 연다. 탭 선택과 작성 중 입력은 유지한다
  *
  * 기준은 docs/UX_IDENTITY_REDIRECTION_SPEC.md 7절과
  * docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 3.3~3.5절이다.
@@ -181,6 +181,22 @@ export default function ScheduleDetailPage() {
   const mutations = useSchedulePlaceMutations(id)
   const complete = useCompleteSchedule(id)
   const [picking, setPicking] = useState(false)
+  const [selection, setSelection] = useState(null)
+  const defaultTab = schedule && ['recorded', 'record_pending'].includes(schedule.experience_phase)
+    && schedule.record_summary.has_content ? 'record' : 'plan'
+  const activeTab = selection?.id === id ? selection.tab : defaultTab
+  // 같은 하루를 재조회할 때에는 기본 탭으로 되돌리지 않는다.
+  if (schedule && selection?.id !== id) setSelection({ id, tab: defaultTab })
+  function selectTab(tab, focus = false) {
+    setSelection({ id, tab })
+    if (focus) document.getElementById(`day-${id}-${tab}-tab`)?.focus()
+  }
+  function handleTabKey(event) {
+    const next = { ArrowRight: activeTab === 'plan' ? 'record' : 'plan', ArrowLeft: activeTab === 'plan' ? 'record' : 'plan', Home: 'plan', End: 'record' }[event.key]
+    if (!next) return
+    event.preventDefault()
+    selectTab(next, true)
+  }
   const showError = message => { if (message) feedback.showSnackbar(message) }
 
   if (isLoading) return <div className="sdetail-loading">로딩 중...</div>
@@ -188,7 +204,7 @@ export default function ScheduleDetailPage() {
 
   const phase = schedule.experience_phase
   const isToday = phase === 'today'
-  // 다녀왔거나 완료한 하루. 기록이 앞에 오고 계획 정보는 뒤로 물러난다.
+  // 다녀왔거나 완료한 하루에서는 기존 장소 계획 편집을 제한한다.
   const isDone = phase === 'recorded' || phase === 'record_pending'
   const visited = schedule.places.filter((place) => place.visited).length
   const nextPlace = schedule.places.find((place) => !place.visited) ?? null
@@ -223,6 +239,7 @@ export default function ScheduleDetailPage() {
           editable={!isDone}
           mutations={mutations}
           onError={showError}
+          active={activeTab === 'plan'}
         />
       )}
     </section>
@@ -255,7 +272,14 @@ export default function ScheduleDetailPage() {
           {access.canDelete && <button type="button" className="sdetail-manage-delete" onClick={() => navigate(`/schedules/${id}/delete`)}>일정 지우기</button>}
         </div></details>}
 
-        {/* 당일에는 다음 장소와 진행률을 맨 위에 둔다. 지금 뭘 하면 되는지가 먼저다. */}
+        <div className="sdetail-tabs" role="tablist" aria-label="하루 내용" onKeyDown={handleTabKey}>
+          {[{ key: 'plan', label: '장소·계획' }, { key: 'record', label: '사진·기록' }].map(tab => (
+            <button key={tab.key} type="button" role="tab" id={`day-${id}-${tab.key}-tab`} aria-controls={`day-${id}-${tab.key}-panel`} aria-selected={activeTab === tab.key} tabIndex={activeTab === tab.key ? 0 : -1} onClick={() => selectTab(tab.key)}>{tab.label}</button>
+          ))}
+        </div>
+
+        {/* 탭을 숨길 때 폼을 제거하지 않아 작성 중인 입력값이 유지된다. */}
+        <div className="sdetail-tab-panel" role="tabpanel" id={`day-${id}-plan-panel`} aria-labelledby={`day-${id}-plan-tab`} hidden={activeTab !== 'plan'}>
         {isToday && schedule.places.length > 0 && (
           <section className="sdetail-next">
             <p className="sdetail-next__label">
@@ -268,18 +292,7 @@ export default function ScheduleDetailPage() {
           </section>
         )}
 
-        {/* 완료한 하루는 사진과 일기가 먼저, 계획 정보가 나중이다. */}
-        {isDone ? (
-          <>
-            {diarySection}
-            {placesSection}
-          </>
-        ) : (
-          <>
-            {placesSection}
-            {diarySection}
-          </>
-        )}
+        {placesSection}
 
         {schedule.description && (
           <section className="sdetail-section">
@@ -306,6 +319,10 @@ export default function ScheduleDetailPage() {
             {complete.isPending ? '처리 중…' : '하루 마치기'}
           </button>
         )}
+        </div>
+        <div key={`record-${id}`} className="sdetail-tab-panel" role="tabpanel" id={`day-${id}-record-panel`} aria-labelledby={`day-${id}-record-tab`} hidden={activeTab !== 'record'}>
+          {diarySection}
+        </div>
       </div>
       <Snackbar notice={feedback.notice ?? successNotice} onDismiss={() => { feedback.dismissSnackbar(); setSuccessNotice(null) }} />
     </div>

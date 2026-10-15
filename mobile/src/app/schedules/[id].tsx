@@ -128,11 +128,11 @@ function PlaceList({
 }
 
 /**
- * 하루 상세. 같은 화면이지만 시간 상태에 따라 무엇을 앞에 두는지가 달라진다.
+ * 하루 상세. 공통 요약 아래에서 장소·계획과 사진·기록을 전환한다.
  *
  * - 예정: 장소 흐름이 먼저다. 어디를 어떤 순서로 갈지 정하는 화면이다
  * - 당일: 다음 장소와 진행 상태가 먼저다. 지금 뭘 하면 되는지만 보면 된다
- * - 완료: 사진과 일기가 먼저다. 시간표가 아니라 그날의 기억을 보러 오는 화면이다
+ * - 기록 있는 지난 하루: 사진·기록 탭을 먼저 연다. 탭 선택과 작성 중 입력은 유지한다
  *
  * 기준은 docs/UX_IDENTITY_REDIRECTION_SPEC.md 7절과
  * docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 3.3~3.5절이며, 웹과 같은 규칙이다.
@@ -160,6 +160,15 @@ export default function ScheduleDetailScreen() {
     if (typeof params.notice === 'string' && params.notice) { showSnackbar(params.notice); router.setParams({ notice: undefined }); }
   }, [params.notice, router, showSnackbar]);
   const [picking, setPicking] = useState(false);
+  const [managementOpen, setManagementOpen] = useState(false);
+  const [selection, setSelection] = useState<{ id: number; tab: 'plan' | 'record' } | null>(null);
+  const defaultTab = schedule.data && ['recorded', 'record_pending'].includes(schedule.data.experience_phase)
+    && schedule.data.record_summary.has_content ? 'record' : 'plan';
+  const activeTab = selection?.id === scheduleId ? selection.tab : defaultTab;
+  // 처음 불러온 하루에서만 기본 탭을 정한다. 기록 저장 후 재조회돼도 사용자의 선택을 유지한다.
+  if (schedule.data && selection?.id !== scheduleId) {
+    setSelection({ id: scheduleId, tab: defaultTab });
+  }
 
   if (schedule.isLoading) return <LoadingScreen message="하루를 불러오고 있어요." />;
   if (schedule.isError || access.space.isError || !schedule.data) {
@@ -174,7 +183,7 @@ export default function ScheduleDetailScreen() {
   const day = schedule.data;
   const phase = day.experience_phase;
   const isToday = phase === 'today';
-  // 다녀왔거나 완료한 하루. 기록이 앞에 오고 계획 정보는 뒤로 물러난다.
+  // 다녀왔거나 완료한 하루에서는 기존 장소 계획 편집을 제한한다.
   const isDone = phase === 'recorded' || phase === 'record_pending';
   const visited = day.places.filter((place) => place.visited).length;
   const nextPlace = day.places.find((place) => !place.visited) ?? null;
@@ -218,7 +227,7 @@ export default function ScheduleDetailScreen() {
         </>
       ) : null}
 
-      {day.places.length > 0 ? (
+      {activeTab === 'plan' && day.places.length > 0 ? (
         <KakaoMap places={day.places.map(place => ({ ...place, id: String(place.id) }))} />
       ) : null}
 
@@ -289,8 +298,12 @@ export default function ScheduleDetailScreen() {
           style={styles.backButton}>
           <Text style={styles.backMark}>‹</Text>
         </Pressable>
-        <Text style={styles.headerTitle}>하루</Text>
-        <View style={styles.backButton} />
+        <Text style={styles.headerTitle}>하루 상세</Text>
+        {access.canEdit ? (
+          <Pressable accessibilityRole="button" accessibilityLabel="일정 관리" accessibilityState={{ expanded: managementOpen }} onPress={() => setManagementOpen(open => !open)} style={styles.backButton}>
+            <Text style={styles.backMark}>⋯</Text>
+          </Pressable>
+        ) : <View style={styles.backButton} />}
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -302,13 +315,22 @@ export default function ScheduleDetailScreen() {
           <Text style={styles.when}>{scheduleWhen(day)}</Text>
         </View>
 
-        {access.canEdit && <View style={styles.section}>
+        {access.canEdit && managementOpen && <View style={styles.section}>
           <Text style={styles.sectionTitle}>일정 관리</Text>
           <SpaceButton onPress={() => router.push({ pathname: '/schedules/[id]/edit', params: { id: String(scheduleId) } })}>일정 고치기</SpaceButton>
           {access.canDelete && <SpaceButton kind="danger" onPress={() => router.push({ pathname: '/schedules/[id]/delete', params: { id: String(scheduleId) } })}>일정 지우기</SpaceButton>}
         </View>}
 
-        {/* 당일에는 다음 장소와 진행률을 맨 위에 둔다. 지금 뭘 하면 되는지가 먼저다. */}
+        <View accessibilityRole="tablist" style={styles.tabs}>
+          {([{ key: 'plan', label: '장소·계획' }, { key: 'record', label: '사진·기록' }] as const).map(tab => (
+            <Pressable key={tab.key} accessibilityRole="tab" aria-selected={activeTab === tab.key} accessibilityState={{ selected: activeTab === tab.key }} onPress={() => setSelection({ id: scheduleId, tab: tab.key })} style={[styles.tab, activeTab === tab.key && styles.tabActive]}>
+              <Text style={[styles.tabText, activeTab === tab.key && styles.tabTextActive]}>{tab.label}</Text>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* 숨겨도 마운트를 유지해 장소 메모·일기·방문 기록의 입력값을 보존한다. */}
+        <View style={[styles.panel, activeTab !== 'plan' && styles.hidden]} accessibilityElementsHidden={activeTab !== 'plan'} importantForAccessibility={activeTab === 'plan' ? 'auto' : 'no-hide-descendants'}>
         {isToday && day.places.length > 0 ? (
           <View style={styles.nextCard}>
             <Text style={styles.nextLabel}>
@@ -321,18 +343,7 @@ export default function ScheduleDetailScreen() {
           </View>
         ) : null}
 
-        {/* 완료한 하루는 사진과 일기가 먼저, 계획 정보가 나중이다. */}
-        {isDone ? (
-          <>
-            {diarySection}
-            {placesSection}
-          </>
-        ) : (
-          <>
-            {placesSection}
-            {diarySection}
-          </>
-        )}
+        {placesSection}
 
         {day.description ? (
           <View style={styles.section}>
@@ -352,6 +363,11 @@ export default function ScheduleDetailScreen() {
             </Text>
           </Pressable>
         ) : null}
+        </View>
+
+        <View key={`record-${scheduleId}`} style={[styles.panel, activeTab !== 'record' && styles.hidden]} accessibilityElementsHidden={activeTab !== 'record'} importantForAccessibility={activeTab === 'record' ? 'auto' : 'no-hide-descendants'}>
+          {diarySection}
+        </View>
       </ScrollView>
       <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
@@ -370,6 +386,13 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   phase: { color: palette.primary, fontSize: 14, fontWeight: '600' },
   title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1, lineHeight: 35 },
   when: { color: colors.muted, fontSize: 13 },
+  tabs: { borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', gap: spacing.lg },
+  tab: { alignItems: 'center', borderBottomColor: 'transparent', borderBottomWidth: 2, justifyContent: 'center', minHeight: 48, paddingHorizontal: spacing.sm },
+  tabActive: { borderBottomColor: palette.primary },
+  tabText: { color: colors.muted, fontSize: 15, fontWeight: '500' },
+  tabTextActive: { color: palette.primaryDark, fontWeight: '600' },
+  panel: { gap: spacing.lg },
+  hidden: { display: 'none' },
   error: { color: colors.danger, fontSize: 12 },
 
   nextCard: { backgroundColor: colors.ink, borderRadius: radii.card, elevation: 4, gap: 6, justifyContent: 'flex-end', minHeight: 156, padding: 24, shadowColor: '#302927', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.18, shadowRadius: 20 },

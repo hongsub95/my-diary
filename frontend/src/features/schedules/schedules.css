@@ -1,3 +1,17 @@
+/* 하루 상세: 공통 요약 아래에서 계획과 기록을 전환한다. */
+.sdetail-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--color-border); }
+.sdetail-tabs [role="tab"] { min-height: 48px; padding: 12px 8px; border-bottom: 2px solid transparent; background: transparent; color: var(--color-text-secondary); font-size: 15px; font-weight: 500; }
+.sdetail-tabs [aria-selected="true"] { border-bottom-color: var(--color-primary); color: var(--color-primary-text); font-weight: 600; }
+.sdetail-tab-panel { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
+.sdetail-tab-panel[hidden] { display: none; }
+.sdetail-page .sdetail-header__title { white-space: normal; overflow-wrap: anywhere; }
+.sdetail-tab-panel .diary-section { display: flex; flex-direction: column; gap: 20px; }
+.sdetail-tab-panel .sdetail-places-empty,
+.sdetail-tab-panel .diary-section__empty,
+.sdetail-tab-panel .diary-section__prompt { padding: 16px; }
+.sdetail-tab-panel .sdetail-section > .sdetail-section__title { padding: 16px 16px 0; }
+.sdetail-tab-panel .sdetail-memo { padding: 12px 16px 18px; }
+
 /* ── Schedule List ── */
 .splan-page__recommend { min-height: 44px; padding: 12px 16px; color: var(--color-primary-text); background: var(--color-primary-light); border: 1px dashed var(--color-border); border-radius: 14px; font-size: 13px; }
 .slist-page {
