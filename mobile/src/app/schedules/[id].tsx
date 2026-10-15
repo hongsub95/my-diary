@@ -140,7 +140,8 @@ export default function ScheduleDetailScreen() {
   const styles = useThemedStyles(createStyles);
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const params = useLocalSearchParams<{ id?: string | string[]; notice?: string }>();
+  // tab=record는 캘린더의 "이 하루 남기기"처럼 기록을 쓰려고 들어올 때 사진·기록 탭으로 바로 연다.
+  const params = useLocalSearchParams<{ id?: string | string[]; notice?: string; tab?: string }>();
   const rawId = Array.isArray(params.id) ? params.id[0] : params.id;
   const scheduleId = Number(rawId);
 
@@ -168,8 +169,8 @@ export default function ScheduleDetailScreen() {
     return () => subscription.remove();
   }, [managementOpen]);
   const [selection, setSelection] = useState<{ id: number; tab: 'plan' | 'record' } | null>(null);
-  const defaultTab = schedule.data && ['recorded', 'record_pending'].includes(schedule.data.experience_phase)
-    && schedule.data.record_summary.has_content ? 'record' : 'plan';
+  const defaultTab = params.tab === 'record' || (schedule.data && ['recorded', 'record_pending'].includes(schedule.data.experience_phase)
+    && schedule.data.record_summary.has_content) ? 'record' : 'plan';
   const activeTab = selection?.id === scheduleId ? selection.tab : defaultTab;
   // 처음 불러온 하루에서만 기본 탭을 정한다. 기록 저장 후 재조회돼도 사용자의 선택을 유지한다.
   if (schedule.data && selection?.id !== scheduleId) {

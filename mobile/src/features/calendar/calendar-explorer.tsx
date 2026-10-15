@@ -8,6 +8,7 @@ import { PhaseTag, phaseColors, phaseKind, phaseKindLabels } from '@/features/sc
 import { colors } from '@/shared/theme';
 import { useTheme } from '@/shared/theme-context';
 import { dateKey, dateLabel, moveDate, parseDate, periodLabel, weekDates, type CalendarMode } from './calendar-dates';
+import { DayAgenda } from './day-agenda';
 
 const modes = [{ value: 'month', label: '월간' }, { value: 'week', label: '주간' }, { value: 'day', label: '일간' }] as const;
 const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
@@ -102,8 +103,9 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
         <Pressable accessibilityRole="button" accessibilityLabel={`${periodLabel(selectedDate, mode)}, 날짜 이동 선택창 열기`} onPress={openPicker} style={s.dateButton}><Text style={s.dateTitle}>{periodLabel(selectedDate, mode)} ▾</Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="다음 기간" onPress={() => move(1)} style={s.button}><Text style={s.arrow}>›</Text></Pressable>
       </View>
-      {loading && <Text accessibilityLiveRegion="polite" style={s.status}>일정을 불러오는 중…</Text>}
-      {failed && <Pressable accessibilityRole="button" onPress={retry}><Text style={s.status}>일정을 불러오지 못했어요. 다시 시도</Text></Pressable>}
+      {/* 일간은 그날 하루를 따로 조회하고 상태도 스스로 보여 준다(DayAgenda). 석 달치 조회 상태를 겹쳐 띄우지 않는다. */}
+      {mode !== 'day' && loading && <Text accessibilityLiveRegion="polite" style={s.status}>일정을 불러오는 중…</Text>}
+      {mode !== 'day' && failed && <Pressable accessibilityRole="button" onPress={retry}><Text style={s.status}>일정을 불러오지 못했어요. 다시 시도</Text></Pressable>}
       {mode === 'month' && <View style={s.weekStrip}>{weekdays.map(day => <Text key={day} style={[s.weekDate, s.muted, { textAlign: 'center' }]}>{day}</Text>)}</View>}
       <View style={s.viewport} onLayout={event => setSize(event.nativeEvent.layout)}>
         {size.width > 0 && size.height > 0 && <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: size.width, y: 0 }} onMomentumScrollEnd={event => {
@@ -127,7 +129,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
                 </Pressable>;
               }} /> : <View style={s.viewport}>
                 {mode === 'week' && <View style={s.weekStrip}>{days.map((day, index) => <WeekDate key={day} day={day} weekday={weekdays[index]} items={schedules[day] ?? []} selected={selectedDate === day} onPress={() => onSelect(day)} />)}</View>}
-                <ScrollView contentContainerStyle={s.agenda}>{mode === 'week' ? days.map(day => renderDay(day, true)) : renderDay(key)}</ScrollView>
+                <ScrollView contentContainerStyle={s.agenda}>{mode === 'week' ? days.map(day => renderDay(day, true)) : <DayAgenda day={key} />}</ScrollView>
               </View>}
             </View>;
           })}

@@ -94,6 +94,14 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     page.on('pageerror', error => errors.push(error.message));
     await page.clock.install({ time: new Date('2026-10-13T03:00:00Z') });
     await page.goto(origin + '/home');
+    const expandHandle = () => page.getByRole('button', { name: '하루 시트 펼치기', exact: true });
+    await expect(expandHandle()).toBeVisible({ timeout: 60000 });
+    await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toHaveCount(0);
+    await mkdir(artifacts, { recursive: true });
+    await page.waitForTimeout(600);
+    assert.equal(Math.round((await expandHandle().boundingBox()).height), 44, 'Collapsed sheet shows only the handle');
+    await page.screenshot({ path: path.join(artifacts, 'home-collapsed-390.png') });
+    await expandHandle().click();
     await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toBeVisible({ timeout: 60000 });
     await expect(page.getByText('1 / 3곳 방문', { exact: true })).toBeVisible();
     await expect(page.getByText('다음 장소', { exact: true })).toBeVisible();
@@ -128,6 +136,8 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     await expect(map.getByRole('button', { name: '3번 작은 서점', exact: true })).toHaveAttribute('aria-pressed', 'true');
     await page.getByRole('button', { name: '일정 목록 접기', exact: true }).click();
     await page.getByRole('button', { name: /^10월 14일 수요일/ }).click();
+    await expect(expandHandle()).toBeVisible();
+    await expandHandle().click();
     await expect(page.getByText('이날은 예정된 하루가 없어요', { exact: true })).toBeVisible();
     await expect(map.getByText('이날 지도에 표시할 장소가 없어요', { exact: true })).toHaveCount(0);
     await expect(page.getByText('선택한 장소', { exact: true })).toHaveCount(0);
@@ -148,9 +158,12 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     theme = 'blue';
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(origin + '/home');
+    await expandHandle().click();
     await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toHaveCSS('background-color', 'rgb(71, 116, 158)');
     failSchedules = true;
     await page.reload();
+    await expect(expandHandle()).toBeVisible();
+    await expandHandle().click();
     await expect(page.getByText('하루를 불러오지 못했어요', { exact: true })).toBeVisible({ timeout: 15000 });
     failSchedules = false;
     await page.getByText('다시 시도', { exact: true }).click();

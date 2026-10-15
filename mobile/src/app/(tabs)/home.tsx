@@ -34,6 +34,8 @@ const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
   hour12: false,
 });
 
+const SHEET_HANDLE_HEIGHT = 44;
+
 function toDateKey(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -76,7 +78,6 @@ export default function HomeScreen() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(selectedDate));
   const [selection, setSelection] = useState<{ context: string; scheduleId: number; placeId: number } | null>(null);
   const [mapHeight, setMapHeight] = useState(windowHeight * 0.7);
-  const [previewHeight, setPreviewHeight] = useState(240);
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
@@ -126,7 +127,7 @@ export default function HomeScreen() {
   const activeSchedule = daySchedules.find(schedule => schedule.id === activeSelection?.scheduleId) ?? daySchedules[0];
   const focusedPlace = activeSchedule ? homePlaceFocus(activeSchedule, activeSelection?.placeId).place : undefined;
   const selectedMarkerId = activeSchedule && focusedPlace ? `${activeSchedule.id}:${focusedPlace.id}` : undefined;
-  const peekHeight = Math.min(mapHeight, previewHeight + 28);
+  const peekHeight = Math.min(mapHeight, SHEET_HANDLE_HEIGHT);
   const sheetHeight = Math.min(mapHeight, Math.max(peekHeight, Math.min(560, mapHeight * 0.88)));
   const collapsedY = Math.max(0, sheetHeight - peekHeight);
   const [sheetY] = useState(() => new Animated.Value(collapsedY));
@@ -135,8 +136,8 @@ export default function HomeScreen() {
   const mapAppearance = useMemo(() => ({
     primary: palette.primary,
     primaryDark: palette.primaryDark,
-    bottomInset: peekHeight,
-  }), [palette.primary, palette.primaryDark, peekHeight]);
+    bottomInset: expanded ? sheetHeight : peekHeight,
+  }), [palette.primary, palette.primaryDark, expanded, sheetHeight, peekHeight]);
 
   const moveSheet = useCallback(
     (open: boolean) => {
@@ -174,7 +175,8 @@ export default function HomeScreen() {
   const sheetPanResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponder: () => false,
+        onMoveShouldSetPanResponderCapture: (_, gesture) => Math.abs(gesture.dy) > 4,
         onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 4,
         onPanResponderGrant: () => {
           sheetY.stopAnimation((value) => {
@@ -253,13 +255,18 @@ export default function HomeScreen() {
             },
           ]}>
           <View style={styles.dragArea} {...sheetPanResponder.panHandlers}>
-            <View style={styles.dragHandle} />
+            <Pressable accessibilityRole="button" accessibilityLabel={expanded ? '하루 시트 접기' : '하루 시트 펼치기'} accessibilityState={{ expanded }} onPress={() => moveSheet(!expanded)} style={styles.handleButton}>
+              <View style={styles.dragHandle} />
+            </Pressable>
           </View>
           <ScrollView
+            style={!expanded && styles.hiddenSheetContent}
+            accessibilityElementsHidden={!expanded}
+            importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
             scrollEnabled={expanded || collapsedY === 0}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.sheetContent}>
-            <View onLayout={event => setPreviewHeight(event.nativeEvent.layout.height)}>
+            <View>
               <View style={styles.sheetHeader}>
                 <View style={styles.sheetHeading}>
                   <Text numberOfLines={2} accessibilityRole="header" style={styles.sheetTitle}>
@@ -392,7 +399,9 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 16,
   },
-  dragArea: { alignItems: 'center', height: 28, justifyContent: 'center' },
+  dragArea: { height: SHEET_HANDLE_HEIGHT },
+  handleButton: { alignItems: 'center', height: SHEET_HANDLE_HEIGHT, justifyContent: 'center' },
+  hiddenSheetContent: { display: 'none' },
   dragHandle: { backgroundColor: '#D7CEC8', borderRadius: radii.full, height: 4, width: 42 },
   sheetHeader: {
     alignItems: 'center',
