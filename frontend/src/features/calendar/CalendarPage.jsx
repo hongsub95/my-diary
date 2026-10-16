@@ -29,6 +29,11 @@ function lastDayOfMonth(monthStart) {
   return new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
 }
 
+/** 참인 클래스 이름만 공백으로 잇는다. FullCalendar 7의 *Class 옵션은 배열이 아니라 문자열을 받는다. */
+function classNames(...names) {
+  return names.filter(Boolean).join(' ')
+}
+
 /**
  * 'YYYY-MM-DD'의 다음 날 키.
  *
@@ -190,26 +195,30 @@ export default function CalendarPage() {
             dateClick={({ dateStr }) => openDateDrawer(dateStr)}
             events={calendarEvents}
             eventClick={({ event }) => openDateDrawer(event.startStr.slice(0, 10))}
-            eventClassNames={({ event }) => [`product-calendar__event--${event.extendedProps.kind}`]}
+            // FullCalendar 7은 옵션 이름이 *Class·*TopContent로 바뀌었고 문자열 하나를 받는다.
+            // 6의 이름(eventClassNames, dayCellContent…)을 쓰면 경고 없이 무시된다. 내부 클래스도
+            // 해시(fc-classic-xxx)라 CSS는 여기서 붙인 product-calendar__* 클래스만 기준으로 삼는다.
+            eventClass={({ event }) => `product-calendar__event product-calendar__event--${event.extendedProps.kind}`}
             eventContent={({ event }) => <span title={event.title}>{event.title}</span>}
+            moreLinkClass="product-calendar__more"
             dayHeaderContent={({ date }) => WEEKDAYS[date.getDay()]}
-            dayHeaderClassNames={({ date }) => [
+            dayHeaderClass={({ date }) => classNames(
               'product-calendar__weekday',
-              date.getDay() === 0 ? 'product-calendar__weekday--sun' : '',
-              date.getDay() === 6 ? 'product-calendar__weekday--sat' : '',
-            ].filter(Boolean)}
-            dayCellClassNames={({ date, isOther, isToday }) => {
-              if (isOther) return ['product-calendar__cell--other']
-              const dateKey = formatDateKey(date)
-              return [
+              date.getDay() === 0 && 'product-calendar__weekday--sun',
+              date.getDay() === 6 && 'product-calendar__weekday--sat',
+            )}
+            dayCellClass={({ date, isOther, isToday }) => {
+              if (isOther) return 'product-calendar__cell--other'
+              return classNames(
                 'product-calendar__cell',
-                dateKey === selectedDate ? 'product-calendar__cell--selected' : '',
-                isToday ? 'product-calendar__cell--today' : '',
-                date.getDay() === 0 ? 'product-calendar__cell--sun' : '',
-                date.getDay() === 6 ? 'product-calendar__cell--sat' : '',
-              ].filter(Boolean)
+                formatDateKey(date) === selectedDate && 'product-calendar__cell--selected',
+                isToday && 'product-calendar__cell--today',
+                date.getDay() === 0 && 'product-calendar__cell--sun',
+                date.getDay() === 6 && 'product-calendar__cell--sat',
+              )
             }}
-            dayCellContent={renderDayCell}
+            dayCellTopClass="product-calendar__cell-top"
+            dayCellTopContent={renderDayCell}
           />
         </div>
 

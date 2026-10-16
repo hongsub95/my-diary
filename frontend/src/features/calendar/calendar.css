@@ -79,25 +79,15 @@
   --fc-classic-today: transparent;
 }
 
-.product-calendar .fc,
-.product-calendar .fc-view-harness,
-.product-calendar .fc-view,
-.product-calendar table {
-  height: 100% !important;
+/* FullCalendar 7의 내부 클래스는 해시(fc-classic-xxx)라 버전마다 바뀐다. 여기서는
+   CalendarPage가 *Class 옵션으로 붙인 product-calendar__* 클래스만 선택자로 쓴다. */
+.product-calendar__cell-top {
+  justify-content: center;
 }
 
-.product-calendar .fc-daygrid-day-frame {
-  min-height: 0;
-  padding: 2px;
-}
-
-.product-calendar .fc-daygrid-day-events {
-  margin: 0 1px;
-}
-
-.product-calendar .fc-daygrid-event {
+.product-calendar__event {
   min-width: 0;
-  margin: 2px 0 0;
+  margin: 2px 1px 0;
   padding: 2px 4px;
   border: 0;
   border-radius: 4px;
@@ -105,14 +95,14 @@
   line-height: 1.25;
 }
 
-.product-calendar .fc-daygrid-event span {
+.product-calendar__event span {
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.product-calendar .fc-daygrid-more-link {
+.product-calendar__more {
   display: block;
   overflow: hidden;
   padding: 0 4px;
@@ -122,9 +112,14 @@
   text-align: center;
 }
 
-.product-calendar__event--planned { background: var(--color-primary-light); color: var(--color-primary-text); }
-.product-calendar__event--pending { background: var(--color-orange-light); color: var(--color-orange-text); }
-.product-calendar__event--recorded { background: #e8f5ee; color: #238257; }
+/* FullCalendar 7은 글자색(대비색)을 칩 안쪽 요소에 따로 준다. 바깥에만 색을 주면 안쪽이
+   흰 글자로 남아 연한 바탕 위에서 안 보이므로, 우리가 그리는 span에도 같은 색을 건다. */
+.product-calendar__event--planned,
+.product-calendar__event--planned span { background: var(--color-primary-light); color: var(--color-primary-text); }
+.product-calendar__event--pending,
+.product-calendar__event--pending span { background: var(--color-orange-light); color: var(--color-orange-text); }
+.product-calendar__event--recorded,
+.product-calendar__event--recorded span { background: #e8f5ee; color: #238257; }
 
 .product-calendar__weekday {
   border: 0 !important;
