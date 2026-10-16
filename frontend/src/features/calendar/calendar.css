@@ -48,9 +48,7 @@
   background: var(--color-surface-hover);
 }
 
-.calendar-nav-btn:focus-visible,
-.calendar-body__add-btn:focus-visible,
-.schedule-card:focus-visible {
+.calendar-nav-btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
@@ -237,110 +235,6 @@
   gap: 8px;
   padding: 8px 0 2px;
   border-top: 1px solid var(--color-border-light);
-}
-
-.calendar-body {
-  flex: 1;
-  overflow-y: auto;
-  padding: 16px;
-}
-
-.calendar-body__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.calendar-body__date-label {
-  color: var(--color-text-secondary);
-  font-size: 13px;
-  font-weight: 600;
-}
-
-.calendar-body__add-btn {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  color: var(--color-primary);
-  font-size: 13px;
-  font-weight: 400;
-}
-
-.calendar-body__add-btn svg {
-  stroke: currentColor;
-}
-
-.schedule-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.schedule-card {
-  display: flex;
-  width: 100%;
-  align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-xl);
-  background: var(--color-surface);
-  box-shadow: var(--shadow-sm);
-  text-align: left;
-  transition: box-shadow 0.15s;
-}
-
-.schedule-card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.schedule-card__content {
-  flex: 1;
-  min-width: 0;
-}
-
-.schedule-card__badge {
-  display: inline-block;
-  margin-bottom: 6px;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-size: 11px;
-  font-weight: 600;
-}
-
-.schedule-card__badge--planned {
-  background: var(--color-primary-light);
-  color: var(--color-primary-text);
-}
-
-.schedule-card__badge--completed {
-  background: var(--color-orange-light);
-  color: var(--color-orange-text);
-}
-
-.schedule-card__title {
-  overflow: hidden;
-  color: var(--color-text-primary);
-  font-size: 14px;
-  font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.schedule-card__meta {
-  margin-top: 2px;
-  color: var(--color-text-disabled);
-  font-size: 12px;
-}
-
-.schedule-card__arrow {
-  flex-shrink: 0;
-  color: var(--color-border);
-}
-
-.schedule-card__arrow svg {
-  stroke: currentColor;
 }
 
 @media (min-width: 768px) {

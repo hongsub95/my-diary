@@ -1,0 +1,232 @@
+.day-agenda {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.day-agenda__state {
+  padding: 20px 0;
+  color: var(--color-text-secondary);
+  font-size: 14px;
+  text-align: center;
+}
+
+.day-agenda__retry {
+  color: var(--color-primary-text);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
+
+.day-card {
+  padding: 16px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--radius-xl);
+  background: var(--color-surface);
+}
+
+.day-card__title {
+  margin-top: 10px;
+  color: var(--color-text-primary);
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+
+.day-card__meta {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.day-card__section {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.day-card__section strong {
+  color: var(--color-text-primary);
+}
+
+.day-card__flow {
+  margin-top: 4px;
+  list-style: none;
+}
+
+.day-card__stop {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  gap: 12px;
+}
+
+.day-card__num {
+  display: flex;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.day-card__num--visited {
+  background: var(--color-sage);
+}
+
+.day-card__num--skipped {
+  border: 2px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.day-card__place-text {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.day-card__place-name {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--color-text-primary);
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-card__stop--skipped .day-card__place-name {
+  color: var(--color-text-secondary);
+  font-weight: 400;
+}
+
+.day-card__place-address {
+  overflow: hidden;
+  margin-top: 1px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.day-card__rest {
+  margin-left: 36px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+}
+
+.day-card__link {
+  display: flex;
+  min-height: 44px;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-light);
+  color: var(--color-primary-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.day-card__inline-link {
+  color: var(--color-primary-text);
+  font-size: 14px;
+}
+
+.day-card__cta {
+  display: flex;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 16px;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.day-card__cta:hover {
+  background: var(--color-primary-hover);
+}
+
+.day-card__cta-note {
+  margin-top: 8px;
+  color: var(--color-text-secondary);
+  font-size: 12px;
+  text-align: center;
+}
+
+.day-card__cover {
+  position: relative;
+  overflow: hidden;
+  height: 180px;
+  margin-bottom: 14px;
+  border-radius: var(--radius-lg);
+  background: var(--color-bg);
+}
+
+.day-card__cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.day-card__photo-count {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 3px 9px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 45%);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.day-card__quote {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 12px;
+  padding-left: 12px;
+  border-left: 3px solid var(--color-primary-light);
+  color: var(--color-text-primary);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.day-card__place-line {
+  margin-top: 12px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.day-card__place-line strong {
+  color: var(--color-text-primary);
+}
+
+.day-card :focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.day-card__sr {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

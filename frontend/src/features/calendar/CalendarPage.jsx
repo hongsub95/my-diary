@@ -6,18 +6,17 @@ import classicThemePlugin from '@fullcalendar/react/themes/classic'
 import '@fullcalendar/react/skeleton.css'
 import '@fullcalendar/react/themes/classic/theme.css'
 import '@fullcalendar/react/themes/classic/palette.css'
-import { useNavigate } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
-import { EmptyState } from '../../shared/components/EmptyState'
-import calendarRaw from '../../assets/icons/calendar.svg?raw'
 import chevronLeftRaw from '../../assets/icons/chevron-left.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
 import { useSchedules } from '../../shared/api/queries'
 import { PhaseTag } from '../schedules/PhaseTag'
 import { phaseKind, phaseKindLabels } from '../schedules/phase'
+import { DayAgenda } from './DayAgenda'
 import './calendar.css'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+const WEEKDAY_NAMES = WEEKDAYS.map((day) => `${day}요일`)
 
 function formatDateKey(date) {
   return [
@@ -51,18 +50,9 @@ function nextDateKey(dateKey) {
   return formatDateKey(date)
 }
 
-function formatTime(dateStr) {
-  const date = new Date(dateStr)
-  const hour = date.getHours()
-  const minute = date.getMinutes()
-  const period = hour < 12 ? '오전' : '오후'
-  return `${period} ${hour % 12 || 12}:${String(minute).padStart(2, '0')}`
-}
-
 export default function CalendarPage() {
   const today = useMemo(() => new Date(), [])
   const calendarRef = useRef(null)
-  const navigate = useNavigate()
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(today))
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [viewDate, setViewDate] = useState(
@@ -230,20 +220,13 @@ export default function CalendarPage() {
           <button type="button" className="calendar-drawer-backdrop" aria-label="일정 목록 닫기" onClick={() => setIsDrawerOpen(false)} />
           <aside className="calendar-drawer" role="dialog" aria-modal="true" aria-label={`${selectedMonth}월 ${selectedDay}일 일정`}>
             <div className="calendar-drawer__header">
-              <div><strong>{selectedMonth}월 {selectedDay}일</strong>{!isLoading && !isError && <span>{selectedSchedules.length}개의 일정</span>}</div>
+              <div><strong>{selectedMonth}월 {selectedDay}일 {WEEKDAY_NAMES[new Date(`${selectedDate}T12:00:00`).getDay()]}</strong>{!isLoading && !isError && <span>하루 {selectedSchedules.length}개</span>}</div>
               <button type="button" onClick={() => setIsDrawerOpen(false)} aria-label="닫기">×</button>
             </div>
+            {/* 앱과 같은 상태별 요약 카드(CALENDAR_SCREEN_SPEC 2026-10-15). 카드에 장소가 필요해서
+                그날 하루를 장소까지 따로 조회한다. 로딩·실패·빈 날도 DayAgenda가 보여준다. */}
             <div className="calendar-drawer__body">
-              {isLoading ? <p className="calendar-status" role="status">일정을 불러오는 중…</p>
-                : isError ? <p className="calendar-status" role="alert">일정을 불러오지 못했어요. <button type="button" className="calendar-status__retry" onClick={() => refetch()}>다시 시도</button></p>
-                : selectedSchedules.length === 0 ? <EmptyState compact icon={calendarRaw} title="이날은 일정이 없어요" description="다른 날짜를 선택해 보세요." /> : (
-                <div className="schedule-list">{selectedSchedules.map((schedule) => (
-                  <button type="button" key={schedule.id} onClick={() => navigate(`/schedules/${schedule.id}`)} className="schedule-card">
-                    <div className="schedule-card__content"><span className={`schedule-card__badge schedule-card__badge--${schedule.status}`}>{schedule.status === 'completed' ? '완료' : '예정'}</span><p className="schedule-card__title">{schedule.title}</p><p className="schedule-card__meta">{formatTime(schedule.start_at)} · {schedule.place_count}개 장소</p></div>
-                    <Icon raw={chevronRightRaw} size={16} className="schedule-card__arrow" />
-                  </button>
-                ))}</div>
-              )}
+              <DayAgenda day={selectedDate} />
             </div>
           </aside>
         </div>

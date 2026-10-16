@@ -191,8 +191,9 @@ export default function ScheduleDetailPage() {
     return () => document.removeEventListener('pointerdown', closeOutside)
   }, [])
   const [selection, setSelection] = useState(null)
-  const defaultTab = schedule && ['recorded', 'record_pending'].includes(schedule.experience_phase)
-    && schedule.record_summary.has_content ? 'record' : 'plan'
+  // state.tab === 'record'는 캘린더의 "이 하루 남기기"처럼 기록을 쓰려고 들어올 때 사진·기록 탭으로 바로 연다.
+  const defaultTab = location.state?.tab === 'record' || (schedule && ['recorded', 'record_pending'].includes(schedule.experience_phase)
+    && schedule.record_summary.has_content) ? 'record' : 'plan'
   const activeTab = selection?.id === id ? selection.tab : defaultTab
   // 같은 하루를 재조회할 때에는 기본 탭으로 되돌리지 않는다.
   if (schedule && selection?.id !== id) setSelection({ id, tab: defaultTab })
