@@ -35,6 +35,7 @@ const timeFormatter = new Intl.DateTimeFormat('ko-KR', {
 });
 
 const SHEET_HANDLE_HEIGHT = 44;
+type SheetLevel = 1 | 2 | 3;
 
 function toDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -78,6 +79,7 @@ export default function HomeScreen() {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(selectedDate));
   const [selection, setSelection] = useState<{ context: string; scheduleId: number; placeId: number } | null>(null);
   const [mapHeight, setMapHeight] = useState(windowHeight * 0.7);
+  const [previewHeight, setPreviewHeight] = useState(240);
   const [reduceMotion, setReduceMotion] = useState(false);
 
   useEffect(() => {
@@ -128,41 +130,46 @@ export default function HomeScreen() {
   const focusedPlace = activeSchedule ? homePlaceFocus(activeSchedule, activeSelection?.placeId).place : undefined;
   const selectedMarkerId = activeSchedule && focusedPlace ? `${activeSchedule.id}:${focusedPlace.id}` : undefined;
   const peekHeight = Math.min(mapHeight, SHEET_HANDLE_HEIGHT);
-  const sheetHeight = Math.min(mapHeight, Math.max(peekHeight, Math.min(560, mapHeight * 0.88)));
+  const previewSheetHeight = Math.min(mapHeight, previewHeight + SHEET_HANDLE_HEIGHT);
+  const sheetHeight = Math.min(mapHeight, Math.max(previewSheetHeight, Math.min(560, mapHeight * 0.88)));
   const collapsedY = Math.max(0, sheetHeight - peekHeight);
-  const [sheetY] = useState(() => new Animated.Value(collapsedY));
-  const [expanded, setExpanded] = useState(false);
+  const previewY = Math.max(0, sheetHeight - previewSheetHeight);
+  const [sheetY] = useState(() => new Animated.Value(previewY));
+  const [sheetLevel, setSheetLevel] = useState<SheetLevel>(2);
+  const expanded = sheetLevel === 3;
+  const snapY = sheetLevel === 1 ? collapsedY : sheetLevel === 2 ? previewY : 0;
 
   const mapAppearance = useMemo(() => ({
     primary: palette.primary,
     primaryDark: palette.primaryDark,
-    bottomInset: expanded ? sheetHeight : peekHeight,
-  }), [palette.primary, palette.primaryDark, expanded, sheetHeight, peekHeight]);
+    bottomInset: sheetLevel === 1 ? peekHeight : sheetLevel === 2 ? previewSheetHeight : sheetHeight,
+  }), [palette.primary, palette.primaryDark, sheetLevel, previewSheetHeight, sheetHeight, peekHeight]);
 
   const moveSheet = useCallback(
-    (open: boolean) => {
-      setExpanded(open);
+    (level: SheetLevel) => {
+      setSheetLevel(level);
+      const targetY = level === 1 ? collapsedY : level === 2 ? previewY : 0;
       if (reduceMotion) {
-        sheetY.setValue(open ? 0 : collapsedY);
+        sheetY.setValue(targetY);
         return;
       }
       Animated.spring(sheetY, {
-        toValue: open ? 0 : collapsedY,
+        toValue: targetY,
         useNativeDriver: true,
         damping: 24,
         stiffness: 230,
         mass: 0.9,
       }).start();
     },
-    [collapsedY, reduceMotion, sheetY],
+    [collapsedY, previewY, reduceMotion, sheetY],
   );
 
   useEffect(() => {
     if (reduceMotion) {
-      sheetY.setValue(expanded ? 0 : collapsedY);
+      sheetY.setValue(snapY);
     } else {
       Animated.spring(sheetY, {
-        toValue: expanded ? 0 : collapsedY,
+        toValue: snapY,
         useNativeDriver: true,
         damping: 24,
         stiffness: 230,
@@ -170,12 +177,12 @@ export default function HomeScreen() {
       }).start();
     }
     return () => sheetY.stopAnimation();
-  }, [collapsedY, expanded, reduceMotion, sheetY]);
+  }, [snapY, reduceMotion, sheetY]);
 
   const sheetPanResponder = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => false,
+        onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponderCapture: (_, gesture) => Math.abs(gesture.dy) > 4,
         onMoveShouldSetPanResponder: (_, gesture) => Math.abs(gesture.dy) > 4,
         onPanResponderGrant: () => {
@@ -189,22 +196,26 @@ export default function HomeScreen() {
         },
         onPanResponderRelease: (_, gesture) => {
           sheetY.flattenOffset();
+          if (Math.abs(gesture.dy) < 4 && Math.abs(gesture.dx) < 4) {
+            moveSheet(sheetLevel === 3 ? 2 : (sheetLevel + 1) as SheetLevel);
+            return;
+          }
           if (gesture.vy < -0.45 || gesture.dy < -48) {
-            moveSheet(true);
+            moveSheet(Math.min(3, sheetLevel + 1) as SheetLevel);
             return;
           }
           if (gesture.vy > 0.45 || gesture.dy > 48) {
-            moveSheet(false);
+            moveSheet(Math.max(1, sheetLevel - 1) as SheetLevel);
             return;
           }
-          moveSheet(expanded);
+          moveSheet(sheetLevel);
         },
         onPanResponderTerminate: () => {
           sheetY.flattenOffset();
-          moveSheet(expanded);
+          moveSheet(sheetLevel);
         },
       }),
-    [expanded, moveSheet, sheetY],
+    [sheetLevel, moveSheet, sheetY],
   );
 
   const openNewSchedule = () =>
@@ -234,7 +245,7 @@ export default function HomeScreen() {
               const point = mapData.scheduleByMarker.get(markerId);
               if (point) {
                 setSelection({ context, ...point });
-                moveSheet(true);
+                moveSheet(3);
               }
             }}
           />
@@ -255,18 +266,21 @@ export default function HomeScreen() {
             },
           ]}>
           <View style={styles.dragArea} {...sheetPanResponder.panHandlers}>
-            <Pressable accessibilityRole="button" accessibilityLabel={expanded ? '하루 시트 접기' : '하루 시트 펼치기'} accessibilityState={{ expanded }} onPress={() => moveSheet(!expanded)} style={styles.handleButton}>
+            <Pressable accessibilityRole="button" accessibilityLabel={expanded ? '하루 시트 접기' : '하루 시트 펼치기'} accessibilityValue={{ min: 1, max: 3, now: sheetLevel, text: `${sheetLevel}단계` }} accessibilityState={{ expanded: sheetLevel > 1 }} accessibilityActions={[{ name: 'increment', label: '한 단계 펼치기' }, { name: 'decrement', label: '한 단계 접기' }]} onAccessibilityAction={event => {
+              if (event.nativeEvent.actionName === 'increment') moveSheet(Math.min(3, sheetLevel + 1) as SheetLevel);
+              if (event.nativeEvent.actionName === 'decrement') moveSheet(Math.max(1, sheetLevel - 1) as SheetLevel);
+            }} onPress={() => moveSheet(expanded ? 2 : (sheetLevel + 1) as SheetLevel)} style={styles.handleButton}>
               <View style={styles.dragHandle} />
             </Pressable>
           </View>
           <ScrollView
-            style={!expanded && styles.hiddenSheetContent}
-            accessibilityElementsHidden={!expanded}
-            importantForAccessibility={expanded ? 'auto' : 'no-hide-descendants'}
+            style={sheetLevel === 1 && styles.hiddenSheetContent}
+            accessibilityElementsHidden={sheetLevel === 1}
+            importantForAccessibility={sheetLevel > 1 ? 'auto' : 'no-hide-descendants'}
             scrollEnabled={expanded || collapsedY === 0}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.sheetContent}>
-            <View>
+            <View onLayout={event => setPreviewHeight(event.nativeEvent.layout.height)}>
               <View style={styles.sheetHeader}>
                 <View style={styles.sheetHeading}>
                   <Text numberOfLines={2} accessibilityRole="header" style={styles.sheetTitle}>
@@ -276,11 +290,12 @@ export default function HomeScreen() {
                     {activeSchedule ? `${activeSchedule.space_name} · 장소 ${activeSchedule.place_count}곳` : `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`}
                   </Text>
                 </View>
+                {!expanded && <Pressable accessibilityRole="button" accessibilityLabel="일정 목록 최소화" onPress={() => moveSheet(1)} style={styles.minimizeButton}><Text style={styles.smallChevron}>−</Text></Pressable>}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={expanded ? '일정 목록 접기' : '일정 목록 펼치기'}
                   accessibilityState={{ expanded }}
-                  onPress={() => moveSheet(!expanded)}
+                  onPress={() => moveSheet(expanded ? 2 : 3)}
                   style={styles.expandButton}>
                   <SymbolView name={{ ios: expanded ? 'chevron.down' : 'chevron.up', android: expanded ? 'expand_more' : 'expand_less', web: expanded ? 'expand_more' : 'expand_less' }} size={16} tintColor={colors.muted} fallback={<Text style={styles.smallChevron}>{expanded ? '⌄' : '⌃'}</Text>} />
                   <Text style={styles.expandText}>{expanded ? '접기' : '펼치기'}</Text>
@@ -414,6 +429,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   sheetTitle: { color: colors.text, fontSize: 21, fontWeight: '700', letterSpacing: -0.5 },
   sheetSubtitle: { color: colors.muted, fontSize: 12 },
   expandButton: { alignItems: 'center', flexDirection: 'row', gap: 4, justifyContent: 'center', minHeight: 44, minWidth: 64 },
+  minimizeButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
   expandText: { color: colors.muted, fontSize: 12 },
   sheetContent: { gap: 10, paddingBottom: 20, paddingHorizontal: spacing.lg },
   otherTitle: { color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 2 },

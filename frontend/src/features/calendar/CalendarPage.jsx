@@ -29,6 +29,21 @@ function lastDayOfMonth(monthStart) {
   return new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
 }
 
+/**
+ * 'YYYY-MM-DD'의 다음 날 키.
+ *
+ * FullCalendar 종일 이벤트의 end는 그날을 포함하지 않는다. 끝나는 날 칸까지 그리려면
+ * 하루 뒤를 넘겨야 한다.
+ *
+ * @param {string} dateKey 'YYYY-MM-DD'
+ */
+function nextDateKey(dateKey) {
+  // 정오로 만들어 서머타임이 있는 기기 시간대에서도 날짜가 밀리지 않게 한다.
+  const date = new Date(`${dateKey}T12:00:00`)
+  date.setDate(date.getDate() + 1)
+  return formatDateKey(date)
+}
+
 function formatTime(dateStr) {
   const date = new Date(dateStr)
   const hour = date.getHours()
@@ -48,7 +63,8 @@ export default function CalendarPage() {
   )
 
   // 보고 있는 달만 받아온다. 달을 넘기면 그 달을 다시 조회한다.
-  const { data: schedules = [] } = useSchedules({
+  // 앞달에 시작해 이번 달로 넘어오는 하루도 서버가 날짜가 겹치면 함께 준다(API_SPEC 5절).
+  const { data: schedules = [], isLoading, isError, refetch } = useSchedules({
     from: formatDateKey(viewDate),
     to: formatDateKey(lastDayOfMonth(viewDate)),
   })
@@ -61,7 +77,10 @@ export default function CalendarPage() {
   const calendarEvents = useMemo(() => schedules.map((schedule) => ({
     id: String(schedule.id),
     title: schedule.title,
+    // 여러 날에 걸친 하루는 시작일부터 끝나는 날까지 모든 칸에 나와야 한다
+    // (CALENDAR_SCREEN_SPEC). 시작일만 넘기면 둘째 날부터 비어 보인다.
     start: schedule.date_key,
+    end: nextDateKey(schedule.end_date_key),
     allDay: true,
     extendedProps: {
       kind: schedule.experience_phase === 'record_pending'
@@ -70,7 +89,9 @@ export default function CalendarPage() {
     },
   })), [schedules])
   const selectedSchedules = useMemo(
-    () => schedules.filter((schedule) => schedule.date_key === selectedDate),
+    () => schedules.filter(
+      (schedule) => schedule.date_key <= selectedDate && selectedDate <= schedule.end_date_key,
+    ),
     [schedules, selectedDate],
   )
 
@@ -140,6 +161,15 @@ export default function CalendarPage() {
           </div>
         </div>
 
+        {/* 로딩과 실패를 빈 달로 보이지 않게 한다. 실제로 하루가 있는데 비어 보이면 안 된다. */}
+        {isLoading && <p className="calendar-status" role="status">일정을 불러오는 중…</p>}
+        {isError && (
+          <p className="calendar-status" role="alert">
+            일정을 불러오지 못했어요.{' '}
+            <button type="button" className="calendar-status__retry" onClick={() => refetch()}>다시 시도</button>
+          </p>
+        )}
+
         <div className="product-calendar">
           <FullCalendar
             ref={calendarRef}
@@ -189,11 +219,13 @@ export default function CalendarPage() {
           <button type="button" className="calendar-drawer-backdrop" aria-label="일정 목록 닫기" onClick={() => setIsDrawerOpen(false)} />
           <aside className="calendar-drawer" role="dialog" aria-modal="true" aria-label={`${selectedMonth}월 ${selectedDay}일 일정`}>
             <div className="calendar-drawer__header">
-              <div><strong>{selectedMonth}월 {selectedDay}일</strong><span>{selectedSchedules.length}개의 일정</span></div>
+              <div><strong>{selectedMonth}월 {selectedDay}일</strong>{!isLoading && !isError && <span>{selectedSchedules.length}개의 일정</span>}</div>
               <button type="button" onClick={() => setIsDrawerOpen(false)} aria-label="닫기">×</button>
             </div>
             <div className="calendar-drawer__body">
-              {selectedSchedules.length === 0 ? <EmptyState compact icon={calendarRaw} title="이날은 일정이 없어요" description="다른 날짜를 선택해 보세요." /> : (
+              {isLoading ? <p className="calendar-status" role="status">일정을 불러오는 중…</p>
+                : isError ? <p className="calendar-status" role="alert">일정을 불러오지 못했어요. <button type="button" className="calendar-status__retry" onClick={() => refetch()}>다시 시도</button></p>
+                : selectedSchedules.length === 0 ? <EmptyState compact icon={calendarRaw} title="이날은 일정이 없어요" description="다른 날짜를 선택해 보세요." /> : (
                 <div className="schedule-list">{selectedSchedules.map((schedule) => (
                   <button type="button" key={schedule.id} onClick={() => navigate(`/schedules/${schedule.id}`)} className="schedule-card">
                     <div className="schedule-card__content"><span className={`schedule-card__badge schedule-card__badge--${schedule.status}`}>{schedule.status === 'completed' ? '완료' : '예정'}</span><p className="schedule-card__title">{schedule.title}</p><p className="schedule-card__meta">{formatTime(schedule.start_at)} · {schedule.place_count}개 장소</p></div>

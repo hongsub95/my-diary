@@ -55,6 +55,18 @@
   outline-offset: 2px;
 }
 
+.calendar-status {
+  margin: 0 4px 8px;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.calendar-status__retry {
+  color: var(--color-primary-text);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
+
 .product-calendar {
   flex: 1;
   min-height: 0;

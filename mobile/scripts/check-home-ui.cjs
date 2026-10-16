@@ -32,7 +32,7 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
 (async () => {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.HOME_UI_BROWSER || 'C:/Program Files/Google/Chrome/Application/chrome.exe' });
   try {
-    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'Asia/Seoul' });
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'Asia/Seoul', hasTouch: true });
     await context.addInitScript(() => {
       let define;
       Object.defineProperty(window, '__d', {
@@ -95,13 +95,41 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     await page.clock.install({ time: new Date('2026-10-13T03:00:00Z') });
     await page.goto(origin + '/home');
     const expandHandle = () => page.getByRole('button', { name: '하루 시트 펼치기', exact: true });
+    const handleOffset = async locator => (await locator.boundingBox()).y - (await page.locator('iframe[title="카카오 장소 지도"]').boundingBox()).y;
     await expect(expandHandle()).toBeVisible({ timeout: 60000 });
-    await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toBeVisible();
     await mkdir(artifacts, { recursive: true });
+    await page.waitForTimeout(600);
+    const defaultHandleY = await handleOffset(expandHandle());
+    await page.screenshot({ path: path.join(artifacts, 'home-default-390.png') });
+    await page.getByRole('button', { name: '일정 목록 최소화', exact: true }).click();
+    await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
+    await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toHaveCount(0);
     await page.waitForTimeout(600);
     assert.equal(Math.round((await expandHandle().boundingBox()).height), 44, 'Collapsed sheet shows only the handle');
     await page.screenshot({ path: path.join(artifacts, 'home-collapsed-390.png') });
-    await expandHandle().click();
+    const handle = await expandHandle().boundingBox();
+    assert.ok(await handleOffset(expandHandle()) > defaultHandleY + 80, 'Stage 1 exposes more of the map than stage 2');
+    const touch = await context.newCDPSession(page);
+    const x = handle.x + handle.width / 2;
+    const y = handle.y + handle.height / 2;
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+    for (let step = 1; step <= 8; step++) {
+      await touch.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y - 90 * step / 8 }] });
+      await page.waitForTimeout(20);
+    }
+    await touch.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    await touch.detach();
+    await expect(page.getByRole('button', { name: '일정 목록 펼치기', exact: true })).toBeVisible();
+    await page.waitForTimeout(600);
+    assert.ok(Math.abs(await handleOffset(expandHandle()) - defaultHandleY) < 2, 'Dragging up from stage 1 returns to stage 2');
+    await page.getByRole('button', { name: '일정 목록 펼치기', exact: true }).click();
+    await page.waitForTimeout(600);
+    assert.ok(await handleOffset(page.getByRole('button', { name: '하루 시트 접기', exact: true })) < defaultHandleY, 'Stage 3 expands above stage 2');
+    await page.screenshot({ path: path.join(artifacts, 'home-expanded-390.png') });
+    const expandedHandle = await page.getByRole('button', { name: '하루 시트 접기', exact: true }).boundingBox();
+    await page.touchscreen.tap(expandedHandle.x + expandedHandle.width / 2, expandedHandle.y + expandedHandle.height / 2);
+    await expect(page.getByRole('button', { name: '일정 목록 펼치기', exact: true })).toBeVisible();
     await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toBeVisible({ timeout: 60000 });
     await expect(page.getByText('1 / 3곳 방문', { exact: true })).toBeVisible();
     await expect(page.getByText('다음 장소', { exact: true })).toBeVisible();
@@ -169,7 +197,7 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     await page.getByText('다시 시도', { exact: true }).click();
     await expect(page.getByText('1 / 3곳 방문', { exact: true })).toBeVisible();
     assert.deepEqual(errors, [], 'screen must not emit unhandled browser errors');
-    console.log('Home UI: 390/320px, marker/card synchronization, date/empty/all-visited states, detail navigation, theme and retry passed.');
+    console.log('Home UI: three sheet stages, stage 2 default, handle-only minimum, drag/press transitions, 390/320px, marker/card synchronization, date/empty/all-visited states, detail navigation, theme and retry passed.');
     console.log('Screenshots: ' + artifacts);
   } finally {
     await browser.close();

@@ -71,6 +71,9 @@ export function toScheduleView(schedule) {
     space_name: schedule.space_name,
     // 날짜별로 묶을 때 쓰는 키. 화면마다 다시 계산하면 시간대 처리가 어긋난다.
     date_key: toServiceDateKey(schedule.start_at),
+    // 끝나는 날의 키. 1박 2일처럼 여러 날에 걸친 하루를 걸친 모든 날짜에 보여줄 때 쓴다.
+    // 당일 하루면 date_key와 같다.
+    end_date_key: toServiceDateKey(schedule.end_at),
     // 지금 이 하루가 어느 단계인지. 서버가 계산해 내려주므로 웹과 앱이 같은 값을 본다.
     // upcoming / today / record_pending / recorded / canceled
     experience_phase: schedule.experience_phase,
