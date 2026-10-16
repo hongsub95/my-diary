@@ -8,6 +8,8 @@ import plusRaw from '../../assets/icons/plus.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
 import mapPinRaw from '../../assets/icons/map-pin.svg?raw'
 import { useSchedules } from '../../shared/api/queries'
+import { PhaseTag } from './PhaseTag'
+import { phaseKind, phaseLabel } from './phase'
 import './schedules.css'
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -23,9 +25,8 @@ function ScheduleCard({ schedule: s }) {
     <button onClick={() => navigate(`/schedules/${s.id}`)} className="slist-card">
       <div className="slist-card__main">
         <div className="slist-card__top">
-          <span className={`slist-card__badge slist-card__badge--${s.status}`}>
-            {s.status === 'completed' ? '완료' : '예정'}
-          </span>
+          {/* status가 아니라 experience_phase로 정한다. 캘린더 칩과 같은 기준이다(phase.js). */}
+          <PhaseTag kind={phaseKind(s.experience_phase)} label={phaseLabel(s.experience_phase)} />
           <span className="slist-card__date">{formatDate(s.start_at)}</span>
         </div>
         <p className="slist-card__title">{s.title}</p>

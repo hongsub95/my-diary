@@ -102,23 +102,6 @@
   margin-bottom: 6px;
 }
 
-.slist-card__badge {
-  font-size: 11px;
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-}
-
-.slist-card__badge--planned {
-  background: var(--color-primary-light);
-  color: var(--color-primary-text);
-}
-
-.slist-card__badge--completed {
-  background: var(--color-orange-light);
-  color: var(--color-orange-text);
-}
-
 .slist-card__date {
   font-size: 12px;
   color: var(--color-text-disabled);
