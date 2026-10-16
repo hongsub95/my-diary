@@ -13,6 +13,8 @@ import calendarRaw from '../../assets/icons/calendar.svg?raw'
 import chevronLeftRaw from '../../assets/icons/chevron-left.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
 import { useSchedules } from '../../shared/api/queries'
+import { PhaseTag } from '../schedules/PhaseTag'
+import { phaseKind, phaseKindLabels } from '../schedules/phase'
 import './calendar.css'
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -74,11 +76,8 @@ export default function CalendarPage() {
     to: formatDateKey(lastDayOfMonth(viewDate)),
   })
 
-  // 날짜마다 어떤 점을 찍을지 정한다. 예정과 기록을 같은 점으로 표시하면 캘린더가
-  // "무엇이 있었는지"를 알려주지 못한다(docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 6절).
-  //
-  // 한 날짜에 여러 하루가 있으면 더 손이 가는 쪽을 남긴다. 기록 대기는 사용자가
-  // 아직 할 일이 있다는 뜻이라 가장 앞에 둔다.
+  // 칩마다 상태 모양을 정한다. 예정과 기록을 같은 모양으로 그리면 캘린더가 "무엇이
+  // 있었는지"를 알려주지 못한다(docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 6절).
   const calendarEvents = useMemo(() => schedules.map((schedule) => ({
     id: String(schedule.id),
     title: schedule.title,
@@ -87,11 +86,7 @@ export default function CalendarPage() {
     start: schedule.date_key,
     end: nextDateKey(schedule.end_date_key),
     allDay: true,
-    extendedProps: {
-      kind: schedule.experience_phase === 'record_pending'
-        ? 'pending'
-        : schedule.experience_phase === 'recorded' ? 'recorded' : 'planned',
-    },
+    extendedProps: { kind: phaseKind(schedule.experience_phase) },
   })), [schedules])
   const selectedSchedules = useMemo(
     () => schedules.filter(
@@ -189,7 +184,8 @@ export default function CalendarPage() {
             height="100%"
             expandRows
             dayMaxEvents={2}
-            moreLinkContent={() => '…'}
+            // 넘친 개수를 보여준다(CALENDAR_SCREEN_SPEC: 칩 최대 2개와 +N). 앱과 같은 표기다.
+            moreLinkContent={({ num }) => `+${num}`}
             moreLinkClick={({ date }) => openDateDrawer(formatDateKey(date))}
             datesSet={handleDatesSet}
             dateClick={({ dateStr }) => openDateDrawer(dateStr)}
@@ -198,8 +194,11 @@ export default function CalendarPage() {
             // FullCalendar 7은 옵션 이름이 *Class·*TopContent로 바뀌었고 문자열 하나를 받는다.
             // 6의 이름(eventClassNames, dayCellContent…)을 쓰면 경고 없이 무시된다. 내부 클래스도
             // 해시(fc-classic-xxx)라 CSS는 여기서 붙인 product-calendar__* 클래스만 기준으로 삼는다.
-            eventClass={({ event }) => `product-calendar__event product-calendar__event--${event.extendedProps.kind}`}
-            eventContent={({ event }) => <span title={event.title}>{event.title}</span>}
+            eventClass="product-calendar__event"
+            eventContent={({ event }) => {
+              const { kind } = event.extendedProps
+              return <PhaseTag size="chip" kind={kind} label={event.title} srLabel={`, ${phaseKindLabels[kind]}`} title={`${event.title} · ${phaseKindLabels[kind]}`} />
+            }}
             moreLinkClass="product-calendar__more"
             dayHeaderContent={({ date }) => WEEKDAYS[date.getDay()]}
             dayHeaderClass={({ date }) => classNames(
@@ -220,6 +219,9 @@ export default function CalendarPage() {
             dayCellTopClass="product-calendar__cell-top"
             dayCellTopContent={renderDayCell}
           />
+        </div>
+        <div className="calendar-legend" aria-label="상태 범례">
+          {['plan', 'pending', 'done'].map((kind) => <PhaseTag key={kind} size="chip" kind={kind} label={phaseKindLabels[kind]} />)}
         </div>
 
       </section>

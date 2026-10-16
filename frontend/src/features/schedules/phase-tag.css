@@ -1,0 +1,68 @@
+/* 상태 태그. 테두리는 모든 모양에 1px씩 둔다(예정이 아니면 바탕과 같은 색).
+   그래야 모양이 달라도 높이가 같아 캘린더 칸의 줄이 흔들리지 않는다. */
+.phase-tag {
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 2px;
+  border: 1px solid transparent;
+  line-height: 1.3;
+}
+
+.phase-tag--chip {
+  padding: 1px 3px;
+  border-radius: 4px;
+  font-size: 10px;
+}
+
+.phase-tag--badge {
+  padding: 3px 10px;
+  border-radius: var(--radius-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.phase-tag__label {
+  overflow: hidden;
+  min-width: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phase-tag__mark {
+  flex-shrink: 0;
+}
+
+.phase-tag__mark--dot {
+  color: var(--color-orange);
+  font-size: 0.75em;
+}
+
+/* 예정만 사용자가 고른 테마를 따른다. 나머지는 뜻이 고정된 색이다. */
+.phase-tag--plan {
+  border-color: var(--color-primary);
+  background: var(--color-surface);
+  color: var(--color-primary-text);
+}
+
+.phase-tag--pending {
+  border-color: var(--color-orange-light);
+  background: var(--color-orange-light);
+  color: var(--color-orange-text);
+}
+
+.phase-tag--done {
+  border-color: var(--color-sage);
+  background: var(--color-sage);
+  color: #fff;
+}
+
+.phase-tag__sr {
+  position: absolute;
+  overflow: hidden;
+  width: 1px;
+  height: 1px;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

@@ -85,41 +85,32 @@
   justify-content: center;
 }
 
+/* 칩의 모양은 안에 그리는 PhaseTag가 맡는다. FullCalendar가 주는 바깥 바탕·여백은 지운다. */
 .product-calendar__event {
   min-width: 0;
   margin: 2px 1px 0;
-  padding: 2px 4px;
+  padding: 0;
   border: 0;
-  border-radius: 4px;
-  font-size: 10px;
-  line-height: 1.25;
+  background: transparent;
 }
 
-.product-calendar__event span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.product-calendar__event .phase-tag {
+  display: flex;
+  width: 100%;
 }
 
 .product-calendar__more {
   display: block;
   overflow: hidden;
   padding: 0 4px;
+  border: 0;
+  background: transparent;
   color: var(--color-text-secondary);
   font-size: 11px;
   line-height: 1;
   text-align: center;
 }
 
-/* FullCalendar 7은 글자색(대비색)을 칩 안쪽 요소에 따로 준다. 바깥에만 색을 주면 안쪽이
-   흰 글자로 남아 연한 바탕 위에서 안 보이므로, 우리가 그리는 span에도 같은 색을 건다. */
-.product-calendar__event--planned,
-.product-calendar__event--planned span { background: var(--color-primary-light); color: var(--color-primary-text); }
-.product-calendar__event--pending,
-.product-calendar__event--pending span { background: var(--color-orange-light); color: var(--color-orange-text); }
-.product-calendar__event--recorded,
-.product-calendar__event--recorded span { background: #e8f5ee; color: #238257; }
 
 .product-calendar__weekday {
   border: 0 !important;
@@ -239,46 +230,13 @@
   font-weight: 600;
 }
 
-.product-calendar__schedule-dot {
-  width: 5px;
-  height: 5px;
-  margin-top: 2px;
-  border-radius: var(--radius-full);
-  background: transparent;
-}
-
-/* 예정·기록 대기·기록됨을 색으로 구분한다. 색만으로 구분하면 알아보기 어려우므로
-   캘린더 아래에 범례를 함께 둔다. */
-.product-calendar__schedule-dot--planned {
-  background: var(--color-primary);
-}
-
-.product-calendar__schedule-dot--pending {
-  background: var(--color-orange);
-}
-
-.product-calendar__schedule-dot--recorded {
-  background: var(--color-sage);
-}
-
+/* 상태 범례. 칩 모양 그대로 보여줘 "테두리 = 예정"을 따로 설명하지 않아도 되게 한다. */
 .calendar-legend {
   display: flex;
-  gap: 14px;
-  padding: 10px 16px 0;
-}
-
-.calendar-legend span {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--color-text-secondary);
-  font-size: 11px;
-}
-
-.calendar-legend i {
-  width: 6px;
-  height: 6px;
-  border-radius: var(--radius-full);
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 0 2px;
+  border-top: 1px solid var(--color-border-light);
 }
 
 .calendar-body {
