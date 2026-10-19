@@ -1,12 +1,14 @@
 import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { PhaseTag, phaseKind, phaseLabel } from '@/features/schedules/phase-tag';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import { EmptyState } from '@/shared/components/empty-state';
-import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
-import { useThemedStyles } from '@/shared/theme-context';
+import { LoadingIndicator } from '@/shared/components/loading-indicator';
+import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
+import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
 
 // 캘린더에서 하루 하나를 펼쳐 보는 상태별 요약 카드 (CALENDAR_SCREEN_SPEC 2026-10-15, 시안 C·E).
@@ -76,6 +78,7 @@ function badgeLabel(schedule: ScheduleView) {
  */
 export function DaySummaryCard({ schedule }: { schedule: ScheduleView }) {
   const router = useRouter();
+  const palette = useTheme();
   const styles = useThemedStyles(createStyles);
   const kind = phaseKind(schedule.experience_phase);
   const summary = schedule.record_summary;
@@ -87,7 +90,8 @@ export function DaySummaryCard({ schedule }: { schedule: ScheduleView }) {
   const header = <>
     <View style={styles.badgeRow}><PhaseTag size="badge" kind={kind} label={badgeLabel(schedule)} /></View>
     <Text style={styles.title}>{schedule.title}</Text>
-    <Text style={styles.meta}>{timeRange(schedule)} · {schedule.space_name}</Text>
+    <Text style={styles.meta}>{timeRange(schedule)}</Text>
+    <View style={styles.spaceRow}><SymbolView name={{ ios: 'house', android: 'home', web: 'home' }} size={14} tintColor={colors.muted} fallback={<Text style={styles.meta}>⌂</Text>} /><Text style={styles.spaceName}>{schedule.space_name}</Text></View>
   </>;
   const moreLink = (label: string, tab?: 'record') => <Pressable accessibilityRole="link" onPress={() => openDetail(tab)} style={styles.link}>
     <Text style={styles.linkText}>{label}</Text><Text style={styles.linkText}>›</Text>
@@ -96,10 +100,10 @@ export function DaySummaryCard({ schedule }: { schedule: ScheduleView }) {
 
   if (kind === 'done') {
     return <View style={styles.card}>
-      {summary.cover_thumbnail_url && <View style={styles.cover}>
+      {summary.cover_thumbnail_url ? <View style={styles.cover}>
         <Image source={{ uri: summary.cover_thumbnail_url }} style={StyleSheet.absoluteFill} accessibilityIgnoresInvertColors />
         {summary.photo_count > 0 && <Text style={styles.photoCount}>사진 {summary.photo_count}장</Text>}
-      </View>}
+      </View> : <View style={[styles.cover, styles.emptyCover]}><View style={styles.emptyCoverIcon}><SymbolView name={{ ios: 'square.and.pencil', android: 'edit_note', web: 'edit_note' }} size={28} tintColor={palette.primaryDark} fallback={<Text style={styles.linkText}>▤</Text>} /></View><Text style={styles.emptyCoverText}>글과 순간으로 남긴 하루</Text></View>}
       {header}
       {summary.diary_excerpt && <Text style={styles.quote} numberOfLines={3}>{summary.diary_excerpt}</Text>}
       {places.length > 0 && <Text style={styles.placeLine} numberOfLines={2}>
@@ -117,7 +121,7 @@ export function DaySummaryCard({ schedule }: { schedule: ScheduleView }) {
         <View style={styles.flow}>
           {shown.map((place, index) => <View key={place.id} style={styles.stop} accessibilityLabel={`${place.name}, ${place.visited ? '다녀옴' : '안 감'}`}>
             <View style={[styles.num, place.visited ? styles.numVisited : styles.numSkipped]}>
-              <Text style={[styles.numText, !place.visited && styles.numSkippedText]}>{place.visited ? '✓' : index + 1}</Text>
+              <Text style={[styles.numText, place.visited ? styles.numVisitedText : styles.numSkippedText]}>{place.visited ? '✓' : index + 1}</Text>
             </View>
             <Text style={[styles.placeName, !place.visited && styles.placeSkipped]} numberOfLines={1}>{place.name}</Text>
           </View>)}
@@ -167,9 +171,9 @@ export function DayAgenda({ day }: { day: string }) {
   const styles = useThemedStyles(createStyles);
   const query = useSchedules({ from: day, to: day, includePlaces: true });
 
-  if (query.isLoading) return <Text accessibilityLiveRegion="polite" style={styles.state}>하루를 불러오는 중…</Text>;
+  if (query.isLoading) return <View style={styles.stateCard}><LoadingIndicator message="하루를 불러오고 있어요." /></View>;
   // 실패를 빈 하루로 보이지 않게 한다. 실제로 하루가 있는데 "없어요"라고 하면 안 된다.
-  if (query.isError) return <Pressable accessibilityRole="button" onPress={() => { void query.refetch(); }}>
+  if (query.isError) return <Pressable accessibilityRole="button" onPress={() => { void query.refetch(); }} style={styles.stateCard}>
     <Text style={styles.state}>하루를 불러오지 못했어요. 다시 시도</Text>
   </Pressable>;
   const items = [...(query.data ?? [])].sort((a, b) => a.start_at.localeCompare(b.start_at) || a.id - b.id);
@@ -179,35 +183,42 @@ export function DayAgenda({ day }: { day: string }) {
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   list: { gap: spacing.md },
-  state: { color: colors.muted, fontSize: 14, paddingVertical: spacing.lg, textAlign: 'center' },
-  card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.lg, borderWidth: 1, padding: 16 },
-  badgeRow: { flexDirection: 'row' },
-  title: { color: colors.text, fontSize: 19, fontWeight: '700', letterSpacing: -0.4, marginTop: 10 },
-  meta: { color: colors.muted, fontSize: 13, marginTop: 4 },
-  section: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', marginTop: 18, minHeight: 24 },
-  sectionLabel: { color: colors.muted, fontSize: 12, fontWeight: '600' },
-  sectionValue: { color: colors.text, fontSize: 12, fontWeight: '600' },
-  flow: { marginTop: 4 },
-  stop: { alignItems: 'center', flexDirection: 'row', gap: 12, minHeight: 46 },
-  num: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 12, height: 24, justifyContent: 'center', width: 24 },
-  numText: { color: '#FFFFFF', fontSize: 12, fontWeight: '700' },
+  stateCard: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.card, justifyContent: 'center', minHeight: 80, padding: spacing.lg },
+  state: { color: colors.muted, fontSize: typography.body, lineHeight: 22, textAlign: 'center' },
+  card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: radii.card, borderWidth: StyleSheet.hairlineWidth, padding: spacing.lg },
+  badgeRow: { alignItems: 'flex-start', flexDirection: 'row' },
+  title: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold, lineHeight: 26, marginTop: spacing.md },
+  meta: { color: colors.muted, fontSize: typography.body, lineHeight: 22, marginTop: spacing.xs },
+  spaceRow: { alignItems: 'center', flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs },
+  spaceName: { color: colors.muted, flex: 1, fontSize: 12, lineHeight: 19 },
+  section: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', marginTop: spacing.lg, minHeight: 44 },
+  sectionLabel: { color: colors.muted, fontSize: 12, fontWeight: typography.semibold },
+  sectionValue: { color: colors.text, fontSize: 12, fontWeight: typography.semibold },
+  flow: { backgroundColor: colors.surfaceMuted, borderRadius: radii.lg, marginTop: spacing.xs, paddingHorizontal: spacing.md, paddingVertical: spacing.xs },
+  stop: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, minHeight: 48 },
+  num: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: radii.full, minHeight: 26, justifyContent: 'center', minWidth: 26, paddingHorizontal: spacing.xs },
+  numText: { color: palette.primaryDark, fontSize: 12, fontWeight: typography.semibold },
   numVisited: { backgroundColor: colors.sage },
-  numSkipped: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 2 },
+  numVisitedText: { color: colors.surface },
+  numSkipped: { backgroundColor: colors.surface, borderColor: colors.border, borderWidth: 1 },
   numSkippedText: { color: colors.muted },
   placeText: { flex: 1 },
-  placeName: { color: colors.text, flex: 1, fontSize: 15, fontWeight: '600' },
-  placeSkipped: { color: colors.muted, fontWeight: '400' },
-  placeAddress: { color: colors.muted, fontSize: 12, marginTop: 1 },
-  rest: { color: colors.muted, fontSize: 12, marginLeft: 36 },
-  link: { borderTopColor: colors.border, borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, minHeight: 44, paddingTop: 12 },
-  linkText: { color: palette.primaryDark, fontSize: 14, fontWeight: '600' },
-  cta: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.md, justifyContent: 'center', marginTop: 16, minHeight: 52 },
-  ctaText: { color: '#FFFFFF', fontSize: 16, fontWeight: '600' },
-  ctaNote: { color: colors.muted, fontSize: 12, marginTop: 8, textAlign: 'center' },
+  placeName: { color: colors.text, flex: 1, fontSize: typography.body, fontWeight: typography.semibold, lineHeight: 21 },
+  placeSkipped: { color: colors.muted, fontWeight: typography.regular },
+  placeAddress: { color: colors.muted, fontSize: 12, lineHeight: 19, marginTop: 1 },
+  rest: { color: colors.muted, fontSize: 12, marginLeft: 50, marginTop: spacing.sm },
+  link: { alignItems: 'center', borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', marginTop: spacing.md, minHeight: 48, paddingTop: spacing.sm },
+  linkText: { color: palette.primaryDark, flexShrink: 1, fontSize: typography.body, fontWeight: typography.semibold, lineHeight: 22 },
+  cta: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.md, justifyContent: 'center', marginTop: spacing.lg, minHeight: 52, padding: spacing.sm },
+  ctaText: { color: '#FFFFFF', fontSize: typography.emphasis, fontWeight: typography.semibold },
+  ctaNote: { color: colors.muted, fontSize: 12, lineHeight: 19, marginTop: spacing.sm, textAlign: 'center' },
   pressed: { opacity: 0.85 },
-  cover: { backgroundColor: colors.surfaceMuted, borderRadius: radii.md, height: 180, marginBottom: 14, overflow: 'hidden' },
-  photoCount: { backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: 10, bottom: 10, color: '#FFFFFF', fontSize: 12, fontWeight: '600', overflow: 'hidden', paddingHorizontal: 9, paddingVertical: 3, position: 'absolute', right: 10 },
-  quote: { borderLeftColor: palette.primarySoft, borderLeftWidth: 3, color: colors.text, fontSize: 15, lineHeight: 24, marginTop: 12, paddingLeft: 12 },
-  placeLine: { color: colors.muted, fontSize: 13, marginTop: 12 },
-  placeLineStrong: { color: colors.text, fontWeight: '600' },
+  cover: { aspectRatio: 4 / 3, backgroundColor: colors.surfaceMuted, borderRadius: radii.lg, marginBottom: spacing.md, overflow: 'hidden' },
+  emptyCover: { alignItems: 'center', aspectRatio: 2, justifyContent: 'center', padding: spacing.md },
+  emptyCoverIcon: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: radii.md, height: 48, justifyContent: 'center', width: 48 },
+  emptyCoverText: { color: colors.muted, fontSize: 12, marginTop: spacing.sm, textAlign: 'center' },
+  photoCount: { backgroundColor: 'rgba(0,0,0,0.45)', borderRadius: radii.full, bottom: 10, color: '#FFFFFF', fontSize: 12, fontWeight: typography.semibold, overflow: 'hidden', paddingHorizontal: 9, paddingVertical: 3, position: 'absolute', right: 10 },
+  quote: { backgroundColor: colors.surfaceMuted, borderRadius: radii.md, color: colors.text, fontSize: typography.body, lineHeight: 23, marginTop: spacing.md, padding: spacing.md },
+  placeLine: { color: colors.muted, fontSize: typography.body, lineHeight: 22, marginTop: spacing.md },
+  placeLineStrong: { color: colors.text, fontWeight: typography.semibold },
 });

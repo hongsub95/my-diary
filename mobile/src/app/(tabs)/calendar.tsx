@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
-import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
+import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { CalendarExplorer } from '@/features/calendar/calendar-explorer';
 import { moveDate, parseDate } from '@/features/calendar/calendar-dates';
@@ -105,9 +105,9 @@ export default function CalendarScreen() {
         <View style={styles.drawerLayer}>
           <Pressable accessibilityLabel="일정 목록 닫기" onPress={closeDrawer} style={styles.backdrop} />
           <Animated.View style={[styles.drawer, { width: Math.min(width * 0.88, 380), transform: [{ translateX: drawerX }] }]}>
-            <SafeAreaView edges={['top', 'bottom']} style={styles.drawerSafeArea}>
+            <SafeAreaView edges={['top', 'bottom']} style={styles.drawerSafeArea} accessibilityViewIsModal>
               <View style={styles.drawerHeader}>
-                <View><Text style={styles.drawerTitle}>{month}월 {day}일 {WEEKDAY_NAMES[parseDate(selectedDate).getDay()]}</Text><Text style={styles.drawerCount}>하루 {selectedSchedules.length}개</Text></View>
+                <View style={styles.drawerHeading}><Text accessibilityRole="header" style={styles.drawerTitle}>{month}월 {day}일 {WEEKDAY_NAMES[parseDate(selectedDate).getDay()]}</Text><Text style={styles.drawerCount}>이날의 하루 {selectedSchedules.length}개</Text></View>
                 <Pressable accessibilityRole="button" accessibilityLabel="닫기" onPress={closeDrawer} style={styles.closeButton}><Text style={styles.closeText}>×</Text></Pressable>
               </View>
               {/* 일간 보기와 같은 상태별 요약 카드(CALENDAR_SCREEN_SPEC 2026-10-15). 카드에 장소가
@@ -126,50 +126,15 @@ export default function CalendarScreen() {
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   content: { flex: 1, padding: spacing.lg, paddingBottom: spacing.md, paddingTop: spacing.xl },
-  heading: { gap: 6, marginBottom: spacing.xl, paddingHorizontal: 2 },
-  eyebrow: { color: palette.primaryDark, fontSize: 12, fontWeight: '600', letterSpacing: 1.2 },
-  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1.1 },
-  calendarCard: {
-    backgroundColor: colors.surface,
-    borderRadius: radii.card,
-    elevation: 3,
-    overflow: 'hidden',
-    flex: 1,
-    padding: spacing.xs,
-    shadowColor: '#432F28',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 18,
-  },
-  dayCell: { alignItems: 'stretch', flex: 1, minHeight: 0, paddingHorizontal: 2, paddingTop: 3, width: '100%' },
-  dayCellSelected: { backgroundColor: palette.primarySoft, borderRadius: radii.md },
-  dayNumber: { color: colors.text, fontSize: 12, marginBottom: 3, textAlign: 'center' },
-  dayNumberSelected: { color: palette.primary, fontWeight: '600' },
-  dayDisabled: { color: colors.border },
-  eventChip: { borderRadius: 3, marginBottom: 2, minWidth: 0, paddingHorizontal: 3, paddingVertical: 2 },
-  eventChipText: { color: '#FFFFFF', fontSize: 8, lineHeight: 10 },
-  moreEvents: { color: colors.muted, fontSize: 10, lineHeight: 10, textAlign: 'center' },
-  legend: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md, paddingHorizontal: 4 },
-  legendItem: { alignItems: 'center', flexDirection: 'row', gap: 5 },
-  legendDot: { borderRadius: 3, height: 6, width: 6 },
-  legendText: { color: colors.muted, fontSize: 11 },
-  sectionHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.md,
-    marginTop: spacing.xl,
-  },
-  sectionTitle: { color: colors.text, fontSize: 16, fontWeight: '600' },
-  sectionCount: { color: palette.primary, fontSize: 14, fontWeight: '600' },
   drawerLayer: { flex: 1 },
   backdrop: { backgroundColor: 'rgba(28, 25, 23, 0.35)', bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
-  drawer: { bottom: 0, left: 0, position: 'absolute', top: 0 },
+  drawer: { borderTopRightRadius: radii.card, borderBottomRightRadius: radii.card, bottom: 0, left: 0, overflow: 'hidden', position: 'absolute', top: 0 },
   drawerSafeArea: { backgroundColor: colors.background, flex: 1 },
-  drawerHeader: { alignItems: 'center', backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.md },
-  drawerTitle: { color: colors.text, fontSize: 18, fontWeight: '600' },
-  drawerCount: { color: colors.muted, fontSize: 12, marginTop: 3 },
-  closeButton: { alignItems: 'center', height: 44, justifyContent: 'center', width: 44 },
-  closeText: { color: colors.muted, fontSize: 28 },
-  drawerBody: { flexGrow: 1, padding: spacing.lg },
+  drawerHeader: { alignItems: 'center', backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.lg },
+  drawerHeading: { flex: 1 },
+  drawerTitle: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold, lineHeight: 26 },
+  drawerCount: { color: colors.muted, fontSize: typography.body, marginTop: spacing.xs },
+  closeButton: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: radii.full, height: 44, justifyContent: 'center', width: 44 },
+  closeText: { color: palette.primaryDark, fontSize: 24 },
+  drawerBody: { flexGrow: 1, padding: spacing.md, paddingBottom: spacing.lg },
 });

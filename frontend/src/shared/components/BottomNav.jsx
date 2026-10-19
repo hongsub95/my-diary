@@ -5,7 +5,7 @@ import { useMenus } from '../api/queries'
 import { useAuth } from '../contexts/AuthContext'
 import homeRaw from '../../assets/icons/home.svg?raw'
 import calendarRaw from '../../assets/icons/calendar.svg?raw'
-import listRaw from '../../assets/icons/list.svg?raw'
+import routeRaw from '../../assets/icons/route.svg?raw'
 import notebookPencilRaw from '../../assets/icons/notebook-pencil.svg?raw'
 import ellipsisHorizontalRaw from '../../assets/icons/ellipsis-horizontal.svg?raw'
 import settingsRaw from '../../assets/icons/settings.svg?raw'
@@ -16,7 +16,9 @@ import './BottomNav.css'
 const ICONS = {
   home: homeRaw,
   calendar: calendarRaw,
-  list: listRaw,
+  list: routeRaw,
+  route: routeRaw,
+  schedules: routeRaw,
   book: notebookPencilRaw,
   'book-open': notebookPencilRaw,
   records: notebookPencilRaw,
@@ -70,7 +72,7 @@ export default function BottomNav() {
           to={menu.path}
           className={({ isActive }) => `bottom-nav__item${isActive ? ' bottom-nav__item--active' : ''}`}
         >
-          <Icon raw={ICONS[menu.icon] ?? ellipsisHorizontalRaw} size={24} className="bottom-nav__icon" />
+          <Icon raw={ICONS[menu.code] ?? ICONS[menu.icon] ?? ellipsisHorizontalRaw} size={22} className="bottom-nav__icon" />
           <span className="bottom-nav__label">{menu.name}</span>
         </NavLink>
       ))}

@@ -5,46 +5,35 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
 import { LEGAL_DOCUMENTS } from '@/features/legal/legal-api';
-import { colors, getPalette, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
-import { useThemeContext, useThemedStyles } from '@/shared/theme-context';
-import { useNavigableMenus } from '@/features/menus/menu-api';
 import { buildAllMenus } from '@/features/menus/all-menus';
+import { IconBadge } from '@/features/menus/icon-badge';
+import { useNavigableMenus } from '@/features/menus/menu-api';
 import { MenuIcon } from '@/features/menus/menu-icon';
-import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 import { useSpaces } from '@/features/spaces/space-context';
+import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
+import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
+import { useTheme, useThemedStyles } from '@/shared/theme-context';
 
 type MoreMenuItem = {
   key: string;
   label: string;
-  // 열 화면의 경로. 없으면 아직 화면이나 API가 없다는 뜻이라 눌리지 않고 '준비 중'으로
-  // 표시한다. 미구현 항목을 눌러 빈 화면이나 오류를 보여주지 않기 위한 장치다
-  // (docs/BOTTOM_NAVIGATION_SPEC.md 7절). 화면이 준비되면 href만 채우면 된다.
-  href?: '/more/profile' | '/more/password' | '/more/theme' | '/spaces';
-  // 약관은 문서 코드로 갈라 쓰는 동적 경로라 href와 따로 둔다.
+  // Unimplemented settings stay disabled until their screen and API are ready.
+  href?: '/more/password' | '/more/theme';
   legalCode?: string;
-  // 소셜 로그인 계정에는 감춰야 하는 항목(같은 문서 6.5절).
   emailAccountOnly?: boolean;
 };
 
-// 더보기 안의 항목은 동작이 제각각이라 DB로 관리하지 않고 여기서 관리한다(8.1절).
-// 그룹 구성은 6.5절을 따르며, 웹의 frontend/src/features/more/MorePage.jsx와 같은 구성이다.
 const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
   {
-    title: '내 정보',
+    title: '나에게 맞추기',
     items: [
-      { key: 'profile', label: '프로필 수정', href: '/more/profile' },
       { key: 'password', label: '비밀번호 변경', href: '/more/password', emailAccountOnly: true },
-    ],
-  },
-  {
-    title: '앱 설정',
-    items: [
       { key: 'notifications', label: '알림 설정' },
       { key: 'theme', label: '테마', href: '/more/theme' },
     ],
   },
   {
-    title: '서비스 정보',
+    title: '서비스 안내',
     items: [
       { key: 'privacy', label: '개인정보 처리방침', legalCode: LEGAL_DOCUMENTS.privacy },
       { key: 'terms', label: '서비스 이용약관', legalCode: LEGAL_DOCUMENTS.terms },
@@ -52,127 +41,151 @@ const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
   },
 ];
 
-/**
- * 더보기 탭. 프로필 요약과 저빈도 관리 기능을 모아둔 화면이다.
- *
- * 기존 설정 화면을 대체한다. 로그아웃하면 (tabs)/_layout이 로그인 화면으로 보낸다.
- */
+/** Profile, spaces, navigation and less frequent account settings. */
 export default function MoreScreen() {
   const { logout, user } = useAuth();
   const { currentSpace } = useSpaces();
   const router = useRouter();
   const styles = useThemedStyles(createStyles);
+  const palette = useTheme();
   const menuQuery = useNavigableMenus();
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
+
   useEffect(() => {
     if (menuQuery.error) showSnackbar('메뉴를 불러오지 못했어요. 다시 시도해 주세요.');
   }, [menuQuery.error, showSnackbar]);
-  // 들어가 보지 않아도 지금 어떤 색인지 알 수 있어야 한다 (docs/DESIGN_SPEC.md 3절).
-  const { activeKey } = useThemeContext();
 
-  // 소셜 로그인이 생기면 서버가 계정 유형을 내려준다. UserResponse에 아직 그 필드가
-  // 없고 소셜 로그인 자체가 미구현이라, 그때까지 이 값은 항상 true다.
+  // Accounts without provider metadata are currently email accounts.
   const accountType = (user as { auth_provider?: string } | null)?.auth_provider;
   const canChangePassword = accountType ? accountType === 'email' : true;
 
   return (
     <SafeAreaView edges={['top']} style={styles.safeArea}>
       <ScrollView contentContainerStyle={styles.content}>
-        <Text style={styles.title}>더보기</Text>
+        <View style={styles.header}>
+          <Text accessibilityRole="header" style={styles.title}>더보기</Text>
+          <Text style={styles.brand}>나의 일기 <Text style={styles.brandAccent}>(내일)</Text></Text>
+        </View>
 
         <View style={styles.profile}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{user?.nickname.slice(0, 1)}</Text>
-          </View>
-          <View style={styles.profileText}>
-            <Text style={styles.nickname}>{user?.nickname}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-          </View>
-        </View>
-
-        <View style={styles.group}>
-          <View style={styles.card}>
-            <Pressable accessibilityRole="button" onPress={() => router.push('/spaces')} style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-              <View style={styles.spaceText}>
-                <Text style={styles.rowLabel}>나의 공간</Text>
-                <Text style={styles.rowValueText} numberOfLines={1}>{currentSpace?.name ?? '공간 바꾸기 · 관리'}</Text>
-              </View>
-              <Text style={styles.rowArrow}>›</Text>
+          <View style={styles.profileTop}>
+            <View style={styles.avatar}>
+              <MenuIcon name="smile" size={29} color={palette.primaryDark} />
+            </View>
+            <View style={styles.profileText}>
+              <Text numberOfLines={2} style={styles.nickname}>{user?.nickname ?? '나'}님</Text>
+              <Text numberOfLines={1} style={styles.email}>{user?.email}</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="프로필 수정"
+              onPress={() => router.push('/more/profile')}
+              style={({ pressed }) => [styles.editButton, pressed && styles.pressed]}>
+              <MenuIcon name="edit" size={19} color={palette.primaryDark} />
             </Pressable>
           </View>
+          <Text style={styles.profileNote}>나답게 쌓아가는 하루</Text>
         </View>
 
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={`나의 공간, ${currentSpace?.name ?? '공간 바꾸기 및 관리'}. 바꾸기`}
+          onPress={() => router.push('/spaces')}
+          style={({ pressed }) => [styles.spaceCard, pressed && styles.pressed]}>
+          <IconBadge name="space" />
+          <View style={styles.spaceText}>
+            <Text style={styles.eyebrow}>나의 공간</Text>
+            <Text style={styles.spaceName} numberOfLines={2}>{currentSpace?.name ?? '공간 바꾸기 · 관리'}</Text>
+          </View>
+          <View style={styles.spaceAction}>
+            <Text style={styles.smallText}>바꾸기</Text>
+            <MenuIcon name="chevron-right" size={15} color={colors.muted} />
+          </View>
+        </Pressable>
+
         <View style={styles.group}>
-          <Text style={styles.groupTitle}>전체 메뉴</Text>
+          <Text accessibilityRole="header" style={styles.groupTitle}>전체 메뉴</Text>
           <View style={styles.menuPanel}>
             <View style={styles.menuGrid}>
               {buildAllMenus(menuQuery.data ?? []).map(menu => (
-                <Pressable accessibilityRole="button" key={menu.code} onPress={() => router.navigate(menu.href)} style={({ pressed }) => [styles.menuTile, pressed && styles.pressed]}>
-                  <MenuIcon name={menu.code} size={20} color={getPalette(activeKey).primary} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={menu.name}
+                  key={menu.code}
+                  onPress={() => router.navigate(menu.href)}
+                  style={({ pressed }) => [styles.menuTile, pressed && styles.pressed]}>
+                  <IconBadge name={menu.code} />
                   <Text style={styles.menuLabel}>{menu.name}</Text>
                 </Pressable>
               ))}
             </View>
             {menuQuery.isPending && <Text style={styles.rowValueText}>메뉴를 불러오고 있어요.</Text>}
-            {menuQuery.isError && <Pressable accessibilityRole="button" onPress={() => menuQuery.refetch()} style={styles.menuRetry}><Text style={styles.menuRetryText}>메뉴 다시 불러오기</Text></Pressable>}
+            {menuQuery.isError && (
+              <Pressable accessibilityRole="button" onPress={() => menuQuery.refetch()} style={styles.menuRetry}>
+                <Text style={styles.menuRetryText}>메뉴 다시 불러오기</Text>
+              </Pressable>
+            )}
           </View>
         </View>
 
-        {MENU_GROUPS.map((group) => {
-          const items = group.items.filter((item) => !item.emailAccountOnly || canChangePassword);
-          if (items.length === 0) return null;
-
+        {MENU_GROUPS.map(group => {
+          const items = group.items.filter(item => !item.emailAccountOnly || canChangePassword);
           return (
             <View key={group.title} style={styles.group}>
-              <Text style={styles.groupTitle}>{group.title}</Text>
+              <Text accessibilityRole="header" style={styles.groupTitle}>{group.title}</Text>
               <View style={styles.card}>
-                {items.map((item, index) => (
-                  <View key={item.key}>
-                    <Pressable
-                      disabled={!item.href && !item.legalCode}
-                      onPress={
-                        item.legalCode
-                          ? () => router.push({ pathname: '/more/legal/[code]', params: { code: item.legalCode! } })
-                          : item.href
-                            ? () => router.push(item.href!)
-                            : undefined
-                      }
-                      style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
-                      <Text style={[styles.rowLabel, !item.href && !item.legalCode && styles.rowLabelMuted]}>{item.label}</Text>
-                      {item.key === 'theme' ? (
-                        <View style={styles.rowValue}>
-                          <View style={[styles.rowSwatch, { backgroundColor: getPalette(activeKey).primary }]} />
-                          <Text style={styles.rowValueText}>{getPalette(activeKey).label}</Text>
-                        </View>
-                      ) : null}
-                      {item.href || item.legalCode ? (
-                        <Text style={styles.rowArrow}>›</Text>
-                      ) : (
-                        <Text style={styles.badge}>준비 중</Text>
-                      )}
-                    </Pressable>
-                    {index < items.length - 1 ? <View style={styles.divider} /> : null}
-                  </View>
-                ))}
+                {items.map((item, index) => {
+                  const disabled = !item.href && !item.legalCode;
+                  return (
+                    <View key={item.key}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityState={{ disabled }}
+                        disabled={disabled}
+                        onPress={
+                          item.legalCode
+                            ? () => router.push({ pathname: '/more/legal/[code]', params: { code: item.legalCode! } })
+                            : item.href
+                              ? () => router.push(item.href!)
+                              : undefined
+                        }
+                        style={({ pressed }) => [styles.row, pressed && styles.pressed]}>
+                        <IconBadge name={item.key} compact muted={disabled} />
+                        <Text style={[styles.rowLabel, disabled && styles.rowLabelMuted]}>{item.label}</Text>
+                        {item.key === 'theme' && (
+                          <View style={styles.rowValue}>
+                            <View style={styles.rowSwatch} />
+                            <Text style={styles.rowValueText}>{palette.label}</Text>
+                          </View>
+                        )}
+                        {disabled
+                          ? <Text style={styles.badge}>준비 중</Text>
+                          : <MenuIcon name="chevron-right" size={16} color={colors.muted} />}
+                      </Pressable>
+                      {index < items.length - 1 && <View style={styles.divider} />}
+                    </View>
+                  );
+                })}
               </View>
             </View>
           );
         })}
 
-        {/* 계정 그룹은 되돌리기 어려운 동작이라 일반 탐색 메뉴와 시각적으로 떼어 놓는다(6.5절). */}
-        <View style={styles.group}>
-          <Text style={styles.groupTitle}>계정</Text>
-          <Pressable onPress={logout} style={({ pressed }) => [styles.logoutButton, pressed && styles.pressed]}>
-            <Text style={styles.logoutText}>로그아웃</Text>
+        <View style={styles.account}>
+          <Pressable accessibilityRole="button" onPress={logout} style={({ pressed }) => [styles.accountButton, pressed && styles.pressed]}>
+            <MenuIcon name="logout" size={16} color={colors.muted} />
+            <Text style={styles.accountText}>로그아웃</Text>
           </Pressable>
-          {/* 탈퇴 자체는 다음 화면에서 한다. 여기서 바로 실행하지 않는 이유는 6.5절이
-              요구하는 데이터 처리 안내와 재인증을 거쳐야 하기 때문이다. */}
+          <Text accessible={false} style={styles.accountSeparator}>·</Text>
+          {/* This only opens the account deletion explanation and reauthentication flow. */}
           <Pressable
+            accessibilityRole="button"
             onPress={() => router.push('/more/delete')}
-            style={({ pressed }) => [styles.withdrawButton, pressed && styles.pressed]}>
-            <Text style={styles.withdrawText}>계정 탈퇴</Text>
+            style={({ pressed }) => [styles.accountButton, pressed && styles.pressed]}>
+            <Text style={styles.accountText}>계정 탈퇴</Text>
           </Pressable>
         </View>
+        <Text style={styles.signature}>계획한 하루가, 소중한 기억으로.</Text>
       </ScrollView>
       <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
@@ -181,38 +194,46 @@ export default function MoreScreen() {
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
-  menuPanel: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 2, gap: spacing.sm, padding: spacing.md, shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 18 },
-  menuGrid: { alignItems: 'flex-start', columnGap: 8, flexDirection: 'row', flexWrap: 'wrap', rowGap: 12 },
-  menuTile: { alignItems: 'center', justifyContent: 'center', gap: 8, minHeight: 64, paddingHorizontal: 6, paddingVertical: 10, width: '31%' },
-  menuLabel: { color: colors.text, fontSize: 12, fontWeight: typography.regular, textAlign: 'center' },
-  menuRetry: { alignItems: 'center', minHeight: 44, justifyContent: 'center' },
-  menuRetryText: { color: palette.primary, fontSize: typography.body, fontWeight: typography.semibold },
-  content: { padding: spacing.lg, paddingBottom: 132, paddingTop: spacing.xl },
-  title: { color: colors.text, fontSize: 28, fontWeight: '700', letterSpacing: -1.1, marginBottom: spacing.xl },
-  profile: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.card, elevation: 3, flexDirection: 'row', padding: spacing.lg, shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.08, shadowRadius: 18 },
-  avatar: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: 24, height: 48, justifyContent: 'center', width: 48 },
-  avatarText: { color: palette.primary, fontSize: typography.emphasis, fontWeight: typography.semibold },
-  profileText: { gap: 3, marginLeft: spacing.md },
-  nickname: { color: colors.text, fontSize: typography.emphasis, fontWeight: typography.semibold },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.lg },
+  header: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', marginBottom: spacing.lg },
+  title: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold },
+  brand: { color: colors.muted, fontSize: 11, fontWeight: typography.regular },
+  brandAccent: { color: palette.primaryDark },
+  profile: { backgroundColor: palette.primarySoft, borderRadius: radii.card, gap: spacing.md, padding: spacing.lg },
+  profileTop: { alignItems: 'center', flexDirection: 'row', gap: spacing.md },
+  avatar: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.lg, height: 48, justifyContent: 'center', transform: [{ rotate: '-5deg' }], width: 48 },
+  profileText: { flex: 1, gap: spacing.xs, minWidth: 0 },
+  nickname: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold },
   email: { color: colors.muted, fontSize: typography.body, fontWeight: typography.regular },
-  group: { gap: spacing.sm, marginTop: spacing.xl },
-  groupTitle: { color: colors.muted, fontSize: typography.emphasis, fontWeight: typography.semibold, paddingLeft: spacing.xs },
-  card: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 2, overflow: 'hidden', shadowColor: '#432F28', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.07, shadowRadius: 18 },
-  // 터치 영역을 44px 이상으로 유지한다 (BOTTOM_NAVIGATION_SPEC.md 7절).
-  row: { alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', minHeight: 52, paddingHorizontal: spacing.lg, paddingVertical: 14 },
-  rowLabel: { color: colors.text, fontSize: typography.body, fontWeight: typography.regular },
-  spaceText: { flex: 1, gap: spacing.xs, marginRight: spacing.sm },
-  // 항목 전체를 흐리게 하면 무엇이 준비 중인지 읽기 어려워진다. 글자색만 낮춘다.
+  editButton: { alignItems: 'center', borderRadius: radii.full, justifyContent: 'center', minHeight: 44, minWidth: 44 },
+  profileNote: { color: palette.primaryDark, fontSize: typography.body, fontWeight: typography.regular },
+  spaceCard: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.card, flexDirection: 'row', gap: spacing.md, marginTop: spacing.md, minHeight: 76, padding: spacing.md },
+  spaceText: { flex: 1, gap: spacing.xs, minWidth: 0 },
+  eyebrow: { color: colors.muted, fontSize: 12, fontWeight: typography.regular },
+  spaceName: { color: colors.text, fontSize: typography.body, fontWeight: typography.semibold },
+  spaceAction: { alignItems: 'center', flexDirection: 'row', gap: 2 },
+  smallText: { color: colors.muted, fontSize: 12, fontWeight: typography.regular },
+  group: { gap: spacing.md, marginTop: spacing.xl },
+  groupTitle: { color: colors.text, fontSize: typography.body, fontWeight: typography.semibold, paddingLeft: spacing.xs },
+  menuPanel: { backgroundColor: colors.surface, borderRadius: radii.card, elevation: 1, gap: spacing.sm, paddingHorizontal: spacing.md, paddingVertical: spacing.lg, shadowColor: colors.ink, shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.035, shadowRadius: 14 },
+  menuGrid: { alignItems: 'flex-start', flexDirection: 'row', flexWrap: 'wrap', rowGap: spacing.lg },
+  menuTile: { alignItems: 'center', gap: spacing.sm, justifyContent: 'center', minHeight: 72, paddingHorizontal: spacing.xs, width: '33.333333%' },
+  menuLabel: { color: colors.text, fontSize: typography.body, fontWeight: typography.regular, textAlign: 'center' },
+  menuRetry: { alignItems: 'center', justifyContent: 'center', minHeight: 44 },
+  menuRetryText: { color: palette.primaryDark, fontSize: typography.body, fontWeight: typography.semibold },
+  card: { backgroundColor: colors.surface, borderRadius: radii.card, overflow: 'hidden', paddingHorizontal: spacing.md },
+  row: { alignItems: 'center', flexDirection: 'row', gap: spacing.sm, minHeight: 58, paddingVertical: spacing.sm },
+  rowLabel: { color: colors.text, flex: 1, fontSize: typography.body, fontWeight: typography.regular },
   rowLabelMuted: { color: colors.muted },
-  rowValue: { alignItems: 'center', flexDirection: 'row', gap: 8, marginRight: spacing.sm },
-  rowSwatch: { borderColor: 'rgba(0,0,0,0.08)', borderRadius: 8, borderWidth: 1, height: 16, width: 16 },
-  rowValueText: { color: colors.muted, fontSize: typography.body, fontWeight: typography.regular },
-  rowArrow: { color: colors.border, fontSize: 22, fontWeight: typography.semibold },
-  badge: { backgroundColor: colors.background, borderColor: colors.border, borderRadius: 999, borderWidth: 1, color: colors.muted, fontSize: 11, fontWeight: typography.semibold, overflow: 'hidden', paddingHorizontal: 8, paddingVertical: 3 },
-  divider: { backgroundColor: colors.border, height: 1, marginLeft: spacing.lg },
-  logoutButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, minHeight: 52, justifyContent: 'center', paddingVertical: 15 },
-  logoutText: { color: colors.danger, fontSize: typography.body, fontWeight: typography.semibold },
-  withdrawButton: { alignItems: 'center', backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 14, borderWidth: 1, justifyContent: 'center', minHeight: 52, paddingHorizontal: spacing.lg, paddingVertical: 14 },
-  withdrawText: { color: colors.danger, fontSize: typography.body, fontWeight: typography.semibold },
+  rowValue: { alignItems: 'center', flexDirection: 'row', gap: 6 },
+  rowSwatch: { backgroundColor: palette.primary, borderRadius: radii.full, height: 10, width: 10 },
+  rowValueText: { color: colors.muted, fontSize: 12, fontWeight: typography.regular },
+  badge: { backgroundColor: colors.surfaceMuted, borderRadius: radii.sm, color: colors.muted, fontSize: 11, fontWeight: typography.regular, overflow: 'hidden', paddingHorizontal: spacing.sm, paddingVertical: spacing.xs },
+  divider: { backgroundColor: colors.border, height: StyleSheet.hairlineWidth, marginLeft: 40 },
+  account: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'center', marginTop: spacing.lg },
+  accountButton: { alignItems: 'center', flexDirection: 'row', gap: 6, justifyContent: 'center', minHeight: 44, minWidth: 44, paddingHorizontal: spacing.xs },
+  accountText: { color: colors.muted, fontSize: 12, fontWeight: typography.regular },
+  accountSeparator: { color: colors.muted },
+  signature: { color: colors.muted, fontSize: 11, fontWeight: typography.regular, marginTop: spacing.xs, textAlign: 'center' },
   pressed: { opacity: 0.65 },
 });

@@ -2,13 +2,19 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Icon } from '../../shared/components/Icon'
 import userRaw from '../../assets/icons/user.svg?raw'
+import pencilRaw from '../../assets/icons/pencil.svg?raw'
 import logoutRaw from '../../assets/icons/logout.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
 import homeRaw from '../../assets/icons/home.svg?raw'
 import calendarRaw from '../../assets/icons/calendar.svg?raw'
-import listRaw from '../../assets/icons/list.svg?raw'
+import routeRaw from '../../assets/icons/route.svg?raw'
 import notebookPencilRaw from '../../assets/icons/notebook-pencil.svg?raw'
-import squaresRaw from '../../assets/icons/squares.svg?raw'
+import imagesRaw from '../../assets/icons/images.svg?raw'
+import lockRaw from '../../assets/icons/lock.svg?raw'
+import bellRaw from '../../assets/icons/bell.svg?raw'
+import paletteRaw from '../../assets/icons/palette.svg?raw'
+import shieldRaw from '../../assets/icons/shield.svg?raw'
+import documentRaw from '../../assets/icons/document.svg?raw'
 import { useAuth } from '../../shared/contexts/AuthContext'
 import { getPalette } from '../../shared/theme/palettes'
 import { LEGAL_DOCUMENTS } from '../../shared/api/legal'
@@ -26,27 +32,21 @@ import { useSpaces } from '../spaces/SpaceContext'
 // 않기 위한 장치다(같은 문서 7절). 화면이 준비되면 to만 채우면 된다.
 const MENU_GROUPS = [
   {
-    title: '내 정보',
+    title: '나에게 맞추기',
     items: [
-      { key: 'profile', label: '프로필 수정', to: '/more/profile' },
       // 소셜 로그인 계정에는 노출하지 않아야 하는 항목이다. 판별 필드는 6.5절 요구사항이지만
       // /auth/me 응답(UserResponse)에 아직 없고 소셜 로그인 자체가 미구현이라, 필드가 생기기
       // 전까지는 이메일·비밀번호 계정으로 본다. 판별 로직은 canChangePassword 참고.
-      { key: 'password', label: '비밀번호 변경', to: '/more/password', emailAccountOnly: true },
+      { key: 'password', label: '비밀번호 변경', icon: lockRaw, to: '/more/password', emailAccountOnly: true },
+      { key: 'notifications', label: '알림 설정', icon: bellRaw },
+      { key: 'theme', label: '테마', icon: paletteRaw, to: '/more/theme' },
     ],
   },
   {
-    title: '앱 설정',
+    title: '서비스 안내',
     items: [
-      { key: 'notifications', label: '알림 설정' },
-      { key: 'theme', label: '테마', to: '/more/theme' },
-    ],
-  },
-  {
-    title: '서비스 정보',
-    items: [
-      { key: 'privacy', label: '개인정보 처리방침', to: `/legal/${LEGAL_DOCUMENTS.privacy}` },
-      { key: 'terms', label: '서비스 이용약관', to: `/legal/${LEGAL_DOCUMENTS.terms}` },
+      { key: 'privacy', label: '개인정보 처리방침', icon: shieldRaw, to: `/legal/${LEGAL_DOCUMENTS.privacy}` },
+      { key: 'terms', label: '서비스 이용약관', icon: documentRaw, to: `/legal/${LEGAL_DOCUMENTS.terms}` },
     ],
   },
 ]
@@ -54,9 +54,9 @@ const MENU_GROUPS = [
 const ALL_MENU_ICONS = {
   home: homeRaw,
   calendar: calendarRaw,
-  schedules: listRaw,
+  schedules: routeRaw,
   records: notebookPencilRaw,
-  collection: squaresRaw,
+  collection: imagesRaw,
 }
 
 /**
@@ -103,40 +103,52 @@ export default function MorePage() {
     <div className="more-page">
       <div className="more-page__header">
         <h1 className="more-page__heading">더보기</h1>
+        <span className="more-page__brand">나의 일기<span>(내일)</span></span>
       </div>
 
       <div className="more-page__body">
         {notice && <p className="more-notice" role="status">{notice}</p>}
 
-        <section className="more-profile">
-          <div className="more-profile__avatar">
+        <section className="more-profile" aria-label="내 프로필">
+          <div className="more-profile__avatar" aria-hidden="true">
             <Icon raw={userRaw} size={32} className="more-profile__avatar-icon" />
           </div>
-          <div>
-            <p className="more-profile__name">{user?.nickname}</p>
+          <div className="more-profile__copy">
+            <p className="more-profile__name">{user?.nickname}님</p>
             <p className="more-profile__email">{user?.email}</p>
           </div>
+          <button type="button" className="more-profile__edit" aria-label="프로필 수정" onClick={() => navigate('/more/profile')}>
+            <Icon raw={pencilRaw} size={20} />
+          </button>
+          <p className="more-profile__note">나답게 쌓아가는 하루</p>
         </section>
 
         <section className="more-group" aria-label="나의 공간">
           <div className="more-menu">
-            <button type="button" className="more-menu__item" onClick={() => navigate('/spaces', { state: { from: '/more' } })}>
+            <button type="button" className="more-menu__item more-space" onClick={() => navigate('/spaces', { state: { from: '/more' } })}>
+              <span className="more-space__icon" aria-hidden="true"><Icon raw={homeRaw} size={22} /></span>
               <span className="more-space__text">
-                <strong>나의 공간</strong>
+                <span className="more-space__eyebrow">나의 공간</span>
                 <span className="more-space__name">{currentSpace?.name ?? '공간 바꾸기 · 관리'}</span>
               </span>
+              <span className="more-space__action">바꾸기</span>
               <Icon raw={chevronRightRaw} size={16} className="more-menu__arrow" />
             </button>
           </div>
         </section>
 
         <section className="more-group" aria-labelledby="all-menu-title">
-          <h2 id="all-menu-title" className="more-group__title">전체 메뉴</h2>
+          <div className="more-group__header">
+            <h2 id="all-menu-title" className="more-group__title">전체 메뉴</h2>
+            <span>나의 하루, 한곳에서</span>
+          </div>
           <div className="all-menu-panel">
             <div className="all-menu-grid">
               {buildAllMenus(menuQuery.data ?? []).map(menu => (
                 <button type="button" key={menu.code} onClick={() => navigate(menu.path)} className="all-menu-item">
-                  <Icon raw={ALL_MENU_ICONS[menu.code] ?? squaresRaw} size={20} className="all-menu-item__icon" />
+                  <span className={`all-menu-item__tile all-menu-item__tile--${menu.code}`} aria-hidden="true">
+                    <Icon raw={ALL_MENU_ICONS[menu.code] ?? imagesRaw} size={23} className="all-menu-item__icon" />
+                  </span>
                   <strong className="all-menu-item__label">{menu.name}</strong>
                 </button>
               ))}
@@ -167,7 +179,8 @@ export default function MorePage() {
                       disabled={!item.to}
                       aria-disabled={!item.to}
                     >
-                      <span>{item.label}</span>
+                      <span className="more-menu__icon" aria-hidden="true"><Icon raw={item.icon} size={20} /></span>
+                      <span className="more-menu__label">{item.label}</span>
                       {item.key === 'theme' && (
                         /* 들어가 보지 않아도 지금 어떤 색인지 알 수 있어야 한다
                            (docs/DESIGN_SPEC.md 3절). 이름과 견본을 함께 둔다. */
@@ -194,18 +207,19 @@ export default function MorePage() {
         })}
 
         {/* 계정 그룹은 되돌리기 어려운 동작이라 일반 탐색 메뉴와 시각적으로 떼어 놓는다(6.5절). */}
-        <section className="more-group">
-          <h2 className="more-group__title">계정</h2>
+        <section className="more-account" aria-label="계정">
           <button type="button" onClick={handleLogout} className="more-logout">
             <Icon raw={logoutRaw} size={20} className="more-logout__icon" />
             로그아웃
           </button>
+          <span className="more-account__separator" aria-hidden="true">·</span>
           {/* 탈퇴 자체는 다음 화면에서 한다. 여기서 바로 실행하지 않는 이유는 6.5절이
               요구하는 데이터 처리 안내와 재인증을 거쳐야 하기 때문이다. */}
           <button type="button" onClick={() => navigate('/more/delete')} className="more-withdraw">
             <span>계정 탈퇴</span>
           </button>
         </section>
+        <p className="more-signature">계획한 하루가, 소중한 기억으로.</p>
       </div>
       <Snackbar notice={menuNotice} onDismiss={dismissSnackbar} />
     </div>

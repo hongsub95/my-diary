@@ -4,7 +4,7 @@
 }
 
 .all-menu-panel {
-  padding: 12px;
+  padding: 18px 12px;
   background: var(--color-surface);
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-xl);
@@ -15,14 +15,14 @@
   display: grid;
   /* 세 칸을 같은 폭으로 유지하고, 다섯 번째 항목 뒤 한 칸은 비워 둔다. */
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
+  gap: 16px 8px;
 }
 
 .all-menu-item {
   display: flex;
   width: 100%;
-  min-height: 64px;
-  padding: 8px 4px;
+  min-height: 76px;
+  padding: 4px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
@@ -42,16 +42,41 @@
   justify-content: center;
   font-size: 20px;
   line-height: 1;
-  color: var(--color-primary);
+  color: inherit;
+}
+
+.all-menu-item__tile {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 15px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-text);
+}
+
+.all-menu-item__tile--calendar {
+  background: var(--color-orange-light);
+  color: var(--color-orange-text);
+}
+
+.all-menu-item__tile--schedules {
+  background: color-mix(in srgb, var(--color-sage) 12%, var(--color-surface));
+  color: var(--color-sage);
+}
+
+.all-menu-item__tile--records {
+  background: var(--color-surface-hover);
+  color: var(--color-text-secondary);
 }
 
 .all-menu-item__label {
   max-width: 100%;
   overflow: hidden;
-  font-size: 10px;
-  line-height: 1.2;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
 }
 
 .all-menu-item:hover {
@@ -76,10 +101,22 @@
 }
 
 .more-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   padding: 48px 16px 16px;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border-light);
 }
+
+.more-page__brand {
+  color: var(--color-text-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.more-page__brand span { margin-left: 3px; color: var(--color-primary-text); }
 
 .more-page__heading {
   font-size: var(--font-size-heading);
@@ -90,26 +127,48 @@
   padding: 20px 16px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 24px;
 }
 
 /* Profile */
 .more-profile {
+  position: relative;
+  isolation: isolate;
   display: flex;
   align-items: center;
-  gap: 16px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-light);
+  flex-wrap: wrap;
+  gap: 12px;
+  overflow: hidden;
+  background: linear-gradient(120deg, var(--color-primary-light), var(--color-surface-hover));
+  border: 0;
   border-radius: var(--radius-xl);
-  padding: 16px;
-  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  box-shadow: none;
 }
 
+.more-profile::after {
+  position: absolute;
+  z-index: -1;
+  right: -38px;
+  bottom: -80px;
+  width: 140px;
+  height: 140px;
+  border: 24px solid color-mix(in srgb, var(--color-surface) 45%, transparent);
+  border-radius: 50%;
+  content: '';
+}
+
+.more-profile__copy { flex: 1; min-width: 0; }
+.more-profile__edit { display: grid; min-width: 44px; min-height: 44px; place-items: center; border-radius: 50%; color: var(--color-primary-text); }
+.more-profile__edit:hover { background: color-mix(in srgb, var(--color-surface) 60%, transparent); }
+.more-profile__note { width: 100%; color: var(--color-primary-text); font-size: 12px; }
+
 .more-profile__avatar {
-  width: 56px;
-  height: 56px;
-  border-radius: var(--radius-full);
-  background: var(--color-primary-light);
+  width: 48px;
+  height: 48px;
+  border-radius: 18px;
+  background: var(--color-surface);
+  transform: rotate(-5deg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -125,28 +184,33 @@
 }
 
 .more-profile__name {
-  font-size: 16px;
+  font-size: var(--font-size-heading);
   font-weight: 600;
   color: var(--color-text-primary);
+  overflow-wrap: anywhere;
 }
 
 .more-profile__email {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--color-text-secondary);
   margin-top: 2px;
+  overflow-wrap: anywhere;
 }
 
 /* Group */
 .more-group {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
+
+.more-group__header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.more-group__header > span { color: var(--color-text-secondary); font-size: 11px; }
 
 .more-group__title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-secondary);
+  color: var(--color-text-primary);
   padding-left: 4px;
 }
 
@@ -164,13 +228,18 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 10px;
+  text-align: left;
   /* 터치 영역을 44px 이상으로 유지한다 (BOTTOM_NAVIGATION_SPEC.md 7절). */
-  min-height: 52px;
-  padding: 14px 16px;
+  min-height: 56px;
+  padding: 10px 16px;
   font-size: 14px;
   color: var(--color-text-primary);
   transition: background 0.12s;
 }
+
+.more-menu__icon { display: grid; width: 30px; min-height: 32px; place-items: center; flex-shrink: 0; color: var(--color-text-secondary); }
+.more-menu__label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 
 .more-menu__item:hover:not(:disabled) {
   background: var(--color-surface-hover);
@@ -184,7 +253,7 @@
 }
 
 .more-menu__arrow {
-  color: var(--color-border);
+  color: var(--color-text-disabled);
 }
 
 .more-menu__arrow svg {
@@ -205,24 +274,24 @@
 .more-menu__divider {
   height: 1px;
   background: var(--color-border-light);
-  margin: 0 16px;
+  margin: 0 16px 0 56px;
 }
 
 /* Account */
+.more-account { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: -8px; }
+.more-account__separator { color: var(--color-text-disabled); }
+.more-signature { color: var(--color-text-secondary); text-align: center; font-size: 11px; margin-top: -18px; padding-bottom: 12px; }
 .more-logout {
   display: flex;
   align-items: center;
-  gap: 10px;
-  width: 100%;
-  min-height: 52px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-xl);
-  padding: 14px 16px;
-  font-size: 14px;
+  gap: 6px;
+  min-height: 44px;
+  background: transparent;
+  border-radius: var(--radius-md);
+  padding: 8px;
+  font-size: 12px;
   font-weight: 400;
-  color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
+  color: var(--color-text-secondary);
   transition: background 0.12s;
 }
 
@@ -231,7 +300,7 @@
 }
 
 .more-logout__icon {
-  color: var(--color-primary);
+  color: inherit;
 }
 
 .more-logout__icon svg {
@@ -242,16 +311,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  min-height: 52px;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-light);
-  border-radius: var(--radius-xl);
-  padding: 14px 16px;
-  font-size: 14px;
+  min-height: 44px;
+  background: transparent;
+  border-radius: var(--radius-md);
+  padding: 8px;
+  font-size: 12px;
   font-weight: 400;
-  color: var(--color-primary);
-  box-shadow: var(--shadow-sm);
+  color: var(--color-text-secondary);
   cursor: pointer;
   transition: background 0.12s;
 }
@@ -632,15 +698,26 @@
   flex-direction: column;
   align-items: flex-start;
   gap: 4px;
-  margin-right: 12px;
+  margin-right: 0;
   text-align: left;
 }
 
 .more-space__name {
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  color: var(--color-text-secondary);
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
   font-size: 14px;
+  font-weight: 600;
+}
+
+.more-space__icon { display: grid; width: 44px; height: 44px; flex-shrink: 0; place-items: center; border-radius: 15px; background: var(--color-surface-hover); color: var(--color-primary-text); }
+.more-space__eyebrow { color: var(--color-text-secondary); font-size: 11px; }
+.more-space__action { color: var(--color-text-secondary); font-size: 11px; white-space: nowrap; }
+
+@media (max-width: 360px) {
+  .more-profile { padding: 16px; gap: 8px; }
+  .more-group__header > span { display: none; }
+  .more-menu__item { padding-inline: 12px; gap: 8px; }
+  .more-menu__value { gap: 5px; font-size: 12px; }
+  .more-space__action { display: none; }
 }

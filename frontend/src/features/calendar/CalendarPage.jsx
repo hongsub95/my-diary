@@ -176,7 +176,11 @@ export default function CalendarPage() {
             dayMaxEvents={2}
             // 넘친 개수를 보여준다(CALENDAR_SCREEN_SPEC: 칩 최대 2개와 +N). 앱과 같은 표기다.
             moreLinkContent={({ num }) => `+${num}`}
-            moreLinkClick={({ date }) => openDateDrawer(formatDateKey(date))}
+            moreLinkClick={({ date, view }) => {
+              openDateDrawer(formatDateKey(date))
+              // FC7은 반환값이 없으면 기본 팝오버도 연다. 현재 뷰를 유지하고 날짜 패널만 쓴다.
+              return view.type
+            }}
             datesSet={handleDatesSet}
             dateClick={({ dateStr }) => openDateDrawer(dateStr)}
             events={calendarEvents}

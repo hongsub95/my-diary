@@ -23,7 +23,7 @@ import { homePlaceFocus, orderedHomePlaces } from '@/features/schedules/home-pla
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { useSpaces } from '@/features/spaces/space-context';
 import { getApiError } from '@/shared/api/api-error';
-import { colors, radii, spacing, type ThemePalette } from '@/shared/theme';
+import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
 
@@ -302,7 +302,7 @@ export default function HomeScreen() {
                 </Pressable>
               </View>
             {schedules.isError ? (
-              <View style={styles.messageCard}>
+                <View style={styles.messageCard}>
                 <Text style={styles.messageTitle}>하루를 불러오지 못했어요</Text>
                 <Text style={styles.messageBody}>{getApiError(schedules.error).message}</Text>
                 <Pressable onPress={() => schedules.refetch()} style={styles.retryButton}>
@@ -313,6 +313,9 @@ export default function HomeScreen() {
 
             {!schedules.isLoading && !schedules.isError && daySchedules.length === 0 ? (
               <Pressable onPress={openNewSchedule} style={styles.messageCard}>
+                <View style={styles.messageIcon} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
+                  <SymbolView name={{ ios: 'map', android: 'map', web: 'map' }} size={22} tintColor={palette.primaryDark} fallback={<Text style={styles.emptyAction}>＋</Text>} />
+                </View>
                 <Text style={styles.messageTitle}>이날은 예정된 하루가 없어요</Text>
                 <Text style={styles.messageBody}>이날의 장소와 할 일을 가볍게 계획해 보세요.</Text>
                 <Text style={styles.emptyAction}>새 하루 만들기 →</Text>
@@ -395,7 +398,7 @@ function ScheduleCard({
 }
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: colors.surface },
+  safeArea: { flex: 1, backgroundColor: colors.background },
   screen: { flex: 1, overflow: 'hidden', backgroundColor: colors.background },
   mapArea: { flex: 1, backgroundColor: colors.sand },
   smallChevron: { color: colors.muted, fontSize: 18 },
@@ -409,15 +412,15 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
     overflow: 'hidden',
     position: 'absolute',
     right: 0,
-    shadowColor: '#2B211E',
-    shadowOffset: { width: 0, height: -8 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
+    shadowColor: '#432F28',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.06,
+    shadowRadius: 14,
   },
   dragArea: { height: SHEET_HANDLE_HEIGHT },
   handleButton: { alignItems: 'center', height: SHEET_HANDLE_HEIGHT, justifyContent: 'center' },
   hiddenSheetContent: { display: 'none' },
-  dragHandle: { backgroundColor: '#D7CEC8', borderRadius: radii.full, height: 4, width: 42 },
+  dragHandle: { backgroundColor: colors.border, borderRadius: radii.full, height: 4, width: 42 },
   sheetHeader: {
     alignItems: 'center',
     flexDirection: 'row',
@@ -426,21 +429,19 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
     paddingBottom: 16,
   },
   sheetHeading: { flex: 1, gap: 4 },
-  sheetTitle: { color: colors.text, fontSize: 21, fontWeight: '700', letterSpacing: -0.5 },
+  sheetTitle: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold, letterSpacing: -0.4 },
   sheetSubtitle: { color: colors.muted, fontSize: 12 },
-  expandButton: { alignItems: 'center', flexDirection: 'row', gap: 4, justifyContent: 'center', minHeight: 44, minWidth: 64 },
-  minimizeButton: { alignItems: 'center', justifyContent: 'center', minHeight: 44, minWidth: 44 },
+  expandButton: { alignItems: 'center', backgroundColor: colors.background, borderRadius: radii.md, flexDirection: 'row', gap: 4, justifyContent: 'center', minHeight: 44, minWidth: 64 },
+  minimizeButton: { alignItems: 'center', backgroundColor: colors.background, borderRadius: radii.md, justifyContent: 'center', minHeight: 44, minWidth: 44 },
   expandText: { color: colors.muted, fontSize: 12 },
   sheetContent: { gap: 10, paddingBottom: 20, paddingHorizontal: spacing.lg },
-  otherTitle: { color: colors.muted, fontSize: 12, fontWeight: '600', marginBottom: 2 },
+  otherTitle: { color: colors.muted, fontSize: 12, fontWeight: typography.semibold, marginBottom: 2 },
   newDayButton: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: radii.lg, justifyContent: 'center', minHeight: 44 },
-  newDayText: { color: palette.primaryDark, fontSize: 13, fontWeight: '600' },
+  newDayText: { color: palette.primaryDark, fontSize: typography.body, fontWeight: typography.semibold },
   scheduleCard: {
     alignItems: 'stretch',
-    backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
+    backgroundColor: colors.background,
     borderRadius: radii.lg,
-    borderWidth: 1,
     flexDirection: 'row',
     minHeight: 92,
     paddingHorizontal: 14,
@@ -448,28 +449,27 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   },
   activeScheduleCard: { backgroundColor: palette.primarySoft, borderColor: palette.primary },
   cardTimeColumn: { alignItems: 'center', paddingRight: 12, width: 58 },
-  cardTime: { color: colors.text, fontSize: 12, fontWeight: '700' },
+  cardTime: { color: colors.text, fontSize: 12, fontWeight: typography.semibold },
   routeLine: { backgroundColor: palette.primary, borderRadius: 2, flex: 1, marginTop: 9, width: 2 },
   cardBody: { flex: 1, gap: 5 },
   cardTitleRow: { alignItems: 'center', flexDirection: 'row', gap: 8 },
-  cardTitle: { color: colors.text, flex: 1, fontSize: 15, fontWeight: '700', letterSpacing: -0.3 },
+  cardTitle: { color: colors.text, flex: 1, fontSize: typography.emphasis, fontWeight: typography.semibold, letterSpacing: -0.3 },
   stateBadge: { backgroundColor: colors.surface, borderRadius: radii.full, paddingHorizontal: 8, paddingVertical: 4 },
-  stateBadgeText: { color: palette.primaryDark, fontSize: 10, fontWeight: '700' },
+  stateBadgeText: { color: palette.primaryDark, fontSize: 11, fontWeight: typography.semibold },
   placeText: { color: colors.muted, fontSize: 12 },
-  spaceText: { color: colors.muted, fontSize: 10 },
+  spaceText: { color: colors.muted, fontSize: 11 },
   chevron: { alignSelf: 'center', color: colors.muted, fontSize: 25, marginLeft: 6 },
   messageCard: {
     backgroundColor: colors.surfaceMuted,
-    borderColor: colors.border,
-    borderRadius: radii.lg,
-    borderWidth: 1,
+    borderRadius: radii.card,
     minHeight: 100,
     padding: spacing.lg,
   },
-  messageTitle: { color: colors.text, fontSize: 15, fontWeight: '700' },
-  messageBody: { color: colors.muted, fontSize: 12, lineHeight: 18, marginTop: 5 },
-  emptyAction: { color: palette.primaryDark, fontSize: 12, fontWeight: '700', marginTop: 10 },
-  retryButton: { alignSelf: 'flex-start', marginTop: 10, paddingVertical: 4 },
-  retryText: { color: palette.primaryDark, fontSize: 12, fontWeight: '700' },
+  messageIcon: { alignItems: 'center', alignSelf: 'flex-start', backgroundColor: palette.primarySoft, borderRadius: radii.md, height: 44, justifyContent: 'center', marginBottom: 12, width: 44 },
+  messageTitle: { color: colors.text, fontSize: typography.emphasis, fontWeight: typography.semibold },
+  messageBody: { color: colors.muted, fontSize: typography.body, lineHeight: 21, marginTop: 5 },
+  emptyAction: { color: palette.primaryDark, fontSize: typography.body, fontWeight: typography.semibold, marginTop: 10 },
+  retryButton: { alignSelf: 'flex-start', justifyContent: 'center', marginTop: 10, minHeight: 44, paddingVertical: 4 },
+  retryText: { color: palette.primaryDark, fontSize: typography.body, fontWeight: typography.semibold },
   pressed: { opacity: 0.78 },
 });
