@@ -31,8 +31,15 @@ def get_active_membership(db: Session, space: Space, user_id: int) -> SpaceMembe
     나갔거나(left) 제거된(removed) 멤버십은 행이 남아 있어도 접근 권한이 없으므로
     status를 반드시 함께 확인한다.
 
-    :return: 활성 멤버십. 아니면 None
+    **보관된(삭제한) 스페이스는 누구에게도 멤버십이 없는 것으로 본다.** 삭제 확인 화면이
+    "모두 이곳의 일정과 기록을 더 이상 열 수 없다"고 약속하므로 owner를 포함해 전부 막는다.
+    스페이스·일정·사진·타임라인 경로가 모두 이 함수로 접근을 판정하므로 여기 한 곳에서
+    걸러야 id를 아는 기존 멤버가 직접 주소로 들어오는 길까지 막힌다(2026-10-19).
+
+    :return: 활성 멤버십. 아니거나 스페이스가 보관됐으면 None
     """
+    if space.archived_at is not None:
+        return None
     return db.scalar(
         select(SpaceMember).where(
             SpaceMember.space_id == space.id,
@@ -45,10 +52,10 @@ def get_active_membership(db: Session, space: Space, user_id: int) -> SpaceMembe
 def _load_space_for_member(db: Session, space_uuid: uuid_module.UUID, user: User) -> tuple[Space, SpaceMember]:
     """UUID로 스페이스를 찾고 요청자가 활성 멤버인지 확인한다.
 
-    스페이스가 없을 때와 멤버가 아닐 때 모두 같은 404를 낸다. 구분하면 UUID를
-    바꿔가며 찔러보는 것만으로 스페이스의 실재 여부를 알아낼 수 있기 때문이다.
+    스페이스가 없을 때, 멤버가 아닐 때, 보관됐을 때 모두 같은 404를 낸다. 구분하면
+    UUID를 바꿔가며 찔러보는 것만으로 스페이스의 실재 여부를 알아낼 수 있기 때문이다.
 
-    :raises SpaceNotFoundError: 없거나 멤버가 아닐 때
+    :raises SpaceNotFoundError: 없거나, 멤버가 아니거나, 보관됐을 때
     """
     space = db.scalar(select(Space).where(Space.uuid == space_uuid))
     if space is None:
