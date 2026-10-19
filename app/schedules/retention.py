@@ -53,6 +53,23 @@ def expired_schedules_query(days: int = DELETED_SCHEDULE_RETENTION_DAYS):
     )
 
 
+def delete_photo_files(db: Session, storage: FileStorage, *conditions) -> None:
+    """조건에 맞는 사진들의 원본·썸네일 파일을 저장소에서 지운다. DB 행은 건드리지 않는다.
+
+    :param storage: 사진 저장소
+    :param conditions: DiaryPhoto를 고르는 where 조건 (예: 특정 일정, 특정 공간의 일정들)
+
+    행보다 파일을 먼저 지울 때 쓴다. 일정 파기와 공간 파기(app/spaces/retention.py)가 함께
+    쓴다. 저장소 오류는 그대로 올려 호출한 쪽이 행 삭제를 멈추게 한다.
+    """
+    photos = db.execute(select(DiaryPhoto.storage_key, DiaryPhoto.thumbnail_key).where(*conditions)).all()
+    for storage_key, thumbnail_key in photos:
+        storage.delete(storage_key)
+        # 썸네일은 생성 전이거나 실패했으면 없다.
+        if thumbnail_key:
+            storage.delete(thumbnail_key)
+
+
 def purge_expired_schedules(
     db: Session,
     days: int = DELETED_SCHEDULE_RETENTION_DAYS,
@@ -72,14 +89,7 @@ def purge_expired_schedules(
     schedule_ids = db.scalars(expired_schedules_query(days)).all()
 
     for schedule_id in schedule_ids:
-        photos = db.execute(
-            select(DiaryPhoto.storage_key, DiaryPhoto.thumbnail_key).where(DiaryPhoto.schedule_id == schedule_id)
-        ).all()
-        for storage_key, thumbnail_key in photos:
-            storage.delete(storage_key)
-            # 썸네일은 생성 전이거나 실패했으면 없다.
-            if thumbnail_key:
-                storage.delete(thumbnail_key)
+        delete_photo_files(db, storage, DiaryPhoto.schedule_id == schedule_id)
 
         # ORM으로 객체를 불러 지우지 않고 DELETE 문 하나로 지운다. 딸린 장소·일기·사진·
         # 타임라인 행은 DB의 외래키 CASCADE가 지우므로 하나씩 불러올 필요가 없다.

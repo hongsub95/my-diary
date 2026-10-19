@@ -221,7 +221,10 @@ Space
 
 - `User.role`: `0=master`, `1=user`. 크기 비교용 등급이 아니라 코드 값이다.
 - `Space.type`: `personal | shared`
-- `Space.archived_at`: 소프트 삭제 시각
+- `Space.archived_at`: 소프트 삭제 시각. 보관된 스페이스는 owner 포함 누구도 열 수 없다.
+  보관 90일 뒤 `scripts/purge_expired_data.py`가 그 안 모든 일정의 사진 파일을 지운 뒤 스페이스
+  행을 지운다(`app/spaces/retention.py`). 일정·멤버십과 그 아래 기록은 외래키 CASCADE로 함께
+  지워진다. owner 탈퇴로 보관된 개인·공유 스페이스도 같은 길로 파기된다.
 - `SpaceMember.role`: `owner | member`
 - `SpaceMember.status`: `active | left | removed`
 - `(space_id, user_id)`는 유일하다.

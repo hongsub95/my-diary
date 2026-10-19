@@ -15,6 +15,8 @@
   삭제되는 것을 막기 위해), 감사 로그는 행을 지운다.
 - app/schedules/retention.py — 지운 일정은 사진 파일(원본·썸네일)을 지운 뒤 행까지 지운다.
   딸린 장소·일기·사진·타임라인 행은 외래키 CASCADE로 함께 지워진다.
+- app/spaces/retention.py — 보관된 스페이스는 그 안 모든 일정의 사진 파일을 지운 뒤 스페이스
+  행까지 지운다. 일정·멤버십과 그 아래 기록은 외래키 CASCADE로 함께 지워진다.
 """
 
 import argparse
@@ -23,6 +25,7 @@ import argparse
 from app import models as _models  # noqa: F401
 from app.core.database import SessionLocal
 from app.schedules import retention as schedule_retention
+from app.spaces import retention as space_retention
 from app.users import retention
 
 
@@ -47,6 +50,12 @@ def main() -> int:
         default=schedule_retention.DELETED_SCHEDULE_RETENTION_DAYS,
         help="지운 일정 보관 기간 (기본 %(default)s일)",
     )
+    parser.add_argument(
+        "--space-days",
+        type=int,
+        default=space_retention.ARCHIVED_SPACE_RETENTION_DAYS,
+        help="보관(삭제)된 공간 보관 기간 (기본 %(default)s일)",
+    )
     args = parser.parse_args()
 
     with SessionLocal() as db:
@@ -56,14 +65,16 @@ def main() -> int:
             accounts = len(db.scalars(retention.expired_accounts_query(args.account_days)).all())
             logs = len(db.scalars(retention.expired_audit_logs_query(args.audit_days)).all())
             schedules = len(db.scalars(schedule_retention.expired_schedules_query(args.schedule_days)).all())
-            print(f"파기 예정: 계정 {accounts}건 / 접속 기록 {logs}건 / 지운 일정 {schedules}건")
+            spaces = len(db.scalars(space_retention.expired_spaces_query(args.space_days)).all())
+            print(f"파기 예정: 계정 {accounts}건 / 접속 기록 {logs}건 / 지운 일정 {schedules}건 / 지운 공간 {spaces}건")
             return 0
 
         accounts = retention.anonymize_expired_accounts(db, args.account_days)
         logs = retention.purge_expired_audit_logs(db, args.audit_days)
         schedules = schedule_retention.purge_expired_schedules(db, args.schedule_days)
+        spaces = space_retention.purge_expired_spaces(db, args.space_days)
 
-    print(f"파기 완료: 계정 {accounts}건 / 접속 기록 {logs}건 / 지운 일정 {schedules}건")
+    print(f"파기 완료: 계정 {accounts}건 / 접속 기록 {logs}건 / 지운 일정 {schedules}건 / 지운 공간 {spaces}건")
     return 0
 
 
