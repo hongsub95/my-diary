@@ -245,6 +245,15 @@ Schedule
 - 계획 생성 UI의 날짜는 시작일–종료일 범위다. 클라이언트는 서비스 시간대에서 첫날의
   시작 시간과 마지막 날의 종료 시간을 결합해 기존 `start_at`, `end_at` UTC 값으로
   보낸다. 별도 날짜 컬럼은 추가하지 않는다.
+- `Schedule.use`·`deleted_at`: 일정 삭제는 소프트 삭제다. `DELETE /schedules/{id}`는 행과
+  딸린 장소·일기·사진·타임라인, 사진 파일을 남기고 `use=0`과 `deleted_at`만 같은 트랜잭션에서
+  바꾼다. 조회·목록·모아보기·기록 피드와 사진·타임라인 id 경로는 `use=0` 일정을 404로 숨긴다.
+  앱에는 되돌리기 기능이 없다.
+- 지운 지 90일이 지난 일정은 `scripts/purge_expired_data.py`(매일)가 파기한다
+  (`app/schedules/retention.py`). 사진 원본·썸네일 파일을 저장소에서 먼저 지우고 그다음 행을
+  지운다. 딸린 행은 외래키 CASCADE로 함께 지워진다. 파일을 먼저 지우는 이유: 파일 삭제가
+  실패해도 행이 남아 다음 실행에서 다시 시도된다. 탈퇴 계정은 FK CASCADE 때문에 행을 지우지
+  않고 익명화만 한다(`app/users/retention.py`).
 - `completed_at`은 실제 완료 버튼을 누른 시각이며 단순히 종료 시간이 지났다고 자동 생성하지 않는다.
 - 완료 API는 멱등적이다. 재호출해도 최초 `completed_at`을 유지한다.
 - 기간 조회는 일정 시작점만 보는 것이 아니라 조회 범위와 겹치는 일정을 포함한다.
@@ -332,7 +341,7 @@ Schedule (함께 보낸 하루)
 | GET | `/schedules/{schedule_id}` | 일정 상세 |
 | PATCH | `/schedules/{schedule_id}` | 일정 부분 수정 |
 | POST | `/schedules/{schedule_id}/complete` | 완료 상태와 완료 시각 기록 |
-| DELETE | `/schedules/{schedule_id}` | 일정 삭제 |
+| DELETE | `/schedules/{schedule_id}` | 일정 삭제 (소프트 삭제, 90일 뒤 파기) |
 | GET | `/schedules/{schedule_id}/places` | 방문 순서별 장소 목록 |
 | POST | `/schedules/{schedule_id}/places` | 장소를 맨 뒤에 추가 |
 | PATCH | `/schedules/{schedule_id}/places/reorder` | 장소 순서 일괄 변경 |
