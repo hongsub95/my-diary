@@ -85,9 +85,11 @@ export default function AccountDeletePage() {
           <h2 className="more-danger__title">탈퇴하면 되돌릴 수 없습니다</h2>
           <ul className="more-danger__list">
             <li><strong>{user?.email}</strong> 계정으로 다시 로그인할 수 없습니다.</li>
-            <li>같은 이메일과 닉네임으로 다시 가입할 수 없습니다.</li>
-            <li>내가 만든 공간은 함께 사라집니다. 남은 멤버도 열 수 없습니다.</li>
-            <li>남긴 일기와 사진은 지워지지 않고 기록으로 남습니다.</li>
+            {/* 처리방침 3.1·약관 제10조와 같은 내용이어야 한다. 처리방침이 "탈퇴 화면에서 반드시
+                함께 안내한다"고 약속한 항목이다. */}
+            <li>같은 이메일과 닉네임으로 90일 동안 다시 가입할 수 없습니다.</li>
+            <li>내가 만든 공간(개인 공간 포함)은 함께 사라지고, 남은 멤버도 열 수 없습니다. 90일 뒤에는 그 안의 기록과 사진까지 완전히 지워집니다.</li>
+            <li>다른 사람이 만든 공간에 남긴 일기와 사진은 지워지지 않고 그 공간에 남습니다.</li>
           </ul>
         </section>
 
@@ -108,7 +110,7 @@ export default function AccountDeletePage() {
             {affectedMembers > 0 && (
               <p className="more-danger__note">
                 나를 포함하지 않은 {affectedMembers}명이 이 공간의 일정과 기록에 더 이상
-                접근할 수 없게 됩니다.
+                접근할 수 없게 됩니다. 이분들이 남긴 기록도 90일 뒤 함께 지워집니다.
               </p>
             )}
           </section>

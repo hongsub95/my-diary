@@ -89,8 +89,10 @@ export default function SpaceDetailScreen() {
         </> : <SpaceButton disabled={busy} onPress={() => { setNameDraft(space.name); setEditingName(true); }}>공간 이름 수정</SpaceButton>}
       </View>}
       {shared && owner && <View style={s.card}><Text style={s.heading}>공간 삭제</Text>
-        <Text style={s.text}>{space.is_default ? '앱을 시작할 때 여는 공간은 삭제할 수 없어요. 다른 공간 관리에서 시작할 공간을 바꾼 뒤 삭제해 주세요.' : '삭제하면 모든 멤버의 목록에서 사라지고 일정과 기록에 접근할 수 없어요. 데이터는 서버 보관 정책에 따라 보관됩니다.'}</Text>
-        <SpaceButton kind="danger" disabled={busy || space.is_default} onPress={() => setConfirmation({ title: '공간을 삭제할까요?', message: `“${space.name}” 공간을 삭제하면 함께하는 ${space.member_count}명 모두 이곳의 일정과 기록을 더 이상 열 수 없습니다. 공간은 목록에서 사라지고 데이터는 서버 보관 정책에 따라 보관됩니다.`, label: '공간 삭제', action: async () => { await deleteSpace(id); context.forgetSpace(id); router.replace('/spaces'); } })}>공간 삭제</SpaceButton>
+        <Text style={s.text}>{space.is_default ? '앱을 시작할 때 여는 공간은 삭제할 수 없어요. 다른 공간 관리에서 시작할 공간을 바꾼 뒤 삭제해 주세요.' : '삭제하면 모든 멤버의 목록에서 사라지고 일정과 기록에 접근할 수 없어요. 90일 뒤에는 다른 멤버가 남긴 기록과 사진까지 완전히 지워져요. 공간을 남겨 두고 떠나려면 다른 멤버에게 주인을 넘긴 뒤 나가 주세요.'}</Text>
+        {/* 보관 90일 뒤 공간째 파기된다(app/spaces/retention.py, 처리방침 3.2·약관 제7조). 남의 기록까지
+            지워진다는 것과 대안(주인 넘기기)을 결정하는 순간에 보여준다. */}
+        <SpaceButton kind="danger" disabled={busy || space.is_default} onPress={() => setConfirmation({ title: '공간을 삭제할까요?', message: `“${space.name}” 공간을 삭제하면 함께하는 ${space.member_count}명 모두 이곳의 일정과 기록을 더 이상 열 수 없습니다. 90일 뒤에는 다른 멤버가 남긴 기록과 사진까지 완전히 지워지며 되살릴 수 없습니다. 공간을 남기려면 취소한 뒤 다른 멤버에게 주인을 넘겨 주세요.`, label: '공간 삭제', action: async () => { await deleteSpace(id); context.forgetSpace(id); router.replace('/spaces'); } })}>공간 삭제</SpaceButton>
       </View>}
       {shared ? <View style={s.card}><Text style={s.heading}>함께할 사람 초대하기</Text><Text style={s.text}>참여 번호를 받은 사람은 기존 일정과 기록도 볼 수 있어요. 함께할 사람에게만 전달해 주세요.</Text><Text selectable accessibilityLabel={`참여 번호 ${space.join_code}`} style={s.code}>{space.join_code}</Text>
         <SpaceButton disabled={busy} onPress={() => { void Share.share({ message: `${space.name} 공간에서 함께 하루를 계획해요. 나의 일기(내일)에서 참여 번호 ${space.join_code}를 입력해 주세요.` }).catch(() => showSnackbar('공유하지 못했어요. 위 참여 번호를 길게 눌러 복사해 주세요.')); }}>참여 번호 공유하기</SpaceButton>
