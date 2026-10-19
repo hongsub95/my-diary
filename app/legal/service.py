@@ -140,6 +140,14 @@ def _parse(text: str) -> tuple[str, list[LegalBlock]]:
             blocks.append(LegalBlock(type="bullet", text=_inline(bullet.group(1).strip())))
             continue
 
+        # 목록 항목의 이어지는 줄. 원문은 긴 항목을 들여쓴 줄로 줄바꿈해 쓴다. 이 줄을
+        # 문단으로 따로 내보내면 화면에서 "…남은" / "구성원도…"처럼 문장이 중간에
+        # 끊긴다. 들여쓰지 않은 줄은 목록이 끝난 뒤의 새 문단으로 본다.
+        if raw[:1] in (" ", "\t") and not buffer and blocks and blocks[-1].type == "bullet":
+            last = blocks[-1]
+            blocks[-1] = last.model_copy(update={"text": f"{last.text} {_inline(stripped)}"})
+            continue
+
         buffer.append(stripped)
 
     flush_all()
