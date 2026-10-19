@@ -7,9 +7,9 @@
 // 반대로 여기 있는 색은 뜻이 고정된 색이다. danger, orange(완료), sage는 테마를 따라
 // 움직이면 "빨간색은 위험" 같은 약속이 테마마다 달라진다.
 export const colors = {
-  background: '#FFFFFF',
+  background: '#FAF7F4',
   surface: '#FFFFFF',
-  surfaceMuted: '#F5F5F5',
+  surfaceMuted: '#F5F0EB',
   text: '#282321',
   muted: '#756D68',
   border: '#E9E2DC',
@@ -28,7 +28,7 @@ export const radii = {
   sm: 10,
   md: 14,
   lg: 18,
-  card: 24,
+  card: 22,
   full: 999,
 };
 

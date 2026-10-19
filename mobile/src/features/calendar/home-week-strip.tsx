@@ -3,7 +3,7 @@ import { SymbolView } from 'expo-symbols';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, type ThemePalette } from '@/shared/theme';
+import { colors, radii, typography, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { dateKey, moveDate, parseDate, weekDates } from './calendar-dates';
 
@@ -136,16 +136,16 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
 }
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
-  root: { zIndex: 3, backgroundColor: colors.surface, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 8, borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth },
+  root: { zIndex: 3, backgroundColor: colors.background, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 12 },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 5 },
   monthButton: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
-  monthTitle: { color: colors.text, fontSize: 16, fontWeight: '600', letterSpacing: -0.4 },
+  monthTitle: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold, letterSpacing: -0.4 },
   chevronDown: { width: 9, height: 9, borderBottomWidth: 2, borderRightWidth: 2, borderColor: colors.muted, transform: [{ rotate: '45deg' }], marginTop: -4 },
-  todayButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  todayText: { color: palette.primaryDark, fontSize: 12, fontWeight: '600' },
-  divider: { height: 1, backgroundColor: colors.border, marginBottom: 10 },
-  viewport: { overflow: 'hidden', height: 74 },
-  weekRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 4 },
+  todayButton: { minWidth: 52, minHeight: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primarySoft, borderRadius: radii.md },
+  todayText: { color: palette.primaryDark, fontSize: 12, fontWeight: typography.semibold },
+  divider: { height: 0, marginBottom: 10 },
+  viewport: { backgroundColor: colors.surface, borderRadius: radii.card, overflow: 'hidden', height: 78 },
+  weekRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 4, paddingHorizontal: 4, paddingVertical: 4 },
   dayButton: { flex: 1, alignItems: 'center', borderRadius: 18, minHeight: 70, paddingVertical: 6 },
   selectedDayButton: { backgroundColor: palette.primarySoft },
   weekday: { color: colors.muted, fontSize: 12, fontWeight: '600' },
@@ -154,7 +154,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   saturday: { color: '#47749E' },
   dateCircle: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center', marginTop: 3 },
   dateNumber: { color: colors.text, fontSize: 18, fontWeight: '600' },
-  selectedDateNumber: { color: palette.primaryDark, fontWeight: '700' },
+  selectedDateNumber: { color: palette.primaryDark, fontWeight: typography.semibold },
   todayDot: { width: 3, height: 3, borderRadius: 2, marginTop: 2 },
   todayDotVisible: { backgroundColor: palette.primary },
   modal: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,25,23,0.35)' },
@@ -167,8 +167,8 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   monthGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   monthCell: { width: '25%', minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
   activeMonth: { backgroundColor: palette.primarySoft },
-  monthText: { fontSize: 15, color: colors.text },
-  activeMonthText: { color: palette.primaryDark, fontWeight: '700' },
+  monthText: { fontSize: typography.body, color: colors.text },
+  activeMonthText: { color: palette.primaryDark, fontWeight: typography.semibold },
   apply: { minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
-  applyText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  applyText: { color: '#FFFFFF', fontSize: typography.body, fontWeight: typography.semibold },
 });

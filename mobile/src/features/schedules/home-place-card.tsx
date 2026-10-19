@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, radii, type ThemePalette } from '@/shared/theme';
+import { colors, radii, typography, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import type { ScheduleView } from './schedule-adapter';
 import { homePlaceFocus } from './home-place-model';
@@ -33,7 +33,7 @@ export function HomePlaceCard({ schedule, selectedPlaceId, onOpen }: {
           <View style={styles.placeholder} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <SymbolView
               name={{ ios: 'mappin.and.ellipse', android: 'location_on', web: 'location_on' }}
-              size={32}
+              size={28}
               tintColor={palette.primaryDark}
               fallback={<Text style={styles.placeholderNumber}>{ordinal || '＋'}</Text>}
             />
@@ -72,23 +72,23 @@ export function HomePlaceCard({ schedule, selectedPlaceId, onOpen }: {
 }
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
-  root: { gap: 16, paddingBottom: 18 },
+  root: { backgroundColor: colors.background, borderRadius: radii.card, gap: 16, marginBottom: 14, padding: 16 },
   placeRow: { alignItems: 'center', flexDirection: 'row', gap: 14 },
-  thumbnail: { backgroundColor: colors.surfaceMuted, borderRadius: radii.full, height: 76, width: 76 },
-  placeholder: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: radii.full, height: 76, justifyContent: 'center', width: 76 },
-  placeholderNumber: { color: palette.primaryDark, fontSize: 30, fontWeight: '700' },
+  thumbnail: { backgroundColor: colors.surfaceMuted, borderRadius: radii.lg, height: 76, width: 76 },
+  placeholder: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: radii.lg, height: 76, justifyContent: 'center', width: 76 },
+  placeholderNumber: { color: palette.primaryDark, fontSize: typography.heading, fontWeight: typography.semibold },
   placeBody: { flex: 1, gap: 4 },
   badge: { alignSelf: 'flex-start', backgroundColor: palette.primarySoft, borderRadius: radii.full, paddingHorizontal: 9, paddingVertical: 4 },
-  badgeText: { color: palette.primaryDark, fontSize: 11, fontWeight: '600' },
-  placeName: { color: colors.text, fontSize: 21, fontWeight: '700', letterSpacing: -0.5 },
+  badgeText: { color: palette.primaryDark, fontSize: 11, fontWeight: typography.semibold },
+  placeName: { color: colors.text, fontSize: typography.emphasis, fontWeight: typography.semibold, letterSpacing: -0.3 },
   placeMeta: { color: colors.muted, fontSize: 12, lineHeight: 18 },
   progress: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginTop: 2 },
   progressText: { color: colors.muted, fontSize: 12 },
   dots: { alignItems: 'center', flexDirection: 'row', gap: 6 },
   dot: { borderColor: colors.muted, borderRadius: radii.full, borderWidth: 1, height: 8, width: 8 },
   visitedDot: { backgroundColor: palette.primary, borderColor: palette.primary },
-  moreDots: { color: colors.muted, fontSize: 10 },
-  openButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.card, justifyContent: 'center', minHeight: 48, paddingHorizontal: 16, paddingVertical: 12 },
-  openButtonText: { color: '#FFFFFF', fontSize: 15, fontWeight: '600' },
+  moreDots: { color: colors.muted, fontSize: 11 },
+  openButton: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: radii.md, justifyContent: 'center', minHeight: 48, paddingHorizontal: 16, paddingVertical: 12 },
+  openButtonText: { color: '#FFFFFF', fontSize: typography.body, fontWeight: typography.semibold },
   pressed: { opacity: 0.8 },
 });
