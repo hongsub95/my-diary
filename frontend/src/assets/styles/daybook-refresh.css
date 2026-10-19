@@ -1,5 +1,5 @@
 /*
- * Album-first visual refresh.
+ * Warm card visual language shared by the five primary tabs.
  *
  * This layer intentionally changes presentation only. Existing routes, data
  * loading, mutations and permissions remain owned by their feature modules.
@@ -9,11 +9,11 @@
   --daybook-canvas: var(--color-bg);
   --daybook-paper: var(--color-surface);
   --daybook-paper-muted: var(--color-surface-hover);
-  --daybook-ink-soft: #514844;
-  --daybook-radius-card: 24px;
+  --daybook-ink-soft: var(--color-text-secondary);
+  --daybook-radius-card: var(--radius-xl);
   --daybook-radius-control: 14px;
-  --daybook-shadow-card: 0 12px 32px rgba(67, 48, 40, 0.07);
-  --daybook-shadow-float: 0 14px 38px rgba(67, 48, 40, 0.14);
+  --daybook-shadow-card: var(--shadow-sm);
+  --daybook-shadow-float: 0 4px 20px rgba(67, 48, 40, 0.06);
 }
 
 body {
@@ -38,12 +38,12 @@ select:focus-visible {
   outline-offset: 2px;
 }
 
-/* App shell: a floating album with white surfaces. */
+/* A calm canvas with distinct paper surfaces. */
 .app-layout {
   width: 100%;
   max-width: 480px;
-  background: var(--daybook-paper);
-  box-shadow: 0 0 0 1px rgba(91, 68, 58, 0.05), 0 28px 90px rgba(63, 43, 35, 0.12);
+  background: var(--daybook-canvas);
+  box-shadow: 0 0 0 1px var(--color-border-light), 0 20px 70px rgba(63, 43, 35, 0.05);
 }
 
 .app-layout__content {
@@ -56,9 +56,9 @@ select:focus-visible {
   position: relative;
   z-index: 50;
   gap: 4px;
-  margin: 0 10px calc(10px + var(--safe-bottom));
-  padding: 7px;
-  border: 1px solid rgba(91, 68, 58, 0.08);
+  margin: 0 12px calc(10px + var(--safe-bottom));
+  padding: 6px;
+  border: 1px solid var(--color-border-light);
   border-radius: 22px;
   background: color-mix(in srgb, var(--daybook-paper) 93%, transparent);
   box-shadow: var(--daybook-shadow-float);
@@ -67,7 +67,7 @@ select:focus-visible {
 
 .bottom-nav__item {
   position: relative;
-  min-height: 54px;
+  min-height: 50px;
   gap: 4px;
   padding: 7px 2px 5px;
   border-radius: 16px;
@@ -92,9 +92,11 @@ select:focus-visible {
 }
 
 .bottom-nav__label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 400;
 }
+
+.bottom-nav__item--active .bottom-nav__label { font-weight: 600; }
 
 /* Shared page rhythm */
 .home-page,
@@ -111,8 +113,8 @@ select:focus-visible {
 
 .home-page,
 .records-page {
-  padding-top: 34px;
-  padding-bottom: 46px;
+  padding-top: 32px;
+  padding-bottom: 32px;
 }
 
 .home-page__header,
@@ -124,18 +126,18 @@ select:focus-visible {
 .home-page__eyebrow,
 .records-page__eyebrow {
   font-size: 11px;
-  letter-spacing: 0.13em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
 }
 
 .home-page__title,
 .records-page__title {
   margin-top: 8px;
   font-family: inherit;
-  font-size: 28px;
-  font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: -0.045em;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
 }
 
 .records-page__subtitle {
@@ -145,17 +147,17 @@ select:focus-visible {
   line-height: 1.65;
 }
 
-/* Home cards borrow the calm, photo-album hierarchy without copying assets. */
+/* Home keeps the next action and place ahead of decoration. */
 .home-card {
   position: relative;
   isolation: isolate;
   gap: 10px;
-  margin-top: 28px;
+  margin-top: 24px;
   padding: 24px;
   overflow: hidden;
   border: 0;
   border-radius: var(--daybook-radius-card);
-  background: var(--daybook-paper);
+  background: linear-gradient(135deg, var(--color-primary-light), var(--daybook-paper) 78%);
   box-shadow: var(--daybook-shadow-card);
 }
 
@@ -169,20 +171,18 @@ select:focus-visible {
   border-radius: 52% 48% 44% 56%;
   background: var(--color-primary-light);
   content: '';
-  opacity: 0.72;
+  opacity: 0.45;
   transform: rotate(18deg);
 }
 
 .home-card--today {
-  min-height: 330px;
-  justify-content: flex-end;
-  padding: 28px;
+  min-height: 0;
+  justify-content: flex-start;
+  padding: 24px;
   border: 0;
-  background:
-    linear-gradient(180deg, rgba(40, 35, 33, 0.08) 10%, rgba(40, 35, 33, 0.9) 100%),
-    radial-gradient(circle at 75% 12%, color-mix(in srgb, var(--color-primary) 64%, white), transparent 34%),
-    linear-gradient(135deg, #826f69, #302927);
-  box-shadow: 0 18px 42px rgba(48, 41, 39, 0.2);
+  background: linear-gradient(135deg, var(--color-primary-light), var(--daybook-paper) 85%);
+  color: var(--color-text-primary);
+  box-shadow: var(--daybook-shadow-card);
 }
 
 .home-card--today::after {
@@ -191,26 +191,25 @@ select:focus-visible {
   top: -36px;
   width: 220px;
   height: 220px;
-  border: 1px solid rgba(255, 255, 255, 0.24);
+  border: 22px solid color-mix(in srgb, var(--daybook-paper) 50%, transparent);
   background: transparent;
 }
 
 .home-card--record {
-  min-height: 260px;
-  justify-content: flex-end;
+  min-height: 0;
+  justify-content: flex-start;
   border: 0;
-  background:
-    linear-gradient(180deg, rgba(255, 253, 250, 0.12), rgba(255, 253, 250, 0.96)),
-    linear-gradient(140deg, var(--color-primary-light), color-mix(in srgb, var(--color-primary) 24%, white));
+  background: linear-gradient(140deg, var(--color-primary-light), var(--daybook-paper) 85%);
 }
 
 .home-card__title {
   max-width: 22rem;
   font-family: inherit;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.3;
-  letter-spacing: -0.04em;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.5;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
 }
 
 .home-card__eyebrow {
@@ -230,23 +229,31 @@ select:focus-visible {
   min-height: 52px;
   margin-top: 12px;
   border-radius: 16px;
-  box-shadow: 0 8px 20px color-mix(in srgb, var(--color-primary) 22%, transparent);
+  box-shadow: none;
 }
 
 .home-card--today .home-card__action {
-  background: #fff;
-  color: var(--color-text-primary);
+  background: var(--color-primary);
+  color: #fff;
   box-shadow: none;
 }
+
+.home-card--today .home-card__eyebrow { color: var(--color-primary-text); }
+.home-card--today .home-card__places,
+.home-card--today .home-card__progress,
+.home-card--today .home-card__next { color: var(--color-text-secondary); }
+.home-card__next strong { display: block; margin-top: 4px; font-size: var(--font-size-emphasis); color: var(--color-text-primary); }
+.home-card__places { align-items: flex-start; overflow-wrap: anywhere; }
+.home-card__places > span { margin-top: 3px; }
 
 .home-card__secondary {
   align-self: center;
 }
 
-/* Record feed: editorial day cards with a scrapbook-like featured entry. */
+/* Record feed: photos and excerpts retain the first visual priority. */
 .records-list {
   gap: 18px;
-  margin-top: 28px;
+  margin-top: 24px;
 }
 
 .record-card {
@@ -264,13 +271,13 @@ select:focus-visible {
 
 .record-card:hover {
   background: var(--daybook-paper);
-  box-shadow: 0 16px 38px rgba(67, 48, 40, 0.11);
-  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 .record-card--featured {
   grid-template-columns: minmax(0, 1fr);
-  border-radius: 28px;
+  border-radius: var(--daybook-radius-card);
 }
 
 .record-card__photo {
@@ -279,16 +286,9 @@ select:focus-visible {
 }
 
 .record-card--featured .record-card__photo {
-  height: clamp(260px, 68vw, 350px);
+  height: auto;
+  aspect-ratio: 4 / 3;
   border-radius: 0;
-}
-
-.record-card--featured .record-card__photo::after {
-  position: absolute;
-  inset: auto 0 0;
-  height: 44%;
-  background: linear-gradient(transparent, rgba(40, 35, 33, 0.5));
-  content: '';
 }
 
 .record-card__body {
@@ -310,14 +310,18 @@ select:focus-visible {
 .record-card__title,
 .record-card--featured .record-card__title {
   font-family: inherit;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: var(--font-size-emphasis);
+  font-weight: var(--font-weight-semibold);
   line-height: 1.4;
 }
 
 .record-card--featured .record-card__title {
-  font-size: 22px;
+  font-size: var(--font-size-heading);
 }
+
+.record-card__photo--empty { background: var(--daybook-paper-muted); color: var(--color-primary-text); }
+.record-card--featured .record-card__photo--empty { aspect-ratio: 16 / 7; }
+.record-card__title, .record-card__meta { overflow-wrap: anywhere; }
 
 .record-card__excerpt,
 .record-card--featured .record-card__excerpt {
@@ -350,22 +354,22 @@ select:focus-visible {
 
 .slist-page__header,
 .more-page__header {
-  padding: 42px 20px 18px;
+  padding: 32px 20px 16px;
 }
 
 .slist-page__heading,
 .more-page__heading,
 .calendar-header__title {
-  font-size: 24px;
-  font-weight: 700;
-  letter-spacing: -0.035em;
+  font-size: var(--font-size-heading);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: -0.02em;
 }
 
 .slist-page__add-btn {
   min-height: 44px;
   padding: 0 15px;
   border-radius: 15px;
-  box-shadow: 0 7px 18px color-mix(in srgb, var(--color-primary) 20%, transparent);
+  box-shadow: none;
 }
 
 .slist-section__list {
@@ -374,7 +378,6 @@ select:focus-visible {
 
 .slist-card,
 .schedule-card,
-.more-profile,
 .more-menu,
 .more-form,
 .all-menu-panel,
@@ -382,7 +385,7 @@ select:focus-visible {
 .collection-card,
 .sdetail-section,
 .splan-picked {
-  border-color: rgba(91, 68, 58, 0.08);
+  border-color: var(--color-border-light);
   border-radius: var(--daybook-radius-card);
   background: var(--daybook-paper);
   box-shadow: var(--daybook-shadow-card);
@@ -395,14 +398,24 @@ select:focus-visible {
 }
 
 .slist-card__title {
-  font-size: 17px;
+  font-size: var(--font-size-emphasis);
   line-height: 1.45;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .slist-card__places {
   margin-top: 10px;
   line-height: 1.55;
+  align-items: flex-start;
+  white-space: normal;
+  color: var(--color-text-secondary);
 }
+
+.slist-card__places > span:last-child { min-width: 0; overflow-wrap: anywhere; }
+.slist-card__date { color: var(--color-text-secondary); }
+.slist-card__top { flex-wrap: wrap; }
+.slist-card__arrow { align-self: center; }
 
 .slist-page__records {
   border-radius: 16px;
@@ -416,15 +429,17 @@ select:focus-visible {
 }
 
 .calendar-header {
-  padding: 26px 12px 18px;
+  padding: 20px 12px 14px;
   overflow: hidden;
-  border: 1px solid rgba(91, 68, 58, 0.08);
-  border-radius: 28px;
+  border: 1px solid var(--color-border-light);
+  border-radius: var(--daybook-radius-card);
   background: var(--daybook-paper);
   box-shadow: var(--daybook-shadow-card);
 }
 
 .calendar-nav-btn {
+  min-width: 44px;
+  min-height: 44px;
   border-radius: 999px;
   background: var(--daybook-paper-muted);
 }
@@ -562,10 +577,7 @@ select:focus-visible {
     align-self: center;
   }
 
-  .home-page__title {
-    max-width: 14rem;
-    font-size: 40px;
-  }
+  .home-page__title { max-width: 18rem; }
 
   .home-card {
     width: 100%;
@@ -589,9 +601,7 @@ select:focus-visible {
     grid-column: auto;
   }
 
-  .record-card--featured .record-card__photo {
-    height: 390px;
-  }
+  .record-card--featured .record-card__photo { height: auto; }
 }
 
 @media (max-width: 380px) {
@@ -602,6 +612,11 @@ select:focus-visible {
   .record-card__photo {
     height: 96px;
   }
+
+  .home-page, .records-page, .slist-page__body, .more-page__body { padding-right: 16px; padding-left: 16px; }
+  .home-card { padding: 20px; }
+  .record-card--featured { grid-template-columns: minmax(0, 1fr); }
+  .record-card--featured .record-card__photo { height: auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {
