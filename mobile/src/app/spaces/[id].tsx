@@ -83,7 +83,6 @@ export default function SpaceDetailScreen() {
       </View>
       {owner && <View style={s.card}><Text style={s.heading}>공간 이름</Text>
         {!shared && <Text style={s.hint}>개인 공간은 삭제할 수 없어요. 이름은 자유롭게 바꿀 수 있어요.</Text>}
-        {!shared && <Text style={s.hint}>개인 공간은 삭제할 수 없어요. 이름은 자유롭게 바꿀 수 있어요.</Text>}
         {editingName ? <><Text style={s.label}>공간 이름</Text><TextInput ref={nameInput} autoFocus accessibilityLabel="공간 이름" editable={!busy} value={nameDraft} onChangeText={setNameDraft} style={s.input} returnKeyType="done" onSubmitEditing={saveName} /><Text style={s.hint}>1~30자로 입력해 주세요.</Text>
           <SpaceButton disabled={busy} onPress={() => setEditingName(false)}>취소</SpaceButton><SpaceButton disabled={busy} kind="primary" onPress={saveName}>{busy ? '저장 중…' : '이름 저장'}</SpaceButton>
         </> : <SpaceButton disabled={busy} onPress={() => { setNameDraft(space.name); setEditingName(true); }}>공간 이름 수정</SpaceButton>}

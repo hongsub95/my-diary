@@ -1,0 +1,195 @@
+<div id="proxy-request-path">
+  <style>
+    #proxy-request-path .proxy-heading { padding-inline-end: 100px; }
+    #proxy-request-path .proxy-address { margin-block: 12px; overflow-wrap: anywhere; }
+    #proxy-request-path .proxy-diagram { display: block; width: 100%; margin-block: 16px; }
+    #proxy-request-path .proxy-status { min-height: 48px; margin-block: 12px 0; overflow-wrap: anywhere; }
+    #proxy-request-path .proxy-node { fill: var(--muted); stroke: var(--border); stroke-width: 1; }
+    #proxy-request-path .proxy-node.is-current { fill: color-mix(in srgb, var(--viz-series-1) 16%, var(--background)); stroke: var(--viz-series-1); }
+    #proxy-request-path .proxy-title { fill: var(--foreground); font-weight: 500; }
+    #proxy-request-path .proxy-label { fill: var(--foreground); }
+    #proxy-request-path .proxy-owner { fill: var(--muted-foreground); }
+    #proxy-request-path .proxy-edge { fill: none; stroke: var(--border); stroke-width: 2; }
+    #proxy-request-path .proxy-packet { fill: var(--viz-series-1); }
+  </style>
+  <h3 class="proxy-heading">같은 요청, 달라지는 경로</h3>
+  <div class="proxy-address">브라우저의 목적지: <code>nailgi.example/api/v1/diaries</code></div>
+  <div class="viz-controls" role="group" aria-label="프록시 구성 비교">
+    <button type="button" class="btn" data-mode="direct" aria-pressed="false">직접 연결</button>
+    <button type="button" class="btn" data-mode="forward" aria-pressed="true">포워드만</button>
+    <button type="button" class="btn" data-mode="reverse" aria-pressed="false">리버스만</button>
+    <button type="button" class="btn" data-mode="both" aria-pressed="false">둘 다</button>
+  </div>
+  <svg class="proxy-diagram" role="img" aria-label="브라우저에서 일기 서비스로 가는 요청 경로"></svg>
+  <div class="viz-row">
+    <button type="button" class="btn btn-primary" data-send>요청 보내기</button>
+    <span class="text-small" data-direction>요청 → 응답</span>
+  </div>
+  <div class="proxy-status" role="status" aria-live="polite" aria-atomic="true" data-status></div>
+  <script>
+    (() => {
+      const root = document.getElementById('proxy-request-path');
+      const svg = root.querySelector('svg');
+      const status = root.querySelector('[data-status]');
+      const send = root.querySelector('[data-send]');
+      const direction = root.querySelector('[data-direction]');
+      const buttons = Array.from(root.querySelectorAll('[data-mode]'));
+      const ns = 'http://www.w3.org/2000/svg';
+      const modes = ['direct', 'forward', 'reverse', 'both'];
+      let mode = 'forward';
+      let nodes = [];
+      let runId = 0;
+      let current = -1;
+      let packet = null;
+      let inFlight = null;
+      let running = false;
+      const definitions = {
+        browser: { title: '내 브라우저', label: '일기 서비스 접속', owner: '요청하는 사용자' },
+        forward: { title: '포워드 프록시', label: '회사 인터넷 출구', owner: '회사·사용자 측에서 설정' },
+        reverse: { title: '리버스 프록시', label: '일기 서비스의 Nginx', owner: '서비스 운영자가 설정' },
+        api: { title: 'FastAPI', label: '일기 데이터 처리', owner: '서비스 운영자가 관리' }
+      };
+      const initialStatus = {
+        direct: '첫 연결: 브라우저 → FastAPI',
+        forward: '첫 연결: 브라우저 → 회사 포워드 프록시',
+        reverse: '첫 연결: 브라우저 → 일기 서비스의 Nginx',
+        both: '첫 연결: 브라우저 → 회사 포워드 프록시'
+      };
+      function element(name, attrs, text) {
+        const e = document.createElementNS(ns, name);
+        Object.entries(attrs || {}).forEach(([k, v]) => e.setAttribute(k, v));
+        if (text !== undefined) e.textContent = text;
+        return e;
+      }
+      function ids() {
+        return ['browser', ...(['forward', 'both'].includes(mode) ? ['forward'] : []),
+          ...(['reverse', 'both'].includes(mode) ? ['reverse'] : []), 'api'];
+      }
+      function draw() {
+        const width = Math.max(280, root.getBoundingClientRect().width);
+        const vertical = width < 680;
+        const list = ids();
+        const gap = vertical ? 40 : 24;
+        const nodeWidth = vertical ? Math.min(width - 32, 320) : (width - 16 - gap * (list.length - 1)) / list.length;
+        const nodeHeight = 100;
+        const height = vertical ? list.length * nodeHeight + (list.length - 1) * gap + 16 : 116;
+        svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        svg.setAttribute('height', height);
+        svg.replaceChildren();
+        svg.append(element('title', {}, '회사 PC에서 일기 서비스에 접속하는 예시'));
+        svg.append(element('desc', {}, list.map(id => definitions[id].title).join(' → ') + '. 응답은 반대 순서로 돌아옵니다.'));
+        nodes = list.map((id, i) => ({ id, x: vertical ? (width - nodeWidth) / 2 : 8 + i * (nodeWidth + gap), y: vertical ? 8 + i * (nodeHeight + gap) : 8, w: nodeWidth, h: nodeHeight }));
+        nodes.slice(0, -1).forEach((n, i) => {
+          const next = nodes[i + 1];
+          const x1 = vertical ? n.x + n.w / 2 : n.x + n.w;
+          const y1 = vertical ? n.y + n.h : n.y + n.h / 2;
+          const x2 = vertical ? next.x + next.w / 2 : next.x;
+          const y2 = vertical ? next.y : next.y + next.h / 2;
+          svg.append(element('line', { x1, y1, x2, y2, class: 'proxy-edge' }));
+          svg.append(element('text', { x: (x1 + x2) / 2, y: (y1 + y2) / 2 + 5, 'text-anchor': 'middle', class: 'proxy-label' }, '↔'));
+        });
+        nodes.forEach((n, i) => {
+          const d = definitions[n.id];
+          svg.append(element('rect', { x: n.x, y: n.y, width: n.w, height: n.h, rx: 8, class: 'proxy-node' + (i === current ? ' is-current' : ''), 'data-node': i }));
+          svg.append(element('text', { x: n.x + n.w / 2, y: n.y + 28, 'text-anchor': 'middle', class: 'proxy-title' }, d.title));
+          svg.append(element('text', { x: n.x + n.w / 2, y: n.y + 53, 'text-anchor': 'middle', class: 'proxy-label' }, d.label));
+          svg.append(element('text', { x: n.x + n.w / 2, y: n.y + 80, 'text-anchor': 'middle', class: 'proxy-owner text-small' }, d.owner));
+        });
+        packet = element('circle', { r: 6, class: 'proxy-packet', visibility: 'hidden' });
+        svg.append(packet);
+        if (inFlight) placePacket(inFlight.from, inFlight.to, inFlight.progress);
+      }
+      function highlight(index) {
+        current = index;
+        svg.querySelectorAll('[data-node]').forEach((n, i) => n.classList.toggle('is-current', i === index));
+      }
+      function placePacket(from, to, progress) {
+        const a = nodes[from], b = nodes[to];
+        if (!a || !b || !packet) return;
+        const vertical = a.y !== b.y;
+        const forward = to > from;
+        const x1 = vertical ? a.x + a.w / 2 : a.x + (forward ? a.w : 0);
+        const y1 = vertical ? a.y + (forward ? a.h : 0) : a.y + a.h / 2;
+        const x2 = vertical ? b.x + b.w / 2 : b.x + (forward ? 0 : b.w);
+        const y2 = vertical ? b.y + (forward ? 0 : b.h) : b.y + b.h / 2;
+        packet.setAttribute('cx', x1 + (x2 - x1) * progress);
+        packet.setAttribute('cy', y1 + (y2 - y1) * progress);
+        packet.setAttribute('visibility', 'visible');
+      }
+      function travel(from, to, token) {
+        return new Promise(resolve => {
+          const start = performance.now();
+          const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 900 : 1100;
+          function tick(now) {
+            if (token !== runId) { resolve(false); return; }
+            const progress = Math.min(1, (now - start) / duration);
+            inFlight = { from, to, progress };
+            if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) placePacket(from, to, progress);
+            if (progress < 1) requestAnimationFrame(tick);
+            else { inFlight = null; packet.setAttribute('visibility', 'hidden'); resolve(true); }
+          }
+          requestAnimationFrame(tick);
+        });
+      }
+      function save() {
+        if (window.openai && typeof window.openai.setWidgetState === 'function') {
+          window.openai.setWidgetState({ modelContent: { proxyMode: mode }, privateContent: null }).catch(() => {});
+        }
+      }
+      function select(next, persist) {
+        if (!modes.includes(next)) return;
+        runId += 1;
+        running = false;
+        mode = next;
+        current = -1;
+        inFlight = null;
+        send.disabled = false;
+        send.textContent = '요청 보내기';
+        direction.textContent = '요청 → 응답';
+        buttons.forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === mode)));
+        status.textContent = initialStatus[mode];
+        draw();
+        if (persist) save();
+      }
+      buttons.forEach(b => b.addEventListener('click', () => select(b.dataset.mode, true)));
+      send.addEventListener('click', async () => {
+        if (running) return;
+        running = true;
+        send.disabled = true;
+        send.textContent = '전달 중…';
+        const token = ++runId;
+        direction.textContent = '요청: 브라우저 → 서비스';
+        highlight(0);
+        for (let i = 0; i < nodes.length - 1; i++) {
+          const from = nodes[i].id;
+          status.textContent = from === 'forward' ? '회사 프록시: 회사 PC를 대신해 일기 서비스에 접속' :
+            from === 'reverse' ? '서비스 Nginx: 일기 요청을 FastAPI에 전달' : '브라우저: 일기 서비스에 요청';
+          if (!await travel(i, i + 1, token)) return;
+          highlight(i + 1);
+        }
+        status.textContent = 'FastAPI: 일기 데이터를 응답으로 생성';
+        direction.textContent = '응답: 서비스 → 브라우저';
+        for (let i = nodes.length - 1; i > 0; i--) {
+          if (!await travel(i, i - 1, token)) return;
+          highlight(i - 1);
+          status.textContent = '응답 전달: ' + definitions[nodes[i].id].title + ' → ' + definitions[nodes[i - 1].id].title;
+        }
+        status.textContent = '브라우저: 일기 데이터 수신 완료';
+        direction.textContent = '요청·응답 완료';
+        send.disabled = false;
+        send.textContent = '다시 보내기';
+        running = false;
+        save();
+      });
+      const saved = window.openai && window.openai.widgetState;
+      const initial = saved && saved.modelContent && saved.modelContent.proxyMode;
+      select(modes.includes(initial) ? initial : 'forward', false);
+      window.addEventListener('openai:set_globals', event => {
+        const snapshot = event.detail && event.detail.globals && event.detail.globals.widgetState;
+        const next = snapshot && snapshot.modelContent && snapshot.modelContent.proxyMode;
+        if (modes.includes(next) && next !== mode) select(next, false);
+      });
+      new ResizeObserver(draw).observe(root);
+    })();
+  </script>
+</div>

@@ -61,7 +61,6 @@ export default function SpaceDetailPage() {
       </section>
       {owner && <section className="space-card"><h2>공간 이름</h2>
         {!shared && <p className="space-hint">개인 공간은 삭제할 수 없어요. 이름은 자유롭게 바꿀 수 있어요.</p>}
-        {!shared && <p className="space-hint">개인 공간은 삭제할 수 없어요. 이름은 자유롭게 바꿀 수 있어요.</p>}
         {editingName ? <form className="space-form" noValidate onSubmit={event => {
           event.preventDefault()
           const invalid = spaceInputError(nameDraft, false)
