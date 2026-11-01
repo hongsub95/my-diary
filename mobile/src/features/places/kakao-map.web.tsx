@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Constants from 'expo-constants';
 import { Text } from 'react-native';
 
+import { useTheme } from '@/shared/theme-context';
+
 import { hasCoordinates, mapHtml, type MapProps } from './kakao-map-html';
 
 export function KakaoMap({
@@ -14,11 +16,14 @@ export function KakaoMap({
 }: MapProps) {
   const frame = useRef<HTMLIFrameElement>(null);
   const key = Constants.expoConfig?.extra?.kakaoJavaScriptKey ?? '';
-  const primary = homeAppearance?.primary;
-  const primaryDark = homeAppearance?.primaryDark;
+  // 마커는 홈이 아닌 지도도 사용자가 고른 테마 색을 따른다.
+  const palette = useTheme();
+  const primary = homeAppearance?.primary ?? palette.primary;
+  const primaryDark = homeAppearance?.primaryDark ?? palette.primaryDark;
+  const isHome = Boolean(homeAppearance);
   const bottomInset = homeAppearance?.bottomInset ?? 0;
   const html = useMemo(() => mapHtml(key, places, undefined, false, undefined,
-    primary && primaryDark ? { primary, primaryDark, bottomInset: 0 } : undefined), [key, places, primary, primaryDark]);
+    isHome ? { primary, primaryDark, bottomInset: 0 } : undefined, { primary, primaryDark }), [key, places, primary, primaryDark, isHome]);
   const syncSelection = useCallback(() => {
     frame.current?.contentWindow?.postMessage(JSON.stringify({ type: 'kakao-set-selection', id: selectedId ?? '', bottomInset }), window.location.origin);
   }, [selectedId, bottomInset]);

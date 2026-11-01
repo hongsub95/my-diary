@@ -4,6 +4,7 @@ import { Pressable, Text, View } from 'react-native';
 import { WebView } from 'react-native-webview';
 
 import { colors } from '@/shared/theme';
+import { useTheme } from '@/shared/theme-context';
 
 import { hasCoordinates, mapHtml, type MapProps } from './kakao-map-html';
 
@@ -19,13 +20,16 @@ export function KakaoMap({
   const [failed, setFailed] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const extra = Constants.expoConfig?.extra;
-  const primary = homeAppearance?.primary;
-  const primaryDark = homeAppearance?.primaryDark;
+  // 마커는 홈이 아닌 지도도 사용자가 고른 테마 색을 따른다.
+  const palette = useTheme();
+  const primary = homeAppearance?.primary ?? palette.primary;
+  const primaryDark = homeAppearance?.primaryDark ?? palette.primaryDark;
+  const isHome = Boolean(homeAppearance);
   const bottomInset = homeAppearance?.bottomInset ?? 0;
   const html = useMemo(
     () => mapHtml(extra?.kakaoJavaScriptKey ?? '', places, undefined, false, undefined,
-      primary && primaryDark ? { primary, primaryDark, bottomInset: 0 } : undefined),
-    [extra?.kakaoJavaScriptKey, places, primary, primaryDark],
+      isHome ? { primary, primaryDark, bottomInset: 0 } : undefined, { primary, primaryDark }),
+    [extra?.kakaoJavaScriptKey, places, primary, primaryDark, isHome],
   );
   const syncSelection = useCallback(() => {
     frame.current?.injectJavaScript(`window.setMapBottomInset?.(${JSON.stringify(bottomInset)});window.setSelectedPlace?.(${JSON.stringify(selectedId ?? '')});true;`);

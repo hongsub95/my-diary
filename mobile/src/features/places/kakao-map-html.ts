@@ -9,6 +9,12 @@ export type MapPlace = {
 
 export type HomeMapAppearance = { primary: string; primaryDark: string; bottomInset: number };
 
+/** 마커를 칠할 테마 색. 홈만이 아니라 모든 지도가 사용자가 고른 테마를 따른다. */
+export type MarkerColors = { primary: string; primaryDark: string };
+
+// 테마 색을 못 받았을 때 쓰는 기본(로즈) 테마 색.
+const DEFAULT_MARKER_COLORS: MarkerColors = { primary: '#CF526B', primaryDark: '#9F3149' };
+
 export function hasCoordinates(place: MapPlace): boolean {
   if (place.latitude === null || place.longitude === null || place.latitude === '' || place.longitude === '') return false;
   const lat = Number(place.latitude);
@@ -33,17 +39,33 @@ function json(value: unknown): string {
   return JSON.stringify(value).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
 }
 
-export function mapHtml(key: string, places: MapPlace[], selectedId?: string, selectable = false, center = { latitude: 37.5665, longitude: 126.978 }, homeAppearance?: HomeMapAppearance): string {
+/**
+ * 카카오 지도를 그리는 HTML 한 장을 만든다. 앱은 WebView, Expo 웹은 iframe에 넣는다.
+ *
+ * @param key 카카오 JavaScript 키
+ * @param places 지도에 찍을 장소. 좌표가 없는 장소는 건너뛴다
+ * @param selectedId 처음에 고른 장소 id
+ * @param selectable 지도를 눌러 좌표를 고르는 지도인지 (위치 고르기)
+ * @param center 장소가 없을 때의 중심
+ * @param homeAppearance 홈 전용 동작(확대 버튼, 바텀시트 높이만큼 중심 보정)
+ * @param markerColors 마커 색. 생략하면 기본 로즈 테마 색
+ */
+export function mapHtml(key: string, places: MapPlace[], selectedId?: string, selectable = false, center = { latitude: 37.5665, longitude: 126.978 }, homeAppearance?: HomeMapAppearance, markerColors: MarkerColors = DEFAULT_MARKER_COLORS): string {
   const points = places.map((p, i) => ({ ...p, order: p.order ?? i + 1 })).filter(hasCoordinates);
+  // 마커는 작은 원이다(docs/design-drafts/map-markers B′, 2026-11-01). 가운데 5px 진한 점이 정확한 위치를
+  // 찍고, 바깥으로 갈수록 투명해지는 번짐이 지도를 덜 가린다. 고른 장소는 원이 커지고 흰 고리를 두르며
+  // 이름표가 위에 뜬다. 원은 작아도 누르는 영역(.pin)은 44px로 둬 손가락으로 누르기 어렵지 않게 한다.
+  // --m은 rgba()에 넣으려고 "r,g,b" 형태로 넣는다.
   return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-<style>*{box-sizing:border-box}html,body,#map{margin:0;width:100%;height:100%;font-family:system-ui;background:#ffffff}#status{position:absolute;z-index:10;top:12px;left:12px;right:12px;padding:12px;border-radius:12px;background:white;color:#625b50;font-size:13px}button{font:inherit;cursor:pointer}.pin{border:2px solid white;background:#416a53;color:white;border-radius:18px;padding:7px 10px;box-shadow:0 2px 7px #0003;font-size:12px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pin.active{background:#b46a3d;transform:scale(1.08)}.place-marker{position:relative;display:flex;justify-content:center}.pin.number-pin{width:38px;height:38px;padding:0;background:#A49A97;border-radius:50% 50% 50% 0;transform:rotate(-45deg);font-size:16px;font-weight:700;overflow:visible}.number-pin span{display:block;transform:rotate(45deg)}.pin.number-pin.active{background:var(--home-primary);transform:rotate(-45deg) scale(1.12)}.place-name{display:none;position:absolute;bottom:50px;left:50%;transform:translateX(-50%);max-width:180px;padding:7px 11px;border-radius:14px;background:white;color:var(--home-primary-dark);box-shadow:0 2px 8px #0002;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.place-marker.active .place-name{display:block}.pin:focus-visible{outline:3px solid #282321;outline-offset:4px}#retry{margin-left:8px}</style></head>
+<style>*{box-sizing:border-box}html,body,#map{margin:0;width:100%;height:100%;font-family:system-ui;background:#ffffff}#status{position:absolute;z-index:10;top:12px;left:12px;right:12px;padding:12px;border-radius:12px;background:white;color:#625b50;font-size:13px}button{font:inherit;cursor:pointer}.place-marker{position:relative;width:44px;height:44px}.pin{display:flex;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;align-items:center;justify-content:center}.glow{display:block;width:34px;height:34px;border-radius:50%;flex-shrink:0;background:radial-gradient(circle,rgb(var(--m)) 0 2.5px,transparent 3px),radial-gradient(circle,rgba(var(--m),.75) 0%,rgba(var(--m),.4) 25%,rgba(var(--m),.12) 50%,rgba(var(--m),0) 70%);transition:width .15s,height .15s}.pin.active .glow{width:48px;height:48px;background:radial-gradient(circle,rgb(var(--m)) 0 4px,#fff 4.5px 7px,transparent 7.5px),radial-gradient(circle,rgba(var(--m),.9) 0%,rgba(var(--m),.5) 24%,rgba(var(--m),.16) 48%,rgba(var(--m),0) 70%)}.place-name{display:none;position:absolute;bottom:40px;left:50%;transform:translateX(-50%);max-width:180px;padding:7px 11px;border-radius:14px;background:white;color:var(--marker-dark);box-shadow:0 2px 8px #0002;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.place-marker.active .place-name{display:block}.pin:focus-visible{outline:3px solid #282321;outline-offset:2px}#retry{margin-left:8px}</style></head>
 <body><div id="map" aria-label="장소 지도"></div><div id="status" role="status">지도를 불러오는 중…</div><script>
-const points=${json(points)}, key=${json(key)}, selectable=${json(selectable)}, center=${json(center)}, home=${json(homeAppearance ?? null)};
+const points=${json(points)}, key=${json(key)}, selectable=${json(selectable)}, center=${json(center)}, home=${json(homeAppearance ?? null)}, colors=${json(markerColors)};
 let selected=${json(selectedId ?? '')}, updateSelection=()=>{}, bottomInset=home?.bottomInset??0, updateViewport=()=>{};
 window.setSelectedPlace=id=>{selected=points.some(p=>p.id===id)?id:'';updateSelection();};
 window.setMapBottomInset=value=>{if(typeof value==='number'&&Number.isFinite(value)&&value>=0&&value!==bottomInset){bottomInset=value;updateViewport();}};
 window.addEventListener('message',event=>{if(event.source!==window.parent||event.origin!==window.parent.location.origin)return;try{const message=JSON.parse(event.data);if(message.type==='kakao-set-selection'){window.setMapBottomInset(message.bottomInset);window.setSelectedPlace(message.id);}}catch(_){}});
-if(home){document.body.style.setProperty('--home-primary',home.primary);document.body.style.setProperty('--home-primary-dark',home.primaryDark);}
+function rgb(hex){const h=String(hex).replace('#','');const full=h.length===3?h.split('').map(c=>c+c).join(''):h;const n=parseInt(full,16);return Number.isFinite(n)?[(n>>16)&255,(n>>8)&255,n&255].join(','):'207,82,107';}
+document.body.style.setProperty('--m',rgb(colors.primary));document.body.style.setProperty('--marker-dark',colors.primaryDark);
 const status=document.getElementById('status');
 function fail(){status.replaceChildren(document.createTextNode('지도를 불러오지 못했어요. 잠시 후 다시 시도해 주세요.'));const b=document.createElement('button');b.textContent='다시 시도';b.id='retry';b.onclick=()=>location.reload();status.appendChild(b);status.hidden=false;}
 let timer=setTimeout(fail,15000);
@@ -53,9 +75,10 @@ else{const sdk=document.createElement('script');sdk.src='https://dapi.kakao.com/
 const map=new kakao.maps.Map(document.getElementById('map'),{center:new kakao.maps.LatLng(center.latitude,center.longitude),level:5});
 if(selectable){let marker=null;kakao.maps.event.addListener(map,'click',event=>{if(marker)marker.setMap(null);marker=new kakao.maps.Marker({map,position:event.latLng});const message=JSON.stringify({type:'kakao-coordinate-select',latitude:event.latLng.getLat(),longitude:event.latLng.getLng()});if(window.ReactNativeWebView)window.ReactNativeWebView.postMessage(message);else window.parent.postMessage(message,'*');});}
 const bounds=new kakao.maps.LatLngBounds();const markers=[];
-points.forEach(p=>{const position=new kakao.maps.LatLng(Number(p.latitude),Number(p.longitude));bounds.extend(position);const button=document.createElement('button');button.className='pin'+(home?' number-pin':'');button.setAttribute('aria-label',p.order+'번 '+p.name);button.title=p.name;let content=button;
-if(home){content=document.createElement('div');content.className='place-marker';const label=document.createElement('div');label.className='place-name';label.textContent=p.name;const number=document.createElement('span');number.textContent=p.order;button.appendChild(number);content.append(label,button);}else button.textContent=p.order+' '+p.name;
-button.onclick=()=>{window.setSelectedPlace(p.id);send(p.id);};const overlay=new kakao.maps.CustomOverlay({map,position,content,yAnchor:1.2});markers.push({id:p.id,button,content,position,overlay});});
+points.forEach(p=>{const position=new kakao.maps.LatLng(Number(p.latitude),Number(p.longitude));bounds.extend(position);
+const content=document.createElement('div');content.className='place-marker';const label=document.createElement('div');label.className='place-name';label.textContent=points.length>1?p.order+' · '+p.name:p.name;
+const button=document.createElement('button');button.className='pin';button.setAttribute('aria-label',p.order+'번 '+p.name);button.title=p.name;const glow=document.createElement('span');glow.className='glow';glow.setAttribute('aria-hidden','true');button.appendChild(glow);content.append(label,button);
+button.onclick=()=>{window.setSelectedPlace(p.id);send(p.id);};const overlay=new kakao.maps.CustomOverlay({map,position,content,yAnchor:0.5});markers.push({id:p.id,button,content,position,overlay});});
 function inset(){return home?Math.min(bottomInset,document.getElementById('map').clientHeight*0.65):0;}
 updateSelection=()=>{markers.forEach(marker=>{const active=marker.id===selected;marker.button.classList.toggle('active',active);marker.button.setAttribute('aria-pressed',String(active));marker.content.classList.toggle('active',active);marker.overlay.setZIndex(active?3:1);});const active=markers.find(marker=>marker.id===selected);if(active){map.setCenter(active.position);if(inset())map.panBy(0,inset()/2);}};
 function fit(){map.relayout();if(points.length===1){map.setCenter(new kakao.maps.LatLng(Number(points[0].latitude),Number(points[0].longitude)));map.setLevel(3);if(inset())map.panBy(0,inset()/2);}else if(points.length>1)map.setBounds(bounds,64,45,45+inset(),45);}
