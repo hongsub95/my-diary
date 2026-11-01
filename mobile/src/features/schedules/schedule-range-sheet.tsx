@@ -15,7 +15,7 @@ type Range = { start: string; end: string };
  * 예전에는 시작일과 종료일 칸을 따로 눌러 달력을 두 번 열었다. 숙박 앱처럼 한 달력에서
  * 시작일 → 종료일을 차례로 누르게 하고, 고르는 동안 위에 `1박 2일`을 바로 보여준다.
  *
- * 고르는 값은 시트 안의 초안이다. **"적용"을 눌러야 폼에 반영**하고, 닫기·바깥 누르기·
+ * 고르는 값은 시트 안의 초안이다. **"저장"을 눌러야 폼에 반영**하고, 닫기·바깥 누르기·
  * 뒤로 가기는 초안을 버린다(캘린더 날짜 이동 명세의 임시 날짜 규칙과 같다).
  *
  * @param visible 열려 있는지
@@ -108,14 +108,15 @@ function SheetBody({ start, end, onApply, onClose }: Omit<Parameters<typeof Sche
           theme={{ arrowColor: palette.primary, todayTextColor: palette.primaryDark, calendarBackground: colors.surface, textDayFontSize: 15, textMonthFontWeight: '600' }}
         />
         <Text style={styles.note}>
-          {awaitingEnd ? '종료일을 눌러 주세요. 하루짜리면 바로 적용하면 돼요.' : '시작일 → 종료일 순서로 눌러요.'}
+          {awaitingEnd ? '종료일을 눌러 주세요. 하루짜리면 바로 저장하면 돼요.' : '시작일 → 종료일 순서로 눌러요.'}
         </Text>
         <View style={styles.footer}>
           <Pressable accessibilityRole="button" onPress={() => { setDraft({ start, end }); setAwaitingEnd(false); }} style={styles.reset}>
             <Text style={styles.resetText}>초기화</Text>
           </Pressable>
           <Pressable accessibilityRole="button" onPress={() => onApply(draft)} style={({ pressed }) => [styles.apply, pressed && styles.pressed]}>
-            <Text style={styles.applyText}>{period} 적용</Text>
+            {/* 기간(당일·1박 2일)은 위 요약에 이미 크게 보인다. 버튼은 기간과 상관없이 "저장" 하나로 둔다(2026-11-01). */}
+            <Text style={styles.applyText}>저장</Text>
           </Pressable>
         </View>
       </View>

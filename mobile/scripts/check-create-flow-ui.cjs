@@ -182,7 +182,7 @@ const options = {
     }
 
     // 2-1) 날짜 시트에서 금~토 1박 2일을 고르면 그 기간 그대로 저장된다.
-    //      시트의 값은 "적용"을 눌러야 폼에 들어가고, 닫으면 버려진다.
+    //      시트의 값은 "저장"을 눌러야 폼에 들어가고, 닫으면 버려진다.
     await page.goto(origin + '/schedules');
     await page.getByRole('button', { name: '새 일정 만들기' }).click();
     await page.getByRole('textbox', { name: '하루의 이름, 필수' }).fill('성수 카페 투어');
@@ -197,7 +197,8 @@ const options = {
     await page.getByText('17', { exact: true }).last().click();
     await expect(page.getByText('10월 16일 (금) – 10월 17일 (토)', { exact: true })).toBeVisible();
     await shot('2-range-sheet');
-    await page.getByRole('button', { name: '1박 2일 적용' }).click();
+    // 시트의 버튼은 기간과 상관없이 "저장"이다. 맨 위(시트)의 버튼을 누른다.
+    await page.getByRole('button', { name: '저장', exact: true }).last().click();
     await expect(page.getByRole('button', { name: /^날짜, 10월 16일 \(금\) ~ 17일 \(토\), 1박 2일/ })).toBeVisible();
     await shot('3-step-one-applied');
     await page.getByText(/갈 곳 정하기/).click();
@@ -205,7 +206,7 @@ const options = {
     // 한국 시간 금 12:00 ~ 토 15:00 = UTC 금 03:00 ~ 토 06:00
     assert.equal(lastPost.start_at, '2026-10-16T03:00:00.000Z', '시작은 고른 첫날 12:00(한국)이어야 한다');
     assert.equal(lastPost.end_at, '2026-10-17T06:00:00.000Z', '끝은 고른 마지막 날 15:00(한국)이어야 한다');
-    console.log('날짜 시트: 닫으면 버려지고, 적용한 1박 2일이 그대로 저장됨');
+    console.log('날짜 시트: 닫으면 버려지고, 시트에서 저장한 1박 2일이 그대로 저장됨');
 
     /** 일정 탭에서 방금 만든 하루의 상세를 연다. */
     async function openDetail() {
