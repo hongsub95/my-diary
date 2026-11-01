@@ -280,19 +280,28 @@
 }
 .sdetail-place:last-child { border-bottom: none; }
 
+/* 방문 순서 번호. 지도 마커(작은 번짐 원)와 같은 느낌으로, 진한 원 바깥에 같은 색이 번진다
+   (docs/MOBILE_HOME_MAP_SPEC.md 마커 규칙, 2026-11-01). 원은 20px이고 바깥 여백 3px까지 합쳐
+   예전 26px 자리를 그대로 차지해 줄 맞춤이 바뀌지 않는다. 다녀온 곳은 sage로 바뀐다. */
 .sdetail-place__order {
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
+  margin: 5px 3px 3px;
   border-radius: var(--radius-full);
-  background: var(--color-primary-light);
-  color: var(--color-primary-text);
-  font-size: 12px;
-  font-weight: 600;
+  background: var(--color-primary);
+  box-shadow: 0 0 6px 2px color-mix(in srgb, var(--color-primary) 40%, transparent);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  margin-top: 2px;
+}
+
+.sdetail-place__order--visited {
+  background: var(--color-sage);
+  box-shadow: 0 0 6px 2px color-mix(in srgb, var(--color-sage) 40%, transparent);
 }
 
 .sdetail-place__info { flex: 1; min-width: 0; }

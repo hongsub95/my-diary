@@ -67,9 +67,12 @@ function PlaceList({
       {places.map((place, index) => (
         <View key={place.id} style={styles.place}>
           {/* 화면에는 방문 차례를 1부터 보여준다. sortOrder는 0부터 시작하는 내부 값이다. */}
-          <Text style={[styles.placeOrder, place.visited && styles.placeOrderDone]}>
-            {index + 1}
-          </Text>
+          {/* 지도 마커와 같은 느낌의 번짐 원 안에 번호를 둔다(웹 .sdetail-place__order와 같은 규칙). */}
+          <View style={styles.placeOrderSlot}>
+            <View style={[styles.placeOrder, place.visited && styles.placeOrderDone]}>
+              <Text style={styles.placeOrderText}>{index + 1}</Text>
+            </View>
+          </View>
           <View style={styles.placeBody}>
             <Text style={[styles.placeName, place.visited && styles.placeNameDone]}>
               {place.name}
@@ -443,8 +446,13 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   placeList: { gap: spacing.sm, marginTop: 20 },
   // 위쪽 정렬이다. 메모가 붙어 가운데 칸이 길어져도 번호와 버튼이 이름 줄에 맞는다.
   place: { alignItems: 'flex-start', flexDirection: 'row', gap: spacing.md },
-  placeOrder: { backgroundColor: palette.primarySoft, borderRadius: 13, color: palette.primary, fontSize: 14, fontWeight: '600', height: 26, lineHeight: 26, textAlign: 'center', width: 26 },
-  placeOrderDone: { backgroundColor: colors.sage, color: '#FFFFFF' },
+  // 방문 순서 번호. 지도 마커(작은 번짐 원)와 같은 느낌으로 진한 원 바깥에 같은 색이 번진다.
+  // 바깥 자리(26px)는 예전 크기 그대로라 이름 줄과 맞춘 정렬이 바뀌지 않는다.
+  // boxShadow 색 끝의 66은 알파(약 40%)다. 테마 primary가 #RRGGBB 6자리라 그대로 붙일 수 있다.
+  placeOrderSlot: { alignItems: 'center', height: 26, justifyContent: 'center', width: 26 },
+  placeOrder: { alignItems: 'center', backgroundColor: palette.primary, borderRadius: 10, boxShadow: `0 0 6px 2px ${palette.primary}66`, height: 20, justifyContent: 'center', width: 20 },
+  placeOrderDone: { backgroundColor: colors.sage, boxShadow: `0 0 6px 2px ${colors.sage}66` },
+  placeOrderText: { color: '#FFFFFF', fontSize: 11, fontWeight: '700' },
   placeBody: { flex: 1, gap: 2 },
   placeName: { color: colors.text, fontSize: 14, fontWeight: '600' },
   placeNameDone: { color: colors.muted, textDecorationLine: 'line-through' },

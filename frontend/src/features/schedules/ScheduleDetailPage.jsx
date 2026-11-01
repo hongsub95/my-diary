@@ -81,7 +81,7 @@ function PlaceList({ places, checkable, reorderable, editable, mutations, onErro
         <div key={place.id} className="sdetail-place">
           {/* 화면에는 방문 차례를 1부터 보여준다. sort_order는 0부터 시작하는
               내부 값이라 그대로 찍으면 첫 장소가 0번이 된다. */}
-          <div className="sdetail-place__order">{index + 1}</div>
+          <div className={`sdetail-place__order${place.visited ? ' sdetail-place__order--visited' : ''}`}>{index + 1}</div>
           <div className="sdetail-place__info">
             <div className="sdetail-place__name-row">
               <p className={`sdetail-place__name${place.visited ? ' sdetail-place__name--visited' : ''}`}>
