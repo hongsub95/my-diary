@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlatList, Platform, Pressable, StyleSheet, Text, View, type ViewToken } from 'react-native';
+import { DatePickerPopover } from '@/shared/components/date-picker-popover';
 
 import { colors, radii, typography, type ThemePalette } from '@/shared/theme';
-import { useTheme, useThemedStyles } from '@/shared/theme-context';
+import { useThemedStyles } from '@/shared/theme-context';
 import { dateKey, moveDate, parseDate, weekDates } from './calendar-dates';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -24,7 +24,6 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
   onSelect: (date: string) => void;
 }) {
   const styles = useThemedStyles(createStyles);
-  const palette = useTheme();
   const pager = useRef<FlatList<number>>(null);
   const scrollOffset = useRef(0);
   const webSnapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,9 +42,7 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
   const pageIndex = weekPageIndex(anchorDate, navigationDate);
   const today = dateKey(new Date());
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [draft, setDraft] = useState(selectedDate);
-  const draftYear = Number(draft.slice(0, 4));
-  const draftMonth = Number(draft.slice(5, 7));
+  const pickerAnchor = useRef<View>(null);
   const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken<number>[] }) => {
     const page = viewableItems.find(item => item.isViewable);
     // 같은 페이지의 알림이 중복되어도 동일한 주를 표시한다.
@@ -79,23 +76,17 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
     setNavigationDate(key);
   };
 
-  const openPicker = () => {
-    setDraft(visibleDate);
-    setPickerOpen(true);
-  };
+  const openPicker = () => setPickerOpen(true);
   const selectDate = (key: string) => {
     showDate(key);
     onSelect(key);
-  };
-  const selectMonth = (month: number) => {
-    // 31일 → 2월, 윤년 → 평년 이동은 공통 날짜 유틸의 말일 보정을 따른다.
-    setDraft(moveDate(draft, 'month', month - draftMonth));
   };
 
   return (
     <View style={styles.root}>
       <View style={styles.monthRow}>
         <Pressable
+          ref={pickerAnchor}
           accessibilityRole="button"
           accessibilityLabel={`${Number(visibleDate.slice(0, 4))}년 ${Number(visibleDate.slice(5, 7))}월, 월 선택 열기`}
           accessibilityState={{ expanded: pickerOpen }}
@@ -187,34 +178,7 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
         )}
       </View>
 
-      <Modal visible={pickerOpen} transparent animationType="slide" onRequestClose={() => setPickerOpen(false)}>
-        <View style={styles.modal}>
-          <Pressable style={StyleSheet.absoluteFill} accessibilityRole="button" accessibilityLabel="월 선택 취소" onPress={() => setPickerOpen(false)} />
-          <SafeAreaView edges={['bottom']} style={styles.picker} accessibilityViewIsModal>
-            <View style={styles.pickerHeader}>
-              <Text accessibilityRole="header" style={styles.monthTitle}>월 선택</Text>
-              <Pressable accessibilityRole="button" style={styles.control} onPress={() => setPickerOpen(false)}><Text style={styles.muted}>취소</Text></Pressable>
-            </View>
-            <ScrollView bounces={false}>
-              <View style={styles.yearRow}>
-                <Pressable accessibilityRole="button" accessibilityLabel="이전 연도" style={styles.control} onPress={() => setDraft(moveDate(draft, 'month', -12))}><Text style={styles.yearArrow}>‹</Text></Pressable>
-                <Text accessibilityLiveRegion="polite" style={styles.monthTitle}>{draftYear}년</Text>
-                <Pressable accessibilityRole="button" accessibilityLabel="다음 연도" style={styles.control} onPress={() => setDraft(moveDate(draft, 'month', 12))}><Text style={styles.yearArrow}>›</Text></Pressable>
-              </View>
-              <View style={styles.monthGrid}>
-                {Array.from({ length: 12 }, (_, i) => i + 1).map(month => (
-                  <Pressable key={month} accessibilityRole="button" accessibilityState={{ selected: month === draftMonth }} accessibilityLabel={`${draftYear}년 ${month}월`} style={[styles.monthCell, month === draftMonth && styles.activeMonth]} onPress={() => selectMonth(month)}>
-                    <Text style={[styles.monthText, month === draftMonth && styles.activeMonthText]}>{month}월</Text>
-                  </Pressable>
-                ))}
-              </View>
-            </ScrollView>
-            <Pressable accessibilityRole="button" style={[styles.apply, { backgroundColor: palette.primary }]} onPress={() => { showDate(draft); setPickerOpen(false); }}>
-              <Text style={styles.applyText}>{draftYear}년 {draftMonth}월로 이동</Text>
-            </Pressable>
-          </SafeAreaView>
-        </View>
-      </Modal>
+      <DatePickerPopover visible={pickerOpen} anchorRef={pickerAnchor} value={visibleDate} mode="month" onChange={showDate} onClose={() => setPickerOpen(false)} />
     </View>
   );
 }
@@ -241,18 +205,4 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   selectedDateNumber: { color: palette.primaryDark, fontWeight: typography.semibold },
   todayDot: { width: 3, height: 3, borderRadius: 2, marginTop: 2 },
   todayDotVisible: { backgroundColor: palette.primary },
-  modal: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,25,23,0.35)' },
-  picker: { maxHeight: '85%', backgroundColor: colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20 },
-  pickerHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  control: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
-  muted: { color: colors.muted },
-  yearRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginVertical: 12 },
-  yearArrow: { color: colors.text, fontSize: 26 },
-  monthGrid: { flexDirection: 'row', flexWrap: 'wrap' },
-  monthCell: { width: '25%', minHeight: 52, alignItems: 'center', justifyContent: 'center', borderRadius: 12 },
-  activeMonth: { backgroundColor: palette.primarySoft },
-  monthText: { fontSize: typography.body, color: colors.text },
-  activeMonthText: { color: palette.primaryDark, fontWeight: typography.semibold },
-  apply: { minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 20 },
-  applyText: { color: '#FFFFFF', fontSize: typography.body, fontWeight: typography.semibold },
 });

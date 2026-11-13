@@ -107,6 +107,8 @@ class Settings(BaseSettings):
     # UTC로 해석하면 한국 시간 오전 0~9시 약속이 달력의 달 경계에서 빠져버린다.
     # 해외 사용자를 받게 되면 이 고정 가정을 다시 검토해야 한다.
     service_timezone: str = "Asia/Seoul"
+    # 미설정 시 검증된 2025~2027 공휴일 스냅샷을 사용한다. 클라이언트에 공개하지 않는다.
+    kasi_service_key: SecretStr = SecretStr("")
 
     # ── 장소 검색 공급자 ───────────────────────────
     # 실제 연동 환경은 PLACE_SEARCH_PROVIDER=kakao로 설정한다.

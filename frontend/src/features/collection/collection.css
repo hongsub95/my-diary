@@ -9,6 +9,8 @@
 .collection-filters label { display: flex; flex-direction: column; gap: 8px; font-size: 13px; min-width: 0; flex: 1; }
 .collection-filters input { width: 100%; min-width: 0; box-sizing: border-box; min-height: 46px; border: 1px solid var(--color-border-light); background: var(--color-bg); color: var(--color-text-primary); border-radius: 10px; padding: 10px; font: inherit; }
 .collection-date-row { display: flex; gap: 10px; align-items: flex-end; }
+.collection-date-row > div { flex: 1; min-width: 0; }
+.collection-date-row .date-picker-trigger { margin-top: 8px; box-sizing: border-box; }
 .collection-date-row > span { padding-bottom: 14px; }
 .collection-actions { display: flex; gap: 10px; }
 .collection-actions button, .collection-load { min-height: 46px; padding: 10px 20px; border-radius: 10px; border: 1px solid var(--color-border-light); background: var(--color-surface); color: var(--color-text-primary); cursor: pointer; }

@@ -1,8 +1,8 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Redirect, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { FlatList, Image, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { Calendar } from 'react-native-calendars';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { DatePickerPopover } from '@/shared/components/date-picker-popover';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
@@ -25,6 +25,8 @@ export default function CollectionScreen() {
   const [kind, setKind] = useState<'schedules' | 'records'>('schedules');
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [draft, setDraft] = useState<Filters>(EMPTY);
+  const fromAnchor = useRef<View>(null);
+  const toAnchor = useRef<View>(null);
   const [dateTarget, setDateTarget] = useState<'from' | 'to' | null>(null);
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
   const spaceId = useCurrentSpaceId();
@@ -74,7 +76,7 @@ export default function CollectionScreen() {
           <View style={styles.dateRow}>
             {(['from', 'to'] as const).map(target => <View style={styles.dateField} key={target}>
               <Text style={styles.hint}>{target === 'from' ? '시작일' : '종료일'}</Text>
-              <Pressable accessibilityRole="button" accessibilityLabel={`${target === 'from' ? '시작일' : '종료일'} ${draft[target] || '선택'}`} style={styles.dateButton} onPress={() => setDateTarget(target)}><Text style={styles.text}>{draft[target] || '날짜 선택'}</Text></Pressable>
+              <Pressable ref={target === 'from' ? fromAnchor : toAnchor} accessibilityRole="button" accessibilityLabel={`${target === 'from' ? '시작일' : '종료일'} ${draft[target] || '선택'}`} style={styles.dateButton} onPress={() => setDateTarget(target)}><Text style={styles.text}>{draft[target] || '날짜 선택'}</Text></Pressable>
             </View>)}
           </View>
           <View style={styles.dateRow}>
@@ -94,13 +96,7 @@ export default function CollectionScreen() {
       </Pressable>}
       ListFooterComponent={query.isError ? <Pressable accessibilityRole="button" style={styles.load} onPress={() => query.isFetchNextPageError ? query.fetchNextPage() : refetch()}><Text style={styles.link}>다시 불러오기</Text></Pressable> : query.hasNextPage ? <Pressable accessibilityRole="button" style={styles.load} disabled={query.isFetchingNextPage} onPress={() => query.fetchNextPage()}><Text style={styles.link}>{query.isFetchingNextPage ? '불러오는 중…' : '더 보기'}</Text></Pressable> : null}
     />
-    <Modal visible={Boolean(dateTarget)} transparent animationType="fade" onRequestClose={() => setDateTarget(null)}>
-      <View style={styles.scrim}><View style={styles.dateModal} accessibilityViewIsModal>
-        <Text style={styles.cardTitle}>{dateTarget === 'from' ? '시작일' : '종료일'} 선택</Text>
-        <Calendar key={dateTarget} current={dateTarget ? draft[dateTarget] || undefined : undefined} monthFormat="yyyy년 M월" onDayPress={day => { if (dateTarget) setDraft({ ...draft, [dateTarget]: day.dateString }); setDateTarget(null); }} markedDates={dateTarget && draft[dateTarget] ? { [draft[dateTarget]]: { selected: true } } : {}} />
-        <View style={styles.dateRow}><Pressable accessibilityRole="button" style={styles.reset} onPress={() => { if (dateTarget) setDraft({ ...draft, [dateTarget]: '' }); setDateTarget(null); }}><Text style={styles.text}>날짜 해제</Text></Pressable><Pressable accessibilityRole="button" style={styles.reset} onPress={() => setDateTarget(null)}><Text style={styles.link}>닫기</Text></Pressable></View>
-      </View></View>
-    </Modal>
+    <DatePickerPopover key={dateTarget} visible={Boolean(dateTarget)} anchorRef={dateTarget === 'from' ? fromAnchor : toAnchor} value={dateTarget ? draft[dateTarget] : ''} clearable onChange={date => { if (dateTarget) setDraft({ ...draft, [dateTarget]: date }); }} onClose={() => setDateTarget(null)} />
     <Snackbar notice={notice} onDismiss={dismissSnackbar} />
   </SafeAreaView>;
 }
@@ -138,6 +134,4 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   meta: { fontSize: 11, color: colors.muted },
   empty: { alignItems: 'center', paddingVertical: 40, gap: 12 },
   load: { minHeight: 48, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  scrim: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 24 },
-  dateModal: { padding: 20, backgroundColor: colors.surface, borderRadius: 20 },
 });

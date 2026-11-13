@@ -60,6 +60,16 @@ await page.route('**/api/v1/**', async route => {
   await route.fulfill({ status, headers, ...(status === 204 ? {} : { contentType: 'application/json', body: JSON.stringify(data) }) })
 })
 async function openMenu() { await page.getByLabel('일정 관리', { exact: true }).click() }
+async function chooseDate(label, date) {
+  const trigger = page.getByLabel(label, { exact: false })
+  const current = (await trigger.textContent()).match(/\d{4}\.\d{2}\.\d{2}/)[0]
+  let offset = (Number(date.slice(0, 4)) - Number(current.slice(0, 4))) * 12 + Number(date.slice(5, 7)) - Number(current.slice(5, 7))
+  await trigger.click()
+  const dialog = page.getByRole('dialog', { name: '날짜 선택', exact: true })
+  while (offset) { await dialog.getByRole('button', { name: offset > 0 ? '다음 달' : '이전 달', exact: true }).click(); offset += offset > 0 ? -1 : 1 }
+  await dialog.locator(`[data-date="${date}"]`).click()
+  await dialog.getByRole('button', { name: '적용', exact: true }).click()
+}
 async function shot(name) {
   await mkdir('test-results/schedule-management', { recursive: true })
   await page.screenshot({ path: 'test-results/schedule-management/' + name + '.png', fullPage: true })
@@ -70,7 +80,7 @@ try {
   await openMenu()
   await page.getByRole('button', { name: '수정', exact: true }).click()
   await expect(page.getByLabel('하루의 이름', { exact: false })).toHaveValue(initial.title)
-  await expect(page.getByLabel('시작일', { exact: false })).toHaveValue('2026-10-30')
+  await expect(page.getByLabel('시작일', { exact: false })).toContainText('2026.10.30')
   await expect(page.getByLabel('시작 시간', { exact: false })).toHaveValue('12:00')
   await expect(page.getByText('1박 2일', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '저장하기', exact: true })).toBeDisabled()
@@ -102,7 +112,7 @@ try {
   await page.getByRole('button', { name: '수정', exact: true }).click()
   await page.getByLabel('하루의 이름', { exact: false }).fill('고친 여행')
 
-  await page.getByLabel('종료일', { exact: false }).fill('2026-10-30')
+  await chooseDate('종료일', '2026-10-30')
   await page.getByLabel('종료 시간', { exact: false }).selectOption('12:00')
   await page.getByRole('button', { name: '저장하기', exact: true }).click()
   await expect(page.getByText('종료 시간은 시작 시간보다 늦어야 해요.', { exact: true })).toBeVisible()
@@ -111,7 +121,7 @@ try {
   await expect(page.getByText('범위 밖에 남긴 기록이 있어요. 타임라인 날짜를 고치거나 일정 기간을 다시 선택해 주세요.', { exact: true })).toBeVisible()
   assert.equal(patchCount, 0)
 
-  await page.getByLabel('종료일', { exact: false }).fill('2026-11-01')
+  await chooseDate('종료일', '2026-11-01')
   await page.getByLabel('종료 시간', { exact: false }).selectOption('09:00')
   await page.getByLabel('메모', { exact: true }).fill('')
   failSave = true

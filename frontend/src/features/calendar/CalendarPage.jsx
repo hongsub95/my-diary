@@ -1,3 +1,4 @@
+import { DatePicker } from '../../shared/components/DatePicker'
 import { useMemo, useRef, useState } from 'react'
 import FullCalendar from '@fullcalendar/react'
 import dayGridPlugin from '@fullcalendar/react/daygrid'
@@ -129,7 +130,7 @@ export default function CalendarPage() {
       <section className="calendar-header" aria-label="일정 달력">
         <div className="calendar-header__top">
           <h2 className="calendar-header__title">
-            {viewDate.getFullYear()}년 {viewDate.getMonth() + 1}월
+            <DatePicker mode="month" label="월 이동" value={formatDateKey(viewDate)} onChange={date => calendarRef.current?.getApi().gotoDate(date)} />
           </h2>
           <div className="calendar-header__nav">
             <button

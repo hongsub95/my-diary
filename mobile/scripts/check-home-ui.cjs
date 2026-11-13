@@ -93,7 +93,7 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.clock.install({ time: new Date('2026-10-13T03:00:00Z') });
-    await page.goto(origin + '/home');
+    await page.goto(origin + '/home', { waitUntil: 'domcontentloaded', timeout: 60000 });
     const expandHandle = () => page.getByRole('button', { name: '하루 시트 펼치기', exact: true });
     const handleOffset = async locator => (await locator.boundingBox()).y - (await page.locator('iframe[title="카카오 장소 지도"]').boundingBox()).y;
     await expect(expandHandle()).toBeVisible({ timeout: 60000 });
@@ -134,6 +134,18 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     assert.equal(weekOffset, 0);
     await weekPager.evaluate(node => { node.scrollLeft += node.clientWidth * 2; });
     await expect(page.getByRole('button', { name: /^10월 25일 일요일/ })).toBeInViewport({ ratio: 0.95 });
+    await page.getByRole('button', { name: '오늘', exact: true }).click();
+    await expect(page.getByRole('button', { name: /^10월 13일 화요일/ })).toBeInViewport({ ratio: 0.95 });
+    await page.getByRole('button', { name: '2026년 10월, 월 선택 열기', exact: true }).click();
+    await expect(page.getByRole('button', { name: '2026년 11월', exact: true })).toBeVisible();
+    await expect(page.getByText(/공휴일 \d+일/)).toHaveCount(0);
+    await page.getByRole('button', { name: '2026년 11월', exact: true }).click();
+    await expect(page.getByRole('button', { name: '2026년 11월, 월 선택 열기', exact: true })).toBeVisible();
+    await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toBeVisible();
+    await page.getByRole('button', { name: '2026년 11월, 월 선택 열기', exact: true }).click();
+    await page.getByRole('button', { name: '다음 연도', exact: true }).click();
+    await page.keyboard.press('Escape');
+    await expect(page.getByRole('button', { name: '2026년 11월, 월 선택 열기', exact: true })).toBeVisible();
     await page.getByRole('button', { name: '오늘', exact: true }).click();
     await expect(page.getByRole('button', { name: /^10월 13일 화요일/ })).toBeInViewport({ ratio: 0.95 });
     await weekPager.dispose();

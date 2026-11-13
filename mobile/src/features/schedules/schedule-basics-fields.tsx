@@ -1,4 +1,4 @@
-import { forwardRef, useState } from 'react';
+import { forwardRef, useRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors, radii, type ThemePalette } from '@/shared/theme';
@@ -15,7 +15,7 @@ const TITLE_MAX = 200;
  *
  * 두 화면이 따로 그리던 입력을 하나로 합쳤다(2026-10-15 사용자 결정, 시안 A "목록형 한 장").
  * 이름을 크게 쓰고, 날짜와 시간은 "이름 — 값" 행 두 개로 묶는다. 날짜 행을 누르면 달력
- * 시트에서 시작일·종료일을 한 번에 고른다. 저장·검증·버튼은 화면마다 다르므로 여기서는
+ * 팝오버에서 시작일·종료일을 한 번에 고른다. 저장·검증·버튼은 화면마다 다르므로 여기서는
  * 입력만 다룬다.
  *
  * @param form 지금 입력값
@@ -31,6 +31,7 @@ export const ScheduleBasicsFields = forwardRef<TextInput, {
   memoLabel?: string;
 }>(function ScheduleBasicsFields({ form, onChange, disabled = false, memoLabel = '하루의 밑그림' }, ref) {
   const styles = useThemedStyles(createStyles);
+  const dateAnchor = useRef<View>(null);
   const [rangeOpen, setRangeOpen] = useState(false);
   const range = formatRangeShort(form.start_date, form.end_date);
   const period = periodBetween(form.start_date, form.end_date);
@@ -57,6 +58,7 @@ export const ScheduleBasicsFields = forwardRef<TextInput, {
         {/* 날짜 행 전체가 버튼이다. 박수(당일·1박 2일) 배지는 화면에 두지 않는다(2026-10-15
             사용자 결정). 날짜 시트 위쪽에서 고르는 동안 보여 주고, 화면 읽기 도구에는 계속 알린다. */}
         <Pressable
+          ref={dateAnchor}
           accessibilityRole="button"
           accessibilityLabel={`날짜, ${range}, ${period}, 바꾸기`}
           disabled={disabled}
@@ -97,6 +99,7 @@ export const ScheduleBasicsFields = forwardRef<TextInput, {
       />
 
       <ScheduleRangeSheet
+        anchorRef={dateAnchor}
         visible={rangeOpen}
         start={form.start_date}
         end={form.end_date}

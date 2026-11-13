@@ -1,3 +1,4 @@
+import { DatePicker } from '../../shared/components/DatePicker'
 import { useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
@@ -176,12 +177,11 @@ function ScheduleBasicsForm({ existing }) {
             <div className="snew-timing-row">
               <div className="snew-form__field">
                 <label className="snew-form__label" htmlFor="schedule-start-date">시작일 <span className="snew-form__required" aria-hidden="true">*</span></label>
-                <input
+                <DatePicker
                   id="schedule-start-date"
-                  type="date"
+                  label="시작일"
                   value={form.start_date}
-                  onChange={(e) => {
-                    const startDate = e.target.value
+                  onChange={(startDate) => {
                     setForm((current) => ({
                       ...current,
                       start_date: startDate,
@@ -209,12 +209,12 @@ function ScheduleBasicsForm({ existing }) {
             <div className="snew-timing-row snew-timing-row--end">
               <div className="snew-form__field">
                 <label className="snew-form__label" htmlFor="schedule-end-date">종료일 <span className="snew-form__required" aria-hidden="true">*</span></label>
-                <input
+                <DatePicker
                   id="schedule-end-date"
-                  type="date"
+                  label="종료일"
                   min={form.start_date}
                   value={form.end_date}
-                  onChange={(e) => set('end_date', e.target.value)}
+                  onChange={date => set('end_date', date)}
                   className="snew-form__input"
                   required
                 />

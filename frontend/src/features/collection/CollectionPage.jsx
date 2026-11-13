@@ -1,3 +1,4 @@
+import { DatePicker } from '../../shared/components/DatePicker'
 import { useEffect, useState } from 'react'
 import { useInfiniteQuery } from '@tanstack/react-query'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -47,9 +48,9 @@ export default function CollectionPage() {
     <form className="collection-filters" onSubmit={apply} noValidate>
       <label className="collection-search">검색<input type="search" maxLength={100} placeholder={kind === 'records' ? '제목, 장소, 일기 내용 검색' : '제목, 장소 검색'} value={draft.q} onChange={e => setDraft({ ...draft, q: e.target.value })} /></label>
       <div className="collection-date-row">
-        <label>시작일<input type="date" value={draft.from} onChange={e => setDraft({ ...draft, from: e.target.value })} /></label>
+        <div><label htmlFor="collection-from">시작일</label><DatePicker id="collection-from" label="시작일" clearable value={draft.from} onChange={date => setDraft({ ...draft, from: date })} /></div>
         <span aria-hidden="true">~</span>
-        <label>종료일<input type="date" value={draft.to} onChange={e => setDraft({ ...draft, to: e.target.value })} /></label>
+        <div><label htmlFor="collection-to">종료일</label><DatePicker id="collection-to" label="종료일" clearable value={draft.to} onChange={date => setDraft({ ...draft, to: date })} /></div>
       </div>
       <div className="collection-actions"><button type="submit">검색 적용</button><button type="button" onClick={() => { setDraft({ q: '', from: '', to: '' }); setParams({ kind }, { replace: true }) }}>초기화</button></div>
     </form>

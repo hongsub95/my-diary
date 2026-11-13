@@ -1,8 +1,8 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { Calendar } from 'react-native-calendars';
 import { SymbolView } from 'expo-symbols';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { DatePickerPopover } from '@/shared/components/date-picker-popover';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { PhaseTag, phaseColors, phaseKind, phaseKindLabels } from '@/features/schedules/phase-tag';
@@ -70,9 +70,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
   const pager = useRef<ScrollView>(null);
   const moving = useRef(false);
   const [picker, setPicker] = useState(false);
-  const [draft, setDraft] = useState(selectedDate);
-  const [yearsOpen, setYearsOpen] = useState(false);
-  const [yearPage, setYearPage] = useState(2020);
+  const pickerAnchor = useRef<View>(null);
   const active = { backgroundColor: palette.primarySoft };
   const accent = { color: palette.primaryDark };
 
@@ -86,16 +84,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
     moving.current = true;
     pager.current?.scrollTo({ x: size.width * (1 + step), animated: true });
   };
-  const openPicker = () => {
-    setDraft(selectedDate);
-    setYearPage(Math.floor(Number(selectedDate.slice(0, 4)) / 12) * 12);
-    setYearsOpen(false);
-    setPicker(true);
-  };
-  const setDraftMonth = (year: number, month: number) => {
-    const day = Math.min(Number(draft.slice(8)), new Date(year, month, 0).getDate());
-    setDraft(`${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`);
-  };
+  const openPicker = () => setPicker(true);
   const renderDay = (key: string, compact = false) => {
     const items = schedules[key] ?? [];
     return <View key={key} style={s.agendaDay}>
@@ -112,7 +101,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
     <View style={s.card}>
       <View style={s.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="이전 기간" onPress={() => move(-1)} style={s.button}><Text style={s.arrow}>‹</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`${periodLabel(selectedDate, mode)}, 날짜 이동 선택창 열기`} onPress={openPicker} style={s.dateButton}><Text style={s.dateTitle}>{periodLabel(selectedDate, mode)} <Text style={s.dateChevron}>⌄</Text></Text></Pressable>
+        <Pressable ref={pickerAnchor} accessibilityRole="button" accessibilityLabel={`${periodLabel(selectedDate, mode)}, 날짜 이동 선택창 열기`} onPress={openPicker} style={s.dateButton}><Text style={s.dateTitle}>{periodLabel(selectedDate, mode)} <Text style={s.dateChevron}>⌄</Text></Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="다음 기간" onPress={() => move(1)} style={s.button}><Text style={s.arrow}>›</Text></Pressable>
       </View>
       {/* 일간은 그날 하루를 따로 조회하고 상태도 스스로 보여 준다(DayAgenda). 석 달치 조회 상태를 겹쳐 띄우지 않는다. */}
@@ -161,28 +150,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
       </View>}
     </View>
     </SnowCapped>
-    <Modal visible={picker} transparent animationType="slide" onRequestClose={() => setPicker(false)}>
-      <View style={s.modal}>
-        <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="날짜 선택 취소" onPress={() => setPicker(false)} />
-        <SafeAreaView edges={['bottom']} style={s.sheet} accessibilityViewIsModal>
-          <View style={s.top}><Text style={s.title}>{mode === 'month' ? '월 이동' : '날짜 이동'}</Text><Pressable style={s.button} accessibilityRole="button" onPress={() => setPicker(false)}><Text style={s.muted}>취소</Text></Pressable></View>
-          <ScrollView>
-            <View style={s.header}>
-              <Pressable style={s.button} accessibilityLabel="이전 연도 구간" onPress={() => yearsOpen ? setYearPage(yearPage - 12) : setDraftMonth(Number(draft.slice(0, 4)) - 1, Number(draft.slice(5, 7)))}><Text>‹</Text></Pressable>
-              <Pressable style={s.dateButton} accessibilityRole="button" onPress={() => setYearsOpen(!yearsOpen)}><Text style={s.dateTitle}>{yearsOpen ? `${yearPage} ~ ${yearPage + 11}년` : `${draft.slice(0, 4)}년`} ▾</Text></Pressable>
-              <Pressable style={s.button} accessibilityLabel="다음 연도 구간" onPress={() => yearsOpen ? setYearPage(yearPage + 12) : setDraftMonth(Number(draft.slice(0, 4)) + 1, Number(draft.slice(5, 7)))}><Text>›</Text></Pressable>
-            </View>
-            <View style={s.grid}>{Array.from({ length: 12 }, (_, index) => yearsOpen ? yearPage + index : index + 1).map(value => <Pressable key={value} accessibilityRole="button" style={[s.gridItem, value === Number(draft.slice(yearsOpen ? 0 : 5, yearsOpen ? 4 : 7)) && active]} onPress={() => {
-              setDraftMonth(yearsOpen ? value : Number(draft.slice(0, 4)), yearsOpen ? Number(draft.slice(5, 7)) : value);
-              if (yearsOpen) setYearsOpen(false);
-            }}><Text style={[s.gridText, value === Number(draft.slice(yearsOpen ? 0 : 5, yearsOpen ? 4 : 7)) && s.selectedDateText]}>{value}{yearsOpen ? '년' : '월'}</Text></Pressable>)}</View>
-            {mode !== 'month' && !yearsOpen && <Calendar key={draft.slice(0, 7)} current={draft} theme={{ calendarBackground: colors.surface, dayTextColor: colors.text, monthTextColor: colors.text, todayTextColor: palette.primaryDark, arrowColor: palette.primary }} monthFormat="yyyy년 MM월" onMonthChange={date => setDraftMonth(date.year, date.month)} onDayPress={date => setDraft(date.dateString)} markedDates={{ [draft]: { selected: true, selectedColor: palette.primary } }} />}
-            <Text style={s.status}>{periodLabel(draft, mode)}</Text>
-          </ScrollView>
-          <Pressable accessibilityRole="button" style={[s.apply, { backgroundColor: palette.primary }]} onPress={() => { onSelect(draft); setPicker(false); }}><Text style={s.applyText}>이동</Text></Pressable>
-        </SafeAreaView>
-      </View>
-    </Modal>
+    <DatePickerPopover visible={picker} anchorRef={pickerAnchor} value={selectedDate} mode={mode === 'month' ? 'month' : 'date'} onChange={onSelect} onClose={() => setPicker(false)} />
   </View>;
 }
 
@@ -239,11 +207,4 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   empty: { color: colors.muted, fontSize: typography.body, lineHeight: 22, padding: spacing.lg, backgroundColor: colors.surfaceMuted, borderRadius: radii.lg },
   loading: { alignItems: 'center', paddingVertical: spacing.sm },
   status: { minHeight: 44, padding: spacing.sm, textAlign: 'center', fontSize: typography.body, lineHeight: 22, color: colors.muted },
-  modal: { flex: 1, justifyContent: 'flex-end', backgroundColor: 'rgba(28,25,23,0.35)' },
-  sheet: { maxHeight: '90%', backgroundColor: colors.surface, borderTopLeftRadius: radii.card, borderTopRightRadius: radii.card, padding: spacing.lg },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
-  gridItem: { width: '25%', minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: radii.md, padding: spacing.sm },
-  gridText: { color: colors.text, fontSize: typography.body },
-  apply: { minHeight: 48, borderRadius: radii.md, alignItems: 'center', justifyContent: 'center', marginTop: spacing.md, padding: spacing.sm },
-  applyText: { color: '#fff', fontSize: typography.emphasis, fontWeight: typography.semibold },
 });
