@@ -12,7 +12,7 @@ from string import ascii_letters, digits, punctuation
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
 
 from app.auth.security import MAX_PASSWORD_BYTES
-from app.users.models import normalize_theme_key
+from app.users.models import normalize_seasonal_background_time, normalize_theme_key
 
 MIN_PASSWORD_LENGTH = 9
 
@@ -176,6 +176,10 @@ class UserResponse(BaseModel):
     # 이 사람이 고른 테마 색상 키. 클라이언트는 로그인 직후 이 값으로 팔레트를 적용한다.
     # 서버는 키만 알고 실제 색상값은 모른다 (app/users/models.py의 SUPPORTED_THEME_KEYS).
     theme_key: str
+    # 계절 배경(지금은 크리스마스) 켜짐 여부와 낮·밤 선택. 보이는 기간과 자동일 때의
+    # 낮·밤 시각은 클라이언트가 기기 시간으로 정한다 (app/users/models.py).
+    seasonal_background_enabled: bool
+    seasonal_background_time: str
     created_at: datetime
 
     @classmethod
@@ -196,6 +200,8 @@ class UserResponse(BaseModel):
             # 프리셋이 없어진 뒤에도 남아 있는 키를 그대로 내보내면 클라이언트가 색을
             # 찾지 못해 화면이 깨진다. 여기서 기본값으로 맞춰서 내보낸다.
             theme_key=normalize_theme_key(user.theme_key),
+            seasonal_background_enabled=user.seasonal_background_enabled,
+            seasonal_background_time=normalize_seasonal_background_time(user.seasonal_background_time),
             created_at=user.created_at,
         )
 

@@ -12,7 +12,7 @@ from app.auth.schemas import (
     validate_nickname_rules,
     validate_password_rules,
 )
-from app.users.models import SUPPORTED_THEME_KEYS
+from app.users.models import SUPPORTED_SEASONAL_BACKGROUND_TIMES, SUPPORTED_THEME_KEYS
 
 
 class ProfileUpdateRequest(BaseModel):
@@ -34,6 +34,14 @@ class ProfileUpdateRequest(BaseModel):
     theme_key: str | None = Field(
         default=None,
         description=f"테마 색상 키. {', '.join(SUPPORTED_THEME_KEYS)} 중 하나",
+    )
+    seasonal_background_enabled: bool | None = Field(
+        default=None,
+        description="계절 배경(지금은 크리스마스)을 보여줄지",
+    )
+    seasonal_background_time: str | None = Field(
+        default=None,
+        description=f"계절 배경의 낮·밤. {', '.join(SUPPORTED_SEASONAL_BACKGROUND_TIMES)} 중 하나",
     )
 
     @field_validator("nickname")
@@ -67,6 +75,23 @@ class ProfileUpdateRequest(BaseModel):
             return None
         if value not in SUPPORTED_THEME_KEYS:
             raise ValueError("지원하지 않는 테마입니다.")
+        return value
+
+    @field_validator("seasonal_background_time")
+    @classmethod
+    def validate_seasonal_background_time(cls, value: str | None) -> str | None:
+        """지원하는 낮·밤 선택인지 본다.
+
+        :param value: auto·day·night 중 하나. 보내지 않았으면 None
+        :raises ValueError: 지원하지 않는 값일 때
+
+        테마 키와 같은 이유로 저장할 때는 거절한다. 조용히 auto로 바꾸면 사용자는 밤을
+        골랐는데 낮을 보게 된다.
+        """
+        if value is None:
+            return None
+        if value not in SUPPORTED_SEASONAL_BACKGROUND_TIMES:
+            raise ValueError("지원하지 않는 낮·밤 설정입니다.")
         return value
 
 

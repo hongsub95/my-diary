@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import ForeignKey, Index, String, func
+from sqlalchemy import ForeignKey, Index, String, func, true
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -67,6 +67,33 @@ DEFAULT_THEME_KEY = "rose"
 SUPPORTED_THEME_KEYS = ("rose", "purple", "emerald", "blue", "orange")
 
 
+# 계절 배경(지금은 크리스마스 하나)의 낮·밤 선택.
+#
+# 서버는 "언제부터 언제까지 보이는가"와 "몇 시부터 밤인가"를 모른다. 그 규칙은 화면에
+# 속해서 클라이언트가 기기 시간으로 정한다 (docs/API_SPEC.md 3-U절 화면 규칙).
+# 서버는 사용자가 무엇을 골랐는지만 계정에 저장해 웹과 앱이 같게 보이게 한다.
+#
+# | 값 | 뜻 |
+# |---|---|
+# | auto | 기기 시간에 따라 낮·밤이 바뀐다 (기본값) |
+# | day | 시간과 상관없이 늘 낮 |
+# | night | 시간과 상관없이 늘 밤 |
+DEFAULT_SEASONAL_BACKGROUND_TIME = "auto"
+SUPPORTED_SEASONAL_BACKGROUND_TIMES = ("auto", "day", "night")
+
+
+def normalize_seasonal_background_time(value: str | None) -> str:
+    """저장된 낮·밤 선택을 화면에 내보낼 수 있는 값으로 바꾼다.
+
+    :param value: DB에 있는 값. 비어 있거나 지원하지 않는 값일 수 있다
+    :return: 지원하는 값. 아니면 기본값(auto)
+
+    테마 키와 같은 이유로 조회할 때만 조용히 보정한다. 값을 나중에 줄이면 남아 있는
+    옛 값을 클라이언트가 해석하지 못한다.
+    """
+    return value if value in SUPPORTED_SEASONAL_BACKGROUND_TIMES else DEFAULT_SEASONAL_BACKGROUND_TIME
+
+
 def normalize_theme_key(value: str | None) -> str:
     """저장된 테마 키를 화면에 내보낼 수 있는 값으로 바꾼다.
 
@@ -106,6 +133,15 @@ class User(Base):
     # 마이그레이션을 새로 만들어야 한다. 허용 값 검사는 요청 스키마가 한다.
     theme_key: Mapped[str] = mapped_column(
         String(20), nullable=False, server_default=DEFAULT_THEME_KEY
+    )
+    # 계절 배경을 보여줄지. 기본은 켜짐이다. 보이는 기간이 아닐 때는 켜져 있어도 화면에
+    # 나오지 않는다(기간은 클라이언트가 정한다). 기간이 끝났다고 서버가 끄지 않는 이유:
+    # 다음 계절 배경이 생겼을 때 사용자가 꺼 둔 선택이 그대로 남아야 한다.
+    seasonal_background_enabled: Mapped[bool] = mapped_column(nullable=False, server_default=true())
+    # 계절 배경의 낮·밤 선택. 위 SUPPORTED_SEASONAL_BACKGROUND_TIMES 표 참고.
+    # CHECK 제약을 걸지 않는 이유는 theme_key와 같다.
+    seasonal_background_time: Mapped[str] = mapped_column(
+        String(10), nullable=False, server_default=DEFAULT_SEASONAL_BACKGROUND_TIME
     )
     # 계정 운영 상태. 위 USER_STATUS_* 표 참고.
     # CHECK 제약은 role·use와 같은 이유로 걸지 않는다. 상태가 늘 때마다 마이그레이션을

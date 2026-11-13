@@ -26,11 +26,15 @@ def update_profile(
     user: User,
     nickname: str | None = None,
     theme_key: str | None = None,
+    seasonal_background_enabled: bool | None = None,
+    seasonal_background_time: str | None = None,
 ) -> User:
     """프로필을 수정한다. None인 필드는 건드리지 않는다.
 
     :param nickname: 새 닉네임. 스키마에서 형식 검증 완료
     :param theme_key: 새 테마 색상 키. 스키마에서 허용 값 검증 완료
+    :param seasonal_background_enabled: 계절 배경 켜기/끄기
+    :param seasonal_background_time: 계절 배경 낮·밤 선택. 스키마에서 허용 값 검증 완료
     :raises NicknameAlreadyExistsError: 다른 사람이 이미 쓰는 닉네임일 때 (409)
 
     자기 닉네임을 그대로 다시 저장하는 것은 막지 않는다. 화면에서 다른 값을 고치다가
@@ -50,6 +54,12 @@ def update_profile(
         user.nickname = nickname
     if theme_key is not None:
         user.theme_key = theme_key
+    # False도 "보낸 값"이라 None과 구분해야 한다. `if seasonal_background_enabled:`로
+    # 쓰면 끄기 요청이 무시된다.
+    if seasonal_background_enabled is not None:
+        user.seasonal_background_enabled = seasonal_background_enabled
+    if seasonal_background_time is not None:
+        user.seasonal_background_time = seasonal_background_time
 
     db.commit()
     db.refresh(user)
