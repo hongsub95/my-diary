@@ -1,16 +1,21 @@
 import { apiClient } from '@/shared/api/client';
-import type { User } from '@/shared/api/types';
+import type { SeasonalBackgroundTime, User } from '@/shared/api/types';
 
-export type UpdateProfileInput = { nickname?: string; themeKey?: string };
+export type UpdateProfileInput = {
+  nickname?: string;
+  themeKey?: string;
+  seasonalBackgroundEnabled?: boolean;
+  seasonalBackgroundTime?: SeasonalBackgroundTime;
+};
 export type ChangePasswordInput = { currentPassword: string; newPassword: string };
 export type DeleteAccountInput = { currentPassword: string };
 
 /**
  * 프로필을 바꾼다. **넘긴 필드만 바뀐다.**
  *
- * @param input 새 닉네임(앞뒤 공백은 서버가 제거) 또는 테마 키
+ * @param input 새 닉네임(앞뒤 공백은 서버가 제거), 테마 키, 계절 배경 켜기/끄기·낮밤
  * @returns 갱신된 사용자 정보. `/auth/me`와 같은 형태다
- * @throws 다른 사람이 쓰는 닉네임이면 409, 지원하지 않는 테마 키면 422
+ * @throws 다른 사람이 쓰는 닉네임이면 409, 지원하지 않는 테마 키나 낮·밤 값이면 422
  *
  * 응답을 auth-context의 updateUser에 넘기면 더보기 상단 카드와 테마가 함께 갱신된다.
  *
@@ -18,9 +23,17 @@ export type DeleteAccountInput = { currentPassword: string };
  * 필요가 없다. 그렇게 하면 그 사이 다른 기기에서 바꾼 닉네임을 옛 값으로 덮어쓰게 된다.
  */
 export async function updateProfile(input: UpdateProfileInput): Promise<User> {
-  const body: { nickname?: string; theme_key?: string } = {};
+  const body: {
+    nickname?: string;
+    theme_key?: string;
+    seasonal_background_enabled?: boolean;
+    seasonal_background_time?: SeasonalBackgroundTime;
+  } = {};
   if (input.nickname !== undefined) body.nickname = input.nickname;
   if (input.themeKey !== undefined) body.theme_key = input.themeKey;
+  // false도 보내야 하는 값이라 undefined와만 구분한다.
+  if (input.seasonalBackgroundEnabled !== undefined) body.seasonal_background_enabled = input.seasonalBackgroundEnabled;
+  if (input.seasonalBackgroundTime !== undefined) body.seasonal_background_time = input.seasonalBackgroundTime;
 
   const response = await apiClient.patch<User>('/users/me', body);
   return response.data;

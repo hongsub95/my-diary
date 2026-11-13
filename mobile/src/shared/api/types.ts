@@ -24,8 +24,15 @@ export type User = {
   default_space_id: SpaceId | null;
   // 고른 테마 색상 키. 실제 색은 shared/theme.ts의 THEME_PALETTES가 들고 있다.
   theme_key: string;
+  // 계절 배경(지금은 크리스마스) 켜짐 여부와 낮·밤 선택. 보이는 기간과 자동일 때의
+  // 낮·밤 시각은 서버가 아니라 앱이 정한다 (features/seasonal/season-rules.ts).
+  seasonal_background_enabled: boolean;
+  seasonal_background_time: SeasonalBackgroundTime;
   created_at: string;
 };
+
+/** 계절 배경의 낮·밤 선택. auto는 기기 시간을 따른다. */
+export type SeasonalBackgroundTime = 'auto' | 'day' | 'night';
 
 export type RegisterResponse = {
   user: User;

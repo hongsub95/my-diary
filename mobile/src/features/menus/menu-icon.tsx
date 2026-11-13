@@ -18,6 +18,8 @@ const SYMBOLS: Record<string, SymbolViewProps['name']> = {
   password: { ios: 'lock', android: 'lock', web: 'lock' },
   notifications: { ios: 'bell', android: 'notifications_none', web: 'notifications_none' },
   theme: { ios: 'paintpalette', android: 'palette', web: 'palette' },
+  seasonal: { ios: 'snowflake', android: 'ac_unit', web: 'ac_unit' },
+  'seasonal-time': { ios: 'sun.horizon', android: 'brightness_6', web: 'brightness_6' },
   privacy: { ios: 'checkmark.shield', android: 'verified_user', web: 'verified_user' },
   terms: { ios: 'doc.text', android: 'description', web: 'description' },
   logout: { ios: 'rectangle.portrait.and.arrow.right', android: 'logout', web: 'logout' },

@@ -9,6 +9,7 @@ import { buildAllMenus } from '@/features/menus/all-menus';
 import { IconBadge } from '@/features/menus/icon-badge';
 import { useNavigableMenus } from '@/features/menus/menu-api';
 import { MenuIcon } from '@/features/menus/menu-icon';
+import { SeasonalSettingsRows } from '@/features/seasonal/seasonal-settings';
 import { useSpaces } from '@/features/spaces/space-context';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
@@ -23,9 +24,11 @@ type MoreMenuItem = {
   emailAccountOnly?: boolean;
 };
 
-const MENU_GROUPS: { title: string; items: MoreMenuItem[] }[] = [
+const MENU_GROUPS: { title: string; items: MoreMenuItem[]; seasonal?: boolean }[] = [
   {
     title: '나에게 맞추기',
+    // 기간 한정인 계절 배경 설정을 이 묶음 끝에 붙인다. 기간 밖에는 저절로 사라진다.
+    seasonal: true,
     items: [
       { key: 'password', label: '비밀번호 변경', href: '/more/password', emailAccountOnly: true },
       { key: 'notifications', label: '알림 설정' },
@@ -166,6 +169,7 @@ export default function MoreScreen() {
                     </View>
                   );
                 })}
+                {group.seasonal && <SeasonalSettingsRows onError={showSnackbar} />}
               </View>
             </View>
           );
