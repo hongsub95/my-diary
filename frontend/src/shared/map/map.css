@@ -50,30 +50,80 @@
   color: var(--color-text-secondary);
 }
 
-/* 마커. 카카오 기본 핀 대신 번호와 이름을 함께 보여준다. 목록의 1·2·3번과 같은
-   번호라, 지도와 목록을 눈으로 맞출 수 있어야 한다. */
+/* 마커. 작은 번짐 원이다(앱과 같은 B′, docs/MOBILE_HOME_MAP_SPEC.md). 가운데 5px 진한
+   점이 위치를 찍고, 바깥으로 갈수록 투명해지는 번짐이 지도를 덜 가린다. 원은 작아도
+   누르는 영역(.kakao-pin)은 44px다. 색은 테마 primary를 따른다. */
+.kakao-marker {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+
 .kakao-pin {
+  display: flex;
+  width: 44px;
+  height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+}
+
+.kakao-pin:focus-visible {
+  outline: 3px solid var(--color-text-primary);
+  outline-offset: 2px;
+}
+
+.kakao-pin__glow {
+  width: 34px;
+  height: 34px;
+  flex-shrink: 0;
+  border-radius: var(--radius-full);
+  background:
+    radial-gradient(circle, var(--color-primary) 0 2.5px, transparent 3px),
+    radial-gradient(circle,
+      color-mix(in srgb, var(--color-primary) 75%, transparent) 0%,
+      color-mix(in srgb, var(--color-primary) 40%, transparent) 25%,
+      color-mix(in srgb, var(--color-primary) 12%, transparent) 50%,
+      transparent 70%);
+  transition: width 0.15s, height 0.15s;
+}
+
+/* 고른 마커. 원이 커지고 가운데 점에 흰 고리를 둘러, 색이 비슷한 지도 아이콘과도 구분된다. */
+.kakao-marker--active .kakao-pin__glow {
+  width: 48px;
+  height: 48px;
+  background:
+    radial-gradient(circle, var(--color-primary) 0 4px, #ffffff 4.5px 7px, transparent 7.5px),
+    radial-gradient(circle,
+      color-mix(in srgb, var(--color-primary) 90%, transparent) 0%,
+      color-mix(in srgb, var(--color-primary) 50%, transparent) 24%,
+      color-mix(in srgb, var(--color-primary) 16%, transparent) 48%,
+      transparent 70%);
+}
+
+/* 이름표. 고른 장소에만 원 위에 뜬다. */
+.kakao-marker__name {
+  display: none;
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
   max-width: 180px;
   overflow: hidden;
-  padding: 7px 10px;
-  border: 2px solid #ffffff;
-  border-radius: var(--radius-full);
-  background: var(--color-sage);
-  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.2);
-  color: #ffffff;
+  padding: 7px 11px;
+  border-radius: 14px;
+  background: var(--color-surface);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.13);
+  color: var(--color-primary-text);
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
   text-overflow: ellipsis;
+  transform: translateX(-50%);
 }
 
-.kakao-pin:disabled {
-  cursor: default;
-}
-
-/* 고른 마커. 색만 바꾸지 않고 크기도 키운다. 색 하나로만 구분하면 겹쳐 있을 때
-   어느 것이 선택됐는지 알기 어렵다. */
-.kakao-pin--active {
-  background: var(--color-orange);
-  transform: scale(1.08);
+.kakao-marker--active .kakao-marker__name {
+  display: block;
 }
