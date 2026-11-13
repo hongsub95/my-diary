@@ -1,0 +1,283 @@
+/* 크리스마스 배경 A "눈 오는 골목" (docs/API_SPEC.md 3-U절 화면 규칙).
+ *
+ * 레이아웃: .app-layout--season이 붙은 탭 화면에서 .app-layout__stage 뒤로 장면이 깔리고,
+ * 그 위에 인사·칩(고정)과 화면 내용(스크롤)이 올라간다. 탭 바 뒤는 눈밭 색으로 이어진다.
+ *
+ * 원칙: 카드 안은 건드리지 않는다. 카드 밖 바탕을 투명하게 하고, 밤에는 카드 밖 글씨만
+ * 흰색 계열로 바꾸며, 카드 윗변에 쌓인 눈만 얹는다. 화면별 클래스를 여기 한 곳에 모아서
+ * 시즌이 끝나면 이 파일만 걷어내면 되게 한다.
+ */
+
+.app-layout {
+  --season-ground: #dfe6ef;
+  --season-night-text: #fff;
+  --season-night-muted: rgba(255, 255, 255, 0.78);
+  --season-night-accent: #ffe2a0;
+  --season-night-shadow: 0 1px 6px rgba(10, 14, 30, 0.6);
+}
+
+.app-layout__stage {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-layout__stage > .app-layout__content {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── 장면 ── */
+
+.season-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+  /* 테마 색이 살짝 섞인 하늘. 밤 네 칸, 낮 네 칸 */
+  --sky-1: color-mix(in srgb, var(--color-primary-text) 22%, #10162e);
+  --sky-2: color-mix(in srgb, var(--color-primary) 16%, #252e55);
+  --sky-3: color-mix(in srgb, var(--color-primary) 12%, #2f3a68);
+  --sky-4: color-mix(in srgb, var(--color-primary-light) 22%, #5f6d9a);
+}
+
+.season-scene--day {
+  --sky-1: color-mix(in srgb, var(--color-primary-light) 25%, #b9cfe3);
+  --sky-2: #d5e2ec;
+  --sky-3: #e4ebf0;
+  --sky-4: #edf0f2;
+}
+
+.season-scene__sky {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(130% 26% at 50% 100%, rgba(255, 205, 140, 0.32), rgba(255, 205, 140, 0) 70%),
+    linear-gradient(180deg, var(--sky-1) 0, var(--sky-2) 260px, var(--sky-3) 68%, var(--sky-4) 100%);
+}
+
+.season-scene--day .season-scene__sky {
+  background:
+    radial-gradient(120% 30% at 88% 14%, rgba(255, 243, 200, 0.6), rgba(255, 243, 200, 0) 70%),
+    linear-gradient(180deg, var(--sky-1) 0, var(--sky-2) 260px, var(--sky-3) 68%, var(--sky-4) 100%);
+}
+
+.season-scene__top,
+.season-scene__mid,
+.season-scene__bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  line-height: 0;
+}
+
+.season-scene__top { top: 0; }
+.season-scene__mid { top: 270px; }
+.season-scene__bottom { bottom: 0; }
+
+.season-scene__snow {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.season-scene .ss-star { fill: #fff; }
+.season-scene .ss-near { fill: color-mix(in srgb, var(--color-primary-text) 16%, #151b36); }
+.season-scene .ss-far { fill: color-mix(in srgb, var(--color-primary) 14%, #36406a); }
+.season-scene .ss-far-window { fill: #ffe2a0; opacity: 0.55; }
+.season-scene .ss-window { fill: #ffd27a; }
+.season-scene .ss-wire { stroke: #0d1124; }
+.season-scene .ss-bulb--gold { fill: #ffd27a; }
+.season-scene .ss-bulb--theme { fill: color-mix(in srgb, var(--color-primary) 55%, #fff); }
+.season-scene .ss-bulb--mint { fill: #9fe3c9; }
+.season-scene .ss-bulb--ice { fill: #a9d4ff; }
+
+/* 낮: 같은 골목을 밝은 하늘 아래 둔다. 별·달·빛망울·창 불빛·전구 빛무리는 숨긴다. */
+.season-scene--night .ss-day-only,
+.season-scene--day .ss-night-only,
+.season-scene--day .season-scene__mid,
+.season-scene--day .ss-halo {
+  display: none;
+}
+
+.season-scene--day .ss-near { fill: color-mix(in srgb, var(--color-primary-text) 10%, #7d8ba0); }
+.season-scene--day .ss-far { fill: color-mix(in srgb, var(--color-primary) 8%, #aebbcb); }
+.season-scene--day .ss-far-window { opacity: 0.12; }
+.season-scene--day .ss-window { fill: #e3ecf4; }
+.season-scene--day .ss-wire { stroke: #5a6475; }
+.season-scene--day .ss-bulbs { opacity: 0.85; }
+
+.season-scene .ss-tw { animation: season-twinkle var(--t, 2.4s) ease-in-out var(--o, 0s) infinite; }
+.season-scene .ss-halo { animation: season-halo var(--t, 1.8s) ease-in-out var(--o, 0s) infinite; }
+.season-scene--night .ss-flick { animation: season-flick var(--t, 5s) steps(1) var(--o, 0s) infinite; }
+
+@keyframes season-twinkle { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes season-halo { 0%, 100% { opacity: 0.9; } 50% { opacity: 0.2; } }
+@keyframes season-flick { 0%, 100% { opacity: 1; } 47% { opacity: 0.25; } 53% { opacity: 1; } }
+
+/* ── 인사·D-데이 칩. 화면 맨 위에 고정되고 내용만 그 아래에서 스크롤된다. ── */
+
+.season-greeting {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  /* 맨 위 전구 줄(가장 낮은 전구 끝 y≈46) 아래에서 시작한다. */
+  padding: calc(50px + env(safe-area-inset-top, 0px)) 20px 4px;
+}
+
+.season-greeting__hello {
+  color: var(--color-primary-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.season-greeting__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 4px 0 11px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.75);
+  color: var(--color-primary-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.season-greeting__star { color: #e0a93a; font-size: 11px; }
+
+.season-greeting__close {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-primary-light);
+  color: var(--color-primary-text);
+  font-size: 14px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* 작은 ×라도 누르기 쉽게 보이지 않는 영역을 넓힌다. */
+.season-greeting__close { position: relative; }
+.season-greeting__close::after { position: absolute; inset: -10px; content: ''; }
+.season-greeting__close:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
+
+.app-layout--season-night .season-greeting__hello { color: var(--season-night-accent); text-shadow: var(--season-night-shadow); }
+.app-layout--season-night .season-greeting__chip { background: rgba(255, 255, 255, 0.14); color: #fff; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28); backdrop-filter: blur(6px); }
+.app-layout--season-night .season-greeting__close { background: rgba(255, 255, 255, 0.18); color: #fff; }
+
+/* ── 탭 화면을 장면 위에 올리기: 카드 밖 바탕을 투명하게, 인사 아래로 위 여백을 줄인다. ── */
+
+.app-layout--season { background: var(--season-ground); }
+
+.app-layout--season .app-layout__content,
+.app-layout--season .slist-page,
+.app-layout--season .slist-page__header,
+.app-layout--season .more-page,
+.app-layout--season .more-page__header,
+.app-layout--season .records-page,
+.app-layout--season .home-page,
+.app-layout--season .calendar-page {
+  background: transparent;
+}
+
+.app-layout--season .slist-page__header,
+.app-layout--season .more-page__header { padding-top: 12px; }
+.app-layout--season .records-page,
+.app-layout--season .home-page { padding-top: 12px; }
+.app-layout--season .calendar-page { padding-top: 12px; }
+
+/* 맨 아래 내용이 흰 눈밭이 아니라 건물 위에서 끝나도록 여백을 둔다. */
+.app-layout--season .slist-page,
+.app-layout--season .records-page,
+.app-layout--season .more-page,
+.app-layout--season .home-page { padding-bottom: 96px; }
+
+/* ── 밤: 카드 밖 글씨만 흰색 계열로 ── */
+
+.app-layout--season-night :is(
+  .slist-page__heading, .slist-section__title,
+  .records-page__title, .records-page__status,
+  .home-page__title, .home-page__status,
+  .more-page__heading, .more-group__title
+) {
+  color: var(--season-night-text);
+  text-shadow: var(--season-night-shadow);
+}
+
+.app-layout--season-night :is(
+  .records-page__subtitle, .more-page__brand, .more-group__header > span,
+  .more-logout, .more-account__separator, .more-signature
+) {
+  color: var(--season-night-muted);
+  text-shadow: var(--season-night-shadow);
+}
+
+.app-layout--season-night :is(.records-page__eyebrow, .home-page__eyebrow, .more-page__brand span) {
+  color: var(--season-night-accent);
+  text-shadow: var(--season-night-shadow);
+}
+
+/* ── 카드 윗변에 쌓인 눈. 가운데가 두툼하고 양 끝은 흐리게 사라진다. ── */
+
+.app-layout--season :is(.slist-card, .slist-page__records, .record-card, .all-menu-panel, .more-menu, .calendar-header, .bottom-nav) {
+  position: relative;
+}
+
+.app-layout--season :is(.slist-card, .slist-page__records, .record-card, .all-menu-panel, .more-menu, .calendar-header, .bottom-nav)::before {
+  position: absolute;
+  top: -8px;
+  right: 16px;
+  left: 16px;
+  z-index: 2;
+  height: 12px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 12' preserveAspectRatio='none'%3E%3Cpath d='M0 8 C5 4 11 4 15 6.5 C20 2 31 2 36 6.5 C41 4 49 3 53 6.5 C56 5 60 6 60 7.5 V12 H0 Z' fill='white'/%3E%3C/svg%3E") repeat-x left bottom / 60px 12px;
+  content: '';
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent);
+}
+
+/* 낮 하늘은 밝아서 흰 눈이 묻힌다. 옅은 윤곽을 준다. */
+.app-layout--season:not(.app-layout--season-night) :is(.slist-card, .slist-page__records, .record-card, .all-menu-panel, .more-menu, .calendar-header, .bottom-nav)::before {
+  filter: drop-shadow(0 -1px 1.5px rgba(90, 115, 150, 0.4));
+}
+
+.app-layout--season .slist-card + .slist-card::before { background-position-x: 23px; }
+.app-layout--season .bottom-nav::before { background-position-x: 41px; }
+
+/* 눈이 카드 밖으로 올라오도록 잘라내기를 푼다. 카드 안 내용은 원래 카드 안에 있으므로
+ * 보이는 것은 그대로다. 메뉴는 누를 때 바탕이 모서리 밖으로 비치지 않게 첫·끝 줄만 둥글린다. */
+.app-layout--season :is(.record-card, .all-menu-panel, .more-menu, .calendar-header) {
+  overflow: visible;
+}
+
+.app-layout--season .more-menu > :last-child > .more-menu__item,
+.app-layout--season .more-menu > .more-menu__item:last-child {
+  border-bottom-left-radius: var(--daybook-radius-card);
+  border-bottom-right-radius: var(--daybook-radius-card);
+}
+
+.app-layout--season .more-menu > :first-child > .more-menu__item,
+.app-layout--season .more-menu > .more-menu__item:first-child {
+  border-top-left-radius: var(--daybook-radius-card);
+  border-top-right-radius: var(--daybook-radius-card);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .season-scene .ss-tw,
+  .season-scene .ss-halo,
+  .season-scene .ss-flick {
+    animation: none;
+  }
+}

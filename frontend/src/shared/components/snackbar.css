@@ -3,3 +3,4 @@
 .snackbar span{flex:1;padding:8px 0;overflow-wrap:anywhere}
 .snackbar button{background:none;border:0;color:#d2e6ce;min-height:48px;min-width:48px;font:inherit;font-weight:600;cursor:pointer}
 .snackbar button:focus-visible{outline:2px solid #d2e6ce;border-radius:8px}
+.snackbar .snackbar__action{color:#ffd27a}
