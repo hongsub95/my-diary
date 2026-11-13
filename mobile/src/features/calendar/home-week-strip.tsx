@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radii, typography, type ThemePalette } from '@/shared/theme';
@@ -8,30 +8,84 @@ import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { dateKey, moveDate, parseDate, weekDates } from './calendar-dates';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
+const WEEK_PAGE_RADIUS = 520;
+const WEEK_PAGES = Array.from({ length: WEEK_PAGE_RADIUS * 2 + 1 }, (_, index) => index - WEEK_PAGE_RADIUS);
+const WEEK_MILLISECONDS = 7 * 24 * 60 * 60 * 1000;
+const WEEK_VIEWABILITY = { itemVisiblePercentThreshold: 90 };
 
-/** CalendarExplorer와 같은 앞주·현재주·다음주 3페이지 스크롤 방식. */
+function weekPageIndex(anchor: string, date: string) {
+  const start = (key: string) => Date.parse(`${weekDates(key)[0]}T00:00:00Z`);
+  return WEEK_PAGE_RADIUS + Math.round((start(date) - start(anchor)) / WEEK_MILLISECONDS);
+}
+
+/** 고정된 주 페이지를 탐색한다. 스와이프 후 가운데로 되돌리지 않는다. */
 export function HomeWeekStrip({ selectedDate, onSelect }: {
   selectedDate: string;
   onSelect: (date: string) => void;
 }) {
   const styles = useThemedStyles(createStyles);
   const palette = useTheme();
-  const pager = useRef<ScrollView>(null);
+  const pager = useRef<FlatList<number>>(null);
+  const scrollOffset = useRef(0);
+  const webSnapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [width, setWidth] = useState(0);
-  const weekStart = weekDates(selectedDate)[0];
+  const [visibleDate, setVisibleDate] = useState(selectedDate);
+  const [navigationDate, setNavigationDate] = useState(selectedDate);
+  const [anchorDate, setAnchorDate] = useState(selectedDate);
+  const [previousSelectedDate, setPreviousSelectedDate] = useState(selectedDate);
+  if (previousSelectedDate !== selectedDate) {
+    setPreviousSelectedDate(selectedDate);
+    setVisibleDate(selectedDate);
+    setNavigationDate(selectedDate);
+    const index = weekPageIndex(anchorDate, selectedDate);
+    if (index < 0 || index >= WEEK_PAGES.length) setAnchorDate(selectedDate);
+  }
+  const pageIndex = weekPageIndex(anchorDate, navigationDate);
   const today = dateKey(new Date());
   const [pickerOpen, setPickerOpen] = useState(false);
   const [draft, setDraft] = useState(selectedDate);
   const draftYear = Number(draft.slice(0, 4));
   const draftMonth = Number(draft.slice(5, 7));
+  const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken<number>[] }) => {
+    const page = viewableItems.find(item => item.isViewable);
+    // 같은 페이지의 알림이 중복되어도 동일한 주를 표시한다.
+    if (page) setVisibleDate(moveDate(anchorDate, 'week', page.item));
+  }, [anchorDate]);
+
+  useEffect(() => () => {
+    if (webSnapTimer.current !== null) clearTimeout(webSnapTimer.current);
+  }, [anchorDate, width]);
 
   useLayoutEffect(() => {
-    pager.current?.scrollTo({ x: width, animated: false });
-  }, [weekStart, width]);
+    const offset = pageIndex * width;
+    // 일반 스와이프는 이미 올바른 위치에 있으므로 native scroll을 다시 호출하지 않는다.
+    // 월 이동·오늘·화면 크기 변경 때만 필요한 위치로 직접 이동한다.
+    if (width > 0 && Math.abs(scrollOffset.current - offset) > 1) {
+      scrollOffset.current = offset;
+      pager.current?.scrollToOffset({ offset, animated: false });
+    }
+  }, [pageIndex, width]);
+
+  const showDate = (key: string) => {
+    const index = weekPageIndex(anchorDate, key);
+    if (index < 0 || index >= WEEK_PAGES.length) {
+      setAnchorDate(key);
+    } else if (width > 0 && Math.abs(scrollOffset.current - index * width) > 1) {
+      // 같은 선택일의 '오늘'도 탐색 중인 다른 주에서 돌아와야 한다.
+      scrollOffset.current = index * width;
+      pager.current?.scrollToOffset({ offset: index * width, animated: false });
+    }
+    setVisibleDate(key);
+    setNavigationDate(key);
+  };
 
   const openPicker = () => {
-    setDraft(selectedDate);
+    setDraft(visibleDate);
     setPickerOpen(true);
+  };
+  const selectDate = (key: string) => {
+    showDate(key);
+    onSelect(key);
   };
   const selectMonth = (month: number) => {
     // 31일 → 2월, 윤년 → 평년 이동은 공통 날짜 유틸의 말일 보정을 따른다.
@@ -43,12 +97,12 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
       <View style={styles.monthRow}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel={`${Number(selectedDate.slice(0, 4))}년 ${Number(selectedDate.slice(5, 7))}월, 월 선택 열기`}
+          accessibilityLabel={`${Number(visibleDate.slice(0, 4))}년 ${Number(visibleDate.slice(5, 7))}월, 월 선택 열기`}
           accessibilityState={{ expanded: pickerOpen }}
           onPress={openPicker}
           style={styles.monthButton}>
           <Text style={styles.monthTitle}>
-            {Number(selectedDate.slice(0, 4))}년 {Number(selectedDate.slice(5, 7))}월
+            {Number(visibleDate.slice(0, 4))}년 {Number(visibleDate.slice(5, 7))}월
           </Text>
           <SymbolView
             name={{ ios: 'chevron.down', android: 'expand_more' }}
@@ -57,28 +111,58 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
             fallback={<View style={styles.chevronDown} />}
           />
         </Pressable>
-        <Pressable accessibilityRole="button" onPress={() => onSelect(today)} style={styles.todayButton}>
+        <Pressable accessibilityRole="button" onPress={() => selectDate(today)} style={styles.todayButton}>
           <Text style={styles.todayText}>오늘</Text>
         </Pressable>
       </View>
       <View style={styles.divider} />
-      <View style={styles.viewport} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
+      <View style={styles.viewport} onLayout={event => {
+        const nextWidth = event.nativeEvent.layout.width;
+        if (nextWidth !== width) {
+          setNavigationDate(visibleDate);
+          setWidth(nextWidth);
+        }
+      }}>
         {width > 0 && (
-          <ScrollView
+          <FlatList
+            key={`${anchorDate}:${width}`}
             ref={pager}
+            data={WEEK_PAGES}
+            extraData={selectedDate}
+            keyExtractor={offset => String(offset)}
             horizontal
-            pagingEnabled
+            pagingEnabled={Platform.OS !== 'web'}
+            snapToInterval={width}
+            disableIntervalMomentum
+            decelerationRate="fast"
             directionalLockEnabled
             bounces={false}
+            overScrollMode="never"
             showsHorizontalScrollIndicator={false}
-            contentOffset={{ x: width, y: 0 }}
-            onMomentumScrollEnd={event => {
-              const step = Math.max(-1, Math.min(1, Math.round(event.nativeEvent.contentOffset.x / width) - 1));
-              if (step) onSelect(moveDate(selectedDate, 'week', step));
-            }}>
-            {[-1, 0, 1].map(step => (
-              <View key={step} style={[styles.weekRow, { width }]} accessibilityElementsHidden={step !== 0} importantForAccessibility={step === 0 ? 'auto' : 'no-hide-descendants'}>
-                {weekDates(moveDate(selectedDate, 'week', step)).map((key, index) => {
+            initialScrollIndex={pageIndex}
+            getItemLayout={(_, index) => ({ length: width, offset: index * width, index })}
+            initialNumToRender={3}
+            maxToRenderPerBatch={3}
+            windowSize={5}
+            viewabilityConfig={WEEK_VIEWABILITY}
+            onViewableItemsChanged={onViewableItemsChanged}
+            scrollEventThrottle={16}
+            onScroll={event => {
+              scrollOffset.current = event.nativeEvent.contentOffset.x;
+              // 웹의 CSS snap은 가상 목록의 빈 공간까지 페이지로 취급하므로 직접 정착시킨다.
+              if (Platform.OS === 'web') {
+                if (webSnapTimer.current !== null) clearTimeout(webSnapTimer.current);
+                webSnapTimer.current = setTimeout(() => {
+                  const offset = Math.round(scrollOffset.current / width) * width;
+                  if (Math.abs(scrollOffset.current - offset) > 1) {
+                    pager.current?.scrollToOffset({ offset, animated: false });
+                  }
+                }, 120);
+              }
+            }}
+            renderItem={({ item }) => (
+              <View style={[styles.weekRow, { width }]}>
+                {weekDates(moveDate(anchorDate, 'week', item)).map((key, index) => {
                   const date = parseDate(key);
                   const selected = key === selectedDate;
                   return (
@@ -87,7 +171,7 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
                       accessibilityRole="button"
                       accessibilityState={{ selected }}
                       accessibilityLabel={`${date.getMonth() + 1}월 ${date.getDate()}일 ${WEEKDAYS[index]}요일${key === today ? ', 오늘' : ''}`}
-                      onPress={() => onSelect(key)}
+                      onPress={() => selectDate(key)}
                       style={[styles.dayButton, selected && styles.selectedDayButton]}>
                       <Text style={[styles.weekday, index === 0 && styles.sunday, index === 6 && styles.saturday, selected && styles.selectedWeekday]}>{WEEKDAYS[index]}</Text>
                       <View style={styles.dateCircle}>
@@ -98,8 +182,8 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
                   );
                 })}
               </View>
-            ))}
-          </ScrollView>
+            )}
+          />
         )}
       </View>
 
@@ -125,7 +209,7 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
                 ))}
               </View>
             </ScrollView>
-            <Pressable accessibilityRole="button" style={[styles.apply, { backgroundColor: palette.primary }]} onPress={() => { onSelect(draft); setPickerOpen(false); }}>
+            <Pressable accessibilityRole="button" style={[styles.apply, { backgroundColor: palette.primary }]} onPress={() => { showDate(draft); setPickerOpen(false); }}>
               <Text style={styles.applyText}>{draftYear}년 {draftMonth}월로 이동</Text>
             </Pressable>
           </SafeAreaView>

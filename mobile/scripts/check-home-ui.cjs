@@ -98,6 +98,46 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     const handleOffset = async locator => (await locator.boundingBox()).y - (await page.locator('iframe[title="카카오 장소 지도"]').boundingBox()).y;
     await expect(expandHandle()).toBeVisible({ timeout: 60000 });
     await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toBeVisible();
+    const weekPager = await page.getByRole('button', { name: /^10월 13일 화요일/ }).evaluateHandle(element => {
+      let node = element.parentElement;
+      while (node && !(node.scrollWidth > node.clientWidth + 10 && /auto|scroll/.test(getComputedStyle(node).overflowX))) node = node.parentElement;
+      if (!node) throw new Error('Home week pager not found');
+      return node;
+    });
+    await page.waitForTimeout(600);
+    let weekOffset = 0;
+    for (const direction of [-1, -1, 1, 1, 1, 1, 1, -1, -1, -1, -1, 1]) {
+      weekOffset += direction;
+      const sunday = new Date('2026-10-11T12:00:00');
+      sunday.setDate(sunday.getDate() + weekOffset * 7);
+      const target = await weekPager.evaluate((node, step) => {
+        const offset = node.scrollLeft + node.clientWidth * step;
+        node.scrollLeft = offset;
+        return offset;
+      }, direction);
+      await expect.poll(() => weekPager.evaluate(node => node.scrollLeft)).toBeCloseTo(target, 0);
+      await expect(page.getByRole('button', { name: new RegExp(`^${sunday.getMonth() + 1}월 ${sunday.getDate()}일 일요일`) })).toBeInViewport({ ratio: 0.95 });
+      await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toBeVisible();
+      await weekPager.evaluate(node => {
+        let fiber = node[Object.keys(node).find(key => key.startsWith('__reactFiber$'))];
+        while (fiber && !(fiber.memoizedProps?.viewabilityConfig && Array.isArray(fiber.memoizedProps?.data))) fiber = fiber.return;
+        if (!fiber) throw new Error('FlatList viewability callback not found');
+        const props = fiber.memoizedProps;
+        const index = Math.round(node.scrollLeft / node.clientWidth);
+        const token = { item: props.data[index], index, key: String(props.data[index]), isViewable: true };
+        const event = { viewableItems: [token], changed: [token] };
+        props.onViewableItemsChanged(event);
+        props.onViewableItemsChanged(event);
+      });
+      await expect(page.getByRole('button', { name: new RegExp(`^${sunday.getMonth() + 1}월 ${sunday.getDate()}일 일요일`) })).toBeInViewport({ ratio: 0.95 });
+    }
+    assert.equal(weekOffset, 0);
+    await weekPager.evaluate(node => { node.scrollLeft += node.clientWidth * 2; });
+    await expect(page.getByRole('button', { name: /^10월 25일 일요일/ })).toBeInViewport({ ratio: 0.95 });
+    await page.getByRole('button', { name: '오늘', exact: true }).click();
+    await expect(page.getByRole('button', { name: /^10월 13일 화요일/ })).toBeInViewport({ ratio: 0.95 });
+    await weekPager.dispose();
+    console.log('Home calendar: 12 forward/reverse swipes, month boundaries, duplicate page callbacks and selected-day preservation passed.');
     await mkdir(artifacts, { recursive: true });
     await page.waitForTimeout(600);
     const defaultHandleY = await handleOffset(expandHandle());

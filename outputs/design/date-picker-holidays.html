@@ -1,0 +1,190 @@
+<div id="diary-picker-concepts" class="viz-carousel viz-dotted-background" aria-label="날짜·월·연도 선택기 시안" data-previous-label="이전 시안" data-next-label="다음 시안">
+  <section data-variant="기본 분리형" aria-label="기본 분리형 시안">
+    <div class="dp-stage"><div class="dp-picker" data-design="calendar" aria-label="기본 분리형 선택기"></div></div>
+  </section>
+  <section data-variant="목록 강조형" aria-label="목록 강조형 시안" hidden>
+    <div class="dp-stage"><div class="dp-picker dp-list-design" data-design="holidays" aria-label="목록 강조형 선택기"></div></div>
+  </section>
+</div>
+<style>
+#diary-picker-concepts { color-scheme: light dark; }
+#diary-picker-concepts .dp-stage { display:flex; align-items:flex-start; justify-content:center; min-height:960px; padding:22px 14px; box-sizing:border-box; }
+#diary-picker-concepts .dp-picker { --dp-bg:light-dark(#fff,#252222); --dp-text:light-dark(#282321,#f8f2ee); --dp-muted:light-dark(#756d68,#c7bcb6); --dp-soft:light-dark(#faf7f4,#332e2c); --dp-line:light-dark(#e9e2dc,#514743); --dp-accent:#b76e79; --dp-tint:light-dark(#f9eaf0,#4a3037); --dp-holiday:light-dark(#b83f48,#ffabb1); --dp-blue:light-dark(#47749e,#a5cbee); width:100%; max-width:396px; padding:12px 20px 20px; border:1px solid var(--dp-line); border-radius:26px; background:var(--dp-bg); color:var(--dp-text); font:14px/1.5 -apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; box-sizing:border-box; box-shadow:0 16px 40px light-dark(#30292712,#0003); }
+#diary-picker-concepts .dp-picker * { box-sizing:border-box; }
+#diary-picker-concepts :where(.dp-picker button) { font:inherit; color:inherit; cursor:inherit; }
+#diary-picker-concepts .dp-grabber { width:36px; height:4px; background:var(--dp-line); border-radius:9px; margin:0 auto 10px; }
+#diary-picker-concepts .dp-top { display:flex; justify-content:space-between; align-items:center; gap:10px; min-height:48px; }
+#diary-picker-concepts .dp-top h2 { font-size:20px; line-height:1.4; font-weight:600; margin:0; }
+#diary-picker-concepts .dp-quiet { border:0; background:transparent; color:var(--dp-muted); padding:10px 5px; min-height:44px; }
+#diary-picker-concepts .dp-modes { display:grid; grid-template-columns:repeat(3,1fr); gap:4px; padding:4px; background:var(--dp-soft); border-radius:13px; margin:8px 0 20px; }
+#diary-picker-concepts .dp-mode { border:0; background:transparent; min-height:38px; border-radius:10px; color:var(--dp-muted); }
+#diary-picker-concepts .dp-mode[aria-pressed=true] { color:var(--dp-text); background:var(--dp-bg); box-shadow:0 1px 4px light-dark(#30292716,#0004); font-weight:600; }
+#diary-picker-concepts .dp-eyebrow { color:var(--dp-muted); font-size:12px; margin:0 0 4px; }
+#diary-picker-concepts .dp-selected { display:flex; gap:6px 10px; align-items:baseline; flex-wrap:wrap; min-height:34px; font-size:18px; font-weight:600; }
+#diary-picker-concepts .dp-selected .dp-holiday-name { font-size:14px; font-weight:500; color:var(--dp-holiday); }
+#diary-picker-concepts .dp-summary { padding:0 0 16px; border-bottom:1px solid var(--dp-line); margin-bottom:12px; }
+#diary-picker-concepts .dp-period { display:flex; align-items:center; justify-content:space-between; gap:6px; min-height:48px; margin-bottom:6px; }
+#diary-picker-concepts .dp-period-value { display:flex; align-items:center; gap:2px; font-size:16px; font-weight:600; }
+#diary-picker-concepts .dp-period-value button { font-weight:600; }
+#diary-picker-concepts .dp-arrow { border:0; background:var(--dp-soft); border-radius:12px; width:40px; min-height:44px; font-size:24px; }
+#diary-picker-concepts .dp-weekdays { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); text-align:center; color:var(--dp-muted); padding:6px 0; font-size:12px; }
+#diary-picker-concepts .dp-calendar-section h3 { font-size:12px; font-weight:500; color:var(--dp-muted); margin:6px 0 8px; }
+#diary-picker-concepts .dp-days { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:1px 0; }
+#diary-picker-concepts .dp-day { background:transparent; border:0; border-radius:10px; min-height:48px; min-width:0; padding:4px 0; display:flex; flex-direction:column; align-items:center; gap:1px; }
+#diary-picker-concepts .dp-day-number { width:32px; height:32px; display:grid; place-items:center; border-radius:50%; font-size:15px; }
+#diary-picker-concepts .dp-day[aria-pressed=true] .dp-day-number { background:var(--dp-accent); color:#fff; font-weight:600; }
+#diary-picker-concepts .dp-day.dp-is-holiday .dp-day-number { color:var(--dp-holiday); }
+#diary-picker-concepts .dp-day.dp-is-holiday[aria-pressed=true] .dp-day-number { color:#fff; }
+#diary-picker-concepts .dp-short-holiday { font-size:11px; color:var(--dp-holiday); white-space:nowrap; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+#diary-picker-concepts .dp-saturday { color:var(--dp-blue); }
+#diary-picker-concepts .dp-sunday { color:var(--dp-muted); }
+#diary-picker-concepts .dp-holiday-section { border-top:1px solid var(--dp-line); margin-top:14px; padding-top:12px; }
+#diary-picker-concepts .dp-holiday-section h3 { margin:0 0 8px; font-size:12px; color:var(--dp-muted); font-weight:500; }
+#diary-picker-concepts .dp-holiday-line { display:flex; align-items:center; gap:12px; width:100%; min-height:44px; padding:8px 4px; border:0; border-radius:10px; background:transparent; margin:2px 0; text-align:left; font-size:12px; color:var(--dp-holiday); }
+#diary-picker-concepts .dp-holiday-line[aria-pressed=true] { background:var(--dp-tint); }
+#diary-picker-concepts .dp-holiday-line strong { min-width:38px; font-weight:500; }
+#diary-picker-concepts .dp-months,#diary-picker-concepts .dp-years { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:8px 0; }
+#diary-picker-concepts .dp-tile { border:1px solid var(--dp-line); background:transparent; border-radius:15px; min-height:76px; padding:12px 5px; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; }
+#diary-picker-concepts .dp-tile .dp-count { font-size:11px; color:var(--dp-muted); }
+#diary-picker-concepts .dp-tile[aria-pressed=true] { background:var(--dp-tint); border-color:var(--dp-accent); }
+#diary-picker-concepts .dp-tile[aria-pressed=true] .dp-count { color:var(--dp-text); }
+#diary-picker-concepts .dp-year { min-height:64px; }
+#diary-picker-concepts .dp-footer { margin-top:18px; padding-top:16px; border-top:1px solid var(--dp-line); }
+#diary-picker-concepts .dp-apply { border:0; width:100%; min-height:48px; padding:12px 10px; border-radius:14px; background:var(--dp-accent); color:#fff; font-weight:600; }
+#diary-picker-concepts .dp-result { color:var(--dp-muted); font-size:12px; min-height:18px; margin-top:10px; text-align:center; }
+#diary-picker-concepts .dp-data-note { margin:8px 0 0; font-size:11px; color:var(--dp-muted); }
+#diary-picker-concepts .dp-list-design .dp-selected { font-size:21px; }
+#diary-picker-concepts .dp-list-design .dp-day { min-height:44px; }
+#diary-picker-concepts .dp-list-design .dp-short-holiday { height:4px; width:4px; background:var(--dp-holiday); border-radius:50%; font-size:0; }
+#diary-picker-concepts .dp-list-design .dp-holiday-line { width:100%; border:0; padding:9px 10px; min-height:44px; background:var(--dp-soft); border-radius:11px; gap:12px; margin:6px 0; text-align:left; font-size:13px; }
+#diary-picker-concepts .dp-list-design .dp-holiday-line strong { min-width:62px; font-size:14px; }
+#diary-picker-concepts .dp-list-design .dp-holiday-line[aria-pressed=true] { background:var(--dp-tint); }
+#diary-picker-concepts .dp-month-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 18px; }
+#diary-picker-concepts .dp-month-row { display:flex; align-items:center; justify-content:space-between; border:0; border-bottom:1px solid var(--dp-line); background:transparent; min-height:55px; padding:9px 5px; gap:8px; }
+#diary-picker-concepts .dp-month-row[aria-pressed=true] { color:var(--dp-accent); font-weight:600; }
+#diary-picker-concepts .dp-month-row .dp-count { font-size:11px; color:var(--dp-muted); font-weight:400; }
+#diary-picker-concepts .dp-year-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+#diary-picker-concepts .dp-year-list .dp-year { min-height:50px; border:0; background:var(--dp-soft); }
+@media(max-width:360px){#diary-picker-concepts .dp-stage{padding:14px 0;min-height:960px}#diary-picker-concepts .dp-picker{padding:12px 7px 18px}#diary-picker-concepts .dp-months,#diary-picker-concepts .dp-years{gap:7px}#diary-picker-concepts .dp-month-list{gap:0 10px}}
+</style>
+<script>
+(() => {
+  const root = document.getElementById('diary-picker-concepts');
+  const holidayDates = {
+    '2026-01-01':'새해 첫날',
+    '2026-02-16':'설날 연휴','2026-02-17':'설날','2026-02-18':'설날 연휴',
+    '2026-03-01':'삼일절','2026-03-02':'대체공휴일(삼일절)',
+    '2026-05-01':'노동절','2026-05-05':'어린이날','2026-05-24':'부처님오신날','2026-05-25':'대체공휴일(부처님오신날)',
+    '2026-06-03':'전국동시지방선거','2026-06-06':'현충일','2026-07-17':'제헌절',
+    '2026-08-15':'광복절','2026-08-17':'대체공휴일(광복절)',
+    '2026-09-24':'추석 연휴','2026-09-25':'추석','2026-09-26':'추석 연휴',
+    '2026-10-03':'개천절','2026-10-05':'대체공휴일(개천절)','2026-10-09':'한글날','2026-12-25':'성탄절'
+  };
+  const modes = {date:'날짜',month:'월',year:'연도'};
+  const weekdays = ['일','월','화','수','목','금','토'];
+  const saved = window.openai?.widgetState?.privateContent?.pickers || window.openai?.widgetState?.pickers || {};
+  const allStates = {};
+  const renders = {};
+  const key = (year,month,day) => `${year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
+  const count = (year,month) => year === 2026 ? Object.keys(holidayDates).filter(date => date.startsWith(`${year}-${String(month).padStart(2,'0')}-`)).length : null;
+  const save = () => {
+    if (window.openai?.setWidgetState) {
+      const pickers = Object.fromEntries(Object.entries(allStates).map(([name,value]) => [name,{mode:value.mode,year:value.year,month:value.month,day:value.day,applied:value.applied,yearStart:value.yearStart}]));
+      window.openai.setWidgetState({modelContent:{type:'날짜 선택기 디자인 검토',selections:Object.fromEntries(Object.entries(pickers).map(([name,value])=>[name,value.applied]))},privateContent:{pickers}}).catch(()=>{});
+    }
+  };
+  function mount(picker) {
+    const design = picker.dataset.design;
+    const initial = saved[design] || {};
+    const state = {mode:['date','month','year'].includes(initial.mode)?initial.mode:'date',year:Number(initial.year)||2026,month:Number(initial.month)||10,day:Number(initial.day)||9,applied:initial.applied||'2026-10-09',yearStart:Number(initial.yearStart)||2020,status:'',radius:26,accent:'#b76e79'};
+    allStates[design] = state;
+    const list = design === 'holidays';
+    function setDate(year,month,day) {
+      state.year=year;state.month=month;state.day=Math.min(day,new Date(year,month,0).getDate());
+    }
+    function title() {
+      if(state.mode==='year') return `${state.year}년`;
+      if(state.mode==='month') return `${state.year}년 ${state.month}월`;
+      const weekday=weekdays[new Date(state.year,state.month-1,state.day).getDay()];
+      return `${state.month}월 ${state.day}일 ${weekday}요일`;
+    }
+    function period() {
+      const yearMode=state.mode==='year';
+      const center=yearMode?`${state.yearStart}–${state.yearStart+11}년`:`<button class="dp-quiet cursor-interaction" data-action="year-mode">${state.year}년</button>${state.mode==='date'?`<button class="dp-quiet cursor-interaction" data-action="month-mode">${state.month}월⌄</button>`:''}`;
+      return `<div class="dp-period"><button class="dp-arrow cursor-interaction" data-action="previous" aria-label="이전 ${yearMode?'연도 구간':state.mode==='month'?'연도':'월'}">‹</button><div class="dp-period-value">${center}</div><button class="dp-arrow cursor-interaction" data-action="next" aria-label="다음 ${yearMode?'연도 구간':state.mode==='month'?'연도':'월'}">›</button></div>`;
+    }
+    function calendar() {
+      const start=new Date(state.year,state.month-1,1).getDay();
+      const last=new Date(state.year,state.month,0).getDate();
+      let cells=Array.from({length:start},()=>'<span aria-hidden="true"></span>').join('');
+      for(let day=1;day<=last;day++) {
+        const date=key(state.year,state.month,day);const holiday=holidayDates[date];
+        cells+=`<button class="dp-day cursor-interaction ${holiday?'dp-is-holiday':''}" aria-pressed="${day===state.day}" data-day="${day}" aria-label="${state.year}년 ${state.month}월 ${day}일${holiday?`, ${holiday}`:''}"><span class="dp-day-number">${day}</span></button>`;
+      }
+      const holidays=Object.entries(holidayDates).filter(([date])=>date.startsWith(`${state.year}-${String(state.month).padStart(2,'0')}-`));
+      let detail='';
+      if(state.year!==2026) detail=`<section class="dp-holiday-section" aria-label="${state.year}년 ${state.month}월 공휴일 목록"><h3>${state.year}년 ${state.month}월 공휴일</h3><p class="dp-data-note">이 시안의 공휴일 예시는 2026년만 제공해요.</p></section>`;
+      else detail=`<section class="dp-holiday-section" aria-label="${state.year}년 ${state.month}월 공휴일 목록"><h3>${state.year}년 ${state.month}월 공휴일 · ${holidays.length}일</h3>${holidays.length?holidays.map(([date,name])=>`<button class="dp-holiday-line cursor-interaction" data-day="${Number(date.slice(8))}" aria-pressed="${Number(date.slice(8))===state.day}"><strong>${list?`${state.month}월 ${Number(date.slice(8))}일`:`${state.month}.${Number(date.slice(8))}`}</strong><span>${name}</span></button>`).join(''):'<p class="dp-data-note">이달은 공휴일이 없어요.</p>'}</section>`;
+      return `<section class="dp-calendar-section" aria-label="${state.year}년 ${state.month}월 달력"><h3>${state.year}년 ${state.month}월 달력</h3><div class="dp-weekdays">${weekdays.map((day,index)=>`<span class="${index===6?'dp-saturday':index===0?'dp-sunday':''}">${day}</span>`).join('')}</div><div class="dp-days">${cells}</div></section>${detail}`;
+    }
+    function months() {
+      return `<div class="${list?'dp-month-list':'dp-months'}">${Array.from({length:12},(_,index)=>{
+        const month=index+1;const total=count(state.year,month);
+        return `<button class="${list?'dp-month-row':'dp-tile'} cursor-interaction" data-month="${month}" aria-pressed="${month===state.month}" aria-label="${state.year}년 ${month}월, 공휴일 ${total===null?'미확인':`${total}일`}"><span>${month}월</span><span class="dp-count">${total===null?'정보 확인 중':`공휴일 ${total}일`}</span></button>`;
+      }).join('')}</div>`;
+    }
+    function years() {
+      return `<div class="${list?'dp-year-list':'dp-years'}">${Array.from({length:12},(_,index)=>{
+        const year=state.yearStart+index;
+        return `<button class="dp-tile dp-year cursor-interaction" data-year="${year}" aria-pressed="${year===state.year}">${year}년</button>`;
+      }).join('')}</div>`;
+    }
+    function render() {
+      picker.style.borderRadius=state.radius+'px';picker.style.setProperty('--dp-accent',state.accent);
+      picker.innerHTML=`<div class="dp-grabber" aria-hidden="true"></div><div class="dp-top"><h2>${modes[state.mode]} 고르기</h2><button class="dp-quiet cursor-interaction" data-action="cancel">취소</button></div><div class="dp-modes" role="group" aria-label="선택 단위">${Object.entries(modes).map(([value,label])=>`<button class="dp-mode cursor-interaction" data-mode="${value}" aria-pressed="${state.mode===value}">${label}</button>`).join('')}</div><div class="dp-summary"><p class="dp-eyebrow">${state.mode==='date'?'선택할 날짜':state.mode==='month'?'이동할 월':'이동할 연도'}</p><div class="dp-selected" aria-live="polite">${title()}</div></div>${period()}${state.mode==='date'?calendar():state.mode==='month'?months():years()}<div class="dp-footer"><button class="dp-apply cursor-interaction" data-action="apply">${state.mode==='date'?'이 날짜 선택':state.mode==='month'?`${state.month}월로 이동`:'이 연도 선택'}</button><div class="dp-result" role="status">${state.status}</div></div>`;
+    }
+    picker.addEventListener('click',event=>{
+      const button=event.target.closest('button');if(!button||!picker.contains(button))return;
+      if(button.dataset.mode){state.mode=button.dataset.mode;state.status='';}
+      else if(button.dataset.day){state.day=Number(button.dataset.day);state.status='';}
+      else if(button.dataset.month){setDate(state.year,Number(button.dataset.month),state.day);state.status='';}
+      else if(button.dataset.year){setDate(Number(button.dataset.year),state.month,state.day);state.mode='month';state.status='';}
+      else {
+        const action=button.dataset.action;
+        if(action==='year-mode'){state.mode='year';state.yearStart=Math.floor(state.year/12)*12;state.status='';}
+        if(action==='month-mode'){state.mode='month';state.status='';}
+        if(action==='previous'||action==='next') {
+          const step=action==='next'?1:-1;
+          if(state.mode==='year')state.yearStart+=step*12;
+          else if(state.mode==='month')setDate(state.year+step,state.month,state.day);
+          else {const date=new Date(state.year,state.month-1+step,1);setDate(date.getFullYear(),date.getMonth()+1,state.day);}
+          state.status='';
+        }
+        if(action==='cancel'){const [year,month,day]=state.applied.split('-').map(Number);setDate(year,month,day);state.status='변경을 취소했어요.';}
+        if(action==='apply') {
+          state.applied=key(state.year,state.month,state.day);
+          state.status=state.mode==='date'?`${state.month}월 ${state.day}일을 선택했어요.`:state.mode==='month'?`${state.month}월로 이동했어요.`:`${state.year}년을 선택했어요.`;
+          if(state.mode==='year')state.mode='month';
+        }
+      }
+      render();save();
+    });
+    renders[design]=render;
+    render();
+    if(globalThis.Tweak) {
+      const tweak=new Tweak({container:picker,onChange:render});
+      tweak.addSlider(state,'radius',{label:'선택창 모서리',min:14,max:32,step:2,unit:'px'});
+      tweak.addColorPicker(state,'accent',{label:'앱 테마색',reference:'--dp-accent'});
+    }
+  }
+  root.querySelectorAll('.dp-picker').forEach(mount);
+  window.addEventListener('openai:set_globals',event=>{
+    const restored=event.detail?.globals?.widgetState?.privateContent?.pickers||event.detail?.globals?.widgetState?.pickers;
+    if(!restored)return;
+    root.querySelectorAll('.dp-picker').forEach(picker=>{
+      const state=allStates[picker.dataset.design],value=restored[picker.dataset.design];
+      if(value&&state){for(const field of ['mode','year','month','day','applied','yearStart'])if(value[field]!==undefined)state[field]=value[field];renders[picker.dataset.design]();}
+    });
+  });
+})();
+</script>
