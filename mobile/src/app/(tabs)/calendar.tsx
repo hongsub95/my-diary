@@ -10,6 +10,10 @@ import { useThemedStyles } from '@/shared/theme-context';
 import { CalendarExplorer } from '@/features/calendar/calendar-explorer';
 import { moveDate, parseDate } from '@/features/calendar/calendar-dates';
 import { DayAgenda } from '@/features/calendar/day-agenda';
+import { ChristmasBackdrop } from '@/features/seasonal/christmas-backdrop';
+import { SeasonalHeader } from '@/features/seasonal/seasonal-header';
+import { useSeasonalScreen } from '@/features/seasonal/use-seasonal-screen';
+import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 import { seoulDateKey } from '@/shared/utils/date';
 
 LocaleConfig.locales.ko = {
@@ -51,6 +55,9 @@ export default function CalendarScreen() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { width } = useWindowDimensions();
   const [drawerX] = useState(() => new Animated.Value(-width));
+  // 계절 배경. 날짜 칸은 흰 카드 안이라 밤에도 카드 밖 제목·설명만 밤 색으로 바꾼다.
+  const seasonal = useSeasonalScreen('calendar');
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
 
   // 옆 페이지를 미는 동안에도 일정이 보이도록 앞뒤 한 달을 함께 조회한다.
   const visibleMonth = selectedDate.slice(0, 7);
@@ -93,12 +100,16 @@ export default function CalendarScreen() {
   const [, month, day] = selectedDate.split('-').map(Number);
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <View style={styles.root}>
+    {seasonal.full && <ChristmasBackdrop night={seasonal.night} />}
+    <SafeAreaView edges={['top']} style={[styles.safeArea, seasonal.full && styles.transparent]}>
       <View style={styles.content}>
+        {seasonal.showGreeting && <SeasonalHeader night={seasonal.onDarkSky} onNotice={showSnackbar} />}
         <CalendarExplorer selectedDate={selectedDate} onSelect={setSelectedDate}
           onOpenDay={handleDayPress}
           schedules={schedulesByDate} loading={schedules.isLoading} failed={schedules.isError}
-          retry={() => { void schedules.refetch(); }} />
+          retry={() => { void schedules.refetch(); }}
+          seasonal={seasonal} />
 
       </View>
       <Modal visible={drawerOpen} transparent animationType="none" onRequestClose={closeDrawer}>
@@ -119,12 +130,16 @@ export default function CalendarScreen() {
           </Animated.View>
         </View>
       </Modal>
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background },
   safeArea: { flex: 1, backgroundColor: colors.background },
+  transparent: { backgroundColor: 'transparent' },
   content: { flex: 1, padding: spacing.lg, paddingBottom: spacing.md, paddingTop: spacing.xl },
   drawerLayer: { flex: 1 },
   backdrop: { backgroundColor: 'rgba(28, 25, 23, 0.35)', bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },

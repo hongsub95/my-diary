@@ -114,6 +114,19 @@ async function shoot(page, name) {
       await expect(page.getByText('첫눈 오던 날')).toBeVisible({ timeout: 30000 });
       await shoot(page, `${label}-records`);
 
+      // 캘린더도 화면 전체. 날짜 칸은 흰 카드 안이라 밤에도 카드 밖 제목만 흰색이 된다.
+      await page.goto(origin + '/calendar');
+      await expect(page.getByText('하루님, 메리 크리스마스')).toBeVisible({ timeout: 30000 });
+      const calendarTitle = await page.getByRole('heading', { name: '캘린더' }).evaluate(el => getComputedStyle(el).color);
+      assert.equal(calendarTitle === 'rgb(255, 255, 255)', label === 'night', `${label} 캘린더 제목 색 ${calendarTitle}`);
+      await shoot(page, `${label}-calendar`);
+
+      // 홈은 지도 위에 칩만. 인사 글씨는 없다.
+      await page.goto(origin + '/home');
+      await expect(page.getByText('크리스마스까지 D-11')).toBeVisible({ timeout: 30000 });
+      await expect(page.getByText('하루님, 메리 크리스마스')).toHaveCount(0);
+      await shoot(page, `${label}-home`);
+
       await page.goto(origin + '/more');
       await expect(page.getByText('12월 26일까지만 보여요')).toBeVisible({ timeout: 30000 });
       await expect(page.getByText('7시~18시는 낮, 그 밖은 밤으로 바뀌어요')).toBeVisible();

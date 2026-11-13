@@ -11,6 +11,8 @@ import { LoadingIndicator } from '@/shared/components/loading-indicator';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { dateKey, dateLabel, moveDate, parseDate, periodLabel, weekDates, type CalendarMode } from './calendar-dates';
 import { DayAgenda } from './day-agenda';
+import { NIGHT_TEXT, NIGHT_TEXT_SHADOW } from '@/features/seasonal/scene-colors';
+import { SnowCapped } from '@/features/seasonal/snow-cap';
 
 const modes = [{ value: 'month', label: '월간' }, { value: 'week', label: '주간' }, { value: 'day', label: '일간' }] as const;
 const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
@@ -47,7 +49,7 @@ function WeekDate({ day, weekday, items, selected, onPress }: { day: string; wee
   </Pressable>;
 }
 
-export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules, loading, failed, retry }: {
+export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules, loading, failed, retry, seasonal }: {
   selectedDate: string;
   onSelect: (date: string) => void;
   onOpenDay: (date: string) => void;
@@ -55,8 +57,11 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
   loading: boolean;
   failed: boolean;
   retry: () => void;
+  /** 계절 배경. full이면 달력 카드 위에 눈을 얹고, onDarkSky면 카드 밖 제목·설명을 밤 색으로 */
+  seasonal?: { full: boolean; night: boolean; onDarkSky: boolean };
 }) {
   const palette = useTheme();
+  const dark = seasonal?.onDarkSky ?? false;
   const s = useThemedStyles(createStyles);
   const [mode, setMode] = useState<CalendarMode>('month');
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -101,8 +106,9 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
   };
 
   return <View style={s.root}>
-    <View style={s.top}><View style={s.heading}><View style={s.headingIcon}><SymbolView name={{ ios: 'calendar', android: 'calendar_month', web: 'calendar_month' }} size={22} tintColor={palette.primaryDark} fallback={<Text style={accent}>▦</Text>} /></View><View style={s.headingCopy}><Text accessibilityRole="header" style={s.title}>캘린더</Text><Text style={s.description}>날짜마다 쌓이는 나의 하루.</Text></View></View><Pressable accessibilityRole="button" onPress={() => onSelect(dateKey(new Date()))} style={s.todayButton}><Text style={s.todayText}>오늘</Text></Pressable></View>
+    <View style={s.top}><View style={s.heading}><View style={s.headingIcon}><SymbolView name={{ ios: 'calendar', android: 'calendar_month', web: 'calendar_month' }} size={22} tintColor={palette.primaryDark} fallback={<Text style={accent}>▦</Text>} /></View><View style={s.headingCopy}><Text accessibilityRole="header" style={[s.title, dark && s.titleNight]}>캘린더</Text><Text style={[s.description, dark && s.descriptionNight]}>날짜마다 쌓이는 나의 하루.</Text></View></View><Pressable accessibilityRole="button" onPress={() => onSelect(dateKey(new Date()))} style={s.todayButton}><Text style={s.todayText}>오늘</Text></Pressable></View>
     <View style={s.modes} accessibilityRole="tablist">{modes.map(item => <Pressable key={item.value} accessibilityRole="tab" accessibilityState={{ selected: mode === item.value }} aria-selected={mode === item.value} onPress={() => setMode(item.value)} style={[s.mode, mode === item.value && s.modeActive]}><Text style={[s.modeLabel, mode === item.value && accent]}>{item.label}</Text></Pressable>)}</View>
+    <SnowCapped show={seasonal?.full ?? false} night={seasonal?.night ?? false} style={s.cardWrap}>
     <View style={s.card}>
       <View style={s.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="이전 기간" onPress={() => move(-1)} style={s.button}><Text style={s.arrow}>‹</Text></Pressable>
@@ -154,6 +160,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
         })}
       </View>}
     </View>
+    </SnowCapped>
     <Modal visible={picker} transparent animationType="slide" onRequestClose={() => setPicker(false)}>
       <View style={s.modal}>
         <Pressable style={StyleSheet.absoluteFill} accessibilityLabel="날짜 선택 취소" onPress={() => setPicker(false)} />
@@ -187,6 +194,10 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   headingCopy: { flex: 1 },
   title: { fontSize: typography.heading, fontWeight: typography.semibold, color: colors.text },
   description: { color: colors.muted, fontSize: typography.body, lineHeight: 22, marginTop: spacing.xs },
+  titleNight: { color: NIGHT_TEXT.strong, ...NIGHT_TEXT_SHADOW },
+  descriptionNight: { color: NIGHT_TEXT.muted, ...NIGHT_TEXT_SHADOW },
+  // 달력 카드는 남은 높이를 채운다. 눈을 얹는 틀도 같이 채워야 카드가 줄어들지 않는다.
+  cardWrap: { flex: 1 },
   muted: { color: colors.muted, fontSize: typography.body },
   button: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' },
   todayButton: { minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderRadius: radii.full, paddingHorizontal: spacing.md },

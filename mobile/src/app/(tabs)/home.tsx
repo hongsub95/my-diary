@@ -17,12 +17,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { HomeWeekStrip } from '@/features/calendar/home-week-strip';
 import { parseDate } from '@/features/calendar/calendar-dates';
 import { KakaoMap } from '@/features/places/kakao-map';
+import { SeasonalHeader } from '@/features/seasonal/seasonal-header';
+import { useSeasonalScreen } from '@/features/seasonal/use-seasonal-screen';
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import { HomePlaceCard } from '@/features/schedules/home-place-card';
 import { homePlaceFocus, orderedHomePlaces } from '@/features/schedules/home-place-model';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { useSpaces } from '@/features/spaces/space-context';
 import { getApiError } from '@/shared/api/api-error';
+import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { seoulDateKey } from '@/shared/utils/date';
@@ -75,6 +78,9 @@ export default function HomeScreen() {
   const router = useRouter();
   const { currentSpaceId } = useSpaces();
   const { height: windowHeight } = useWindowDimensions();
+  // 계절 배경. 지도가 화면을 채우므로 장면은 깔지 않고 지도 위에 D-데이 칩만 띄운다.
+  const seasonal = useSeasonalScreen('home');
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
   const [selectedDate, setSelectedDate] = useState(() => parseDate(seoulDateKey(new Date().toISOString())));
   const [weekStart, setWeekStart] = useState(() => startOfWeek(selectedDate));
   const [selection, setSelection] = useState<{ context: string; scheduleId: number; placeId: number } | null>(null);
@@ -249,6 +255,12 @@ export default function HomeScreen() {
               }
             }}
           />
+          {/* 지도 위에서는 인사 글씨가 묻히므로 칩만 왼쪽 위에 띄운다. 오른쪽 위는 지도 확대 버튼 자리다. */}
+          {seasonal.showGreeting && (
+            <View pointerEvents="box-none" style={styles.seasonChip}>
+              <SeasonalHeader night={false} chipOnly onNotice={showSnackbar} />
+            </View>
+          )}
         </View>
 
         <Animated.View
@@ -349,6 +361,7 @@ export default function HomeScreen() {
           </ScrollView>
         </Animated.View>
       </View>
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
   );
 }
@@ -401,6 +414,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   screen: { flex: 1, overflow: 'hidden', backgroundColor: colors.background },
   mapArea: { flex: 1, backgroundColor: colors.sand },
+  seasonChip: { left: spacing.md, position: 'absolute', top: spacing.md },
   smallChevron: { color: colors.muted, fontSize: 18 },
   sheet: {
     backgroundColor: colors.surface,

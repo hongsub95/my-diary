@@ -10,6 +10,8 @@ import { useSeasonal } from './seasonal-context';
 
 type SeasonalHeaderProps = {
   night: boolean;
+  /** 인사 없이 칩만. 지도처럼 글씨가 묻히는 바탕 위에 띄울 때 쓴다 (홈) */
+  chipOnly?: boolean;
   /** 화면의 스낵바. 끈 뒤 "되돌리기"와 저장 실패 안내를 띄운다 */
   onNotice: (message: string, action?: SnackbarAction) => void;
 };
@@ -20,7 +22,7 @@ type SeasonalHeaderProps = {
  * 칩의 ×는 더보기 스위치와 같은 설정을 끈다. 끄자마자 배경이 사라지므로 "되돌리기"를
  * 함께 준다 — 무심코 눌렀다가 더보기까지 찾아가 다시 켜게 하지 않으려는 것이다.
  */
-export function SeasonalHeader({ night, onNotice }: SeasonalHeaderProps) {
+export function SeasonalHeader({ night, chipOnly = false, onNotice }: SeasonalHeaderProps) {
   const { user } = useAuth();
   const { chipLabel, setEnabled } = useSeasonal();
   const styles = useThemedStyles(createStyles);
@@ -38,9 +40,9 @@ export function SeasonalHeader({ night, onNotice }: SeasonalHeaderProps) {
   }
 
   return (
-    <View style={styles.wrap}>
-      <Text style={[styles.greeting, night && styles.greetingNight]}>{greeting}</Text>
-      <View style={[styles.chip, night && styles.chipNight]}>
+    <View style={chipOnly ? undefined : styles.wrap}>
+      {!chipOnly && <Text style={[styles.greeting, night && styles.greetingNight]}>{greeting}</Text>}
+      <View style={[styles.chip, chipOnly && styles.chipFloating, night && styles.chipNight]}>
         <Text accessibilityElementsHidden importantForAccessibility="no" style={styles.star}>★</Text>
         <Text style={[styles.chipText, night && styles.chipTextNight]}>{chipLabel}</Text>
         <Pressable
@@ -61,6 +63,8 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   greeting: { color: palette.primaryDark, fontSize: 13, fontWeight: typography.semibold },
   greetingNight: { color: NIGHT_TEXT.accent, ...NIGHT_TEXT_SHADOW },
   chip: { alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.75)', borderRadius: 999, flexDirection: 'row', gap: 6, minHeight: 30, paddingLeft: 11, paddingRight: 4 },
+  // 지도 위에 뜨는 칩. 지도 색과 섞이지 않게 불투명한 흰 바탕과 그림자를 준다.
+  chipFloating: { backgroundColor: '#FFFFFF', elevation: 3, shadowColor: '#302927', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12, shadowRadius: 6 },
   chipNight: { backgroundColor: 'rgba(255,255,255,0.14)', borderColor: 'rgba(255,255,255,0.28)', borderWidth: 1 },
   star: { color: '#E0A93A', fontSize: 11 },
   chipText: { color: palette.primaryDark, fontSize: 12, fontWeight: typography.semibold },

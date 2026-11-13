@@ -68,23 +68,21 @@ export function christmasChipLabel(now: Date): string {
  * 탭마다 배경을 얼마나 깔지.
  *
  * - full: 하늘이 탭 바까지 이어지고 골목은 화면 아래
- * - head: 머리말 뒤에만 골목 장면
  * - chip: 장면 없이 D-데이 칩만 (지도가 화면을 채우는 홈)
  * - none: 아무것도 없음
  *
- * 캘린더는 밤에 머리말로 줄인다. 밤에는 카드 밖 글씨를 흰색으로 바꿔야 하는데 달력 칸
- * 글씨까지 바꾸면 일이 커진다.
+ * 캘린더도 full이다. 날짜 칸은 흰 카드 안에 있어서, 밤에도 카드 밖 제목·설명만 흰색으로
+ * 바꾸면 된다. (처음에는 밤에 머리말로 줄이려 했으나 날짜 칸이 카드 밖이라고 잘못 봤다.)
  */
-export type SeasonScope = 'full' | 'head' | 'chip' | 'none';
+export type SeasonScope = 'full' | 'chip' | 'none';
 
-export function scopeForTab(tab: string | undefined, night: boolean): SeasonScope {
+export function scopeForTab(tab: string | undefined): SeasonScope {
   switch (tab) {
     case 'schedules':
     case 'records':
     case 'more':
-      return 'full';
     case 'calendar':
-      return night ? 'head' : 'full';
+      return 'full';
     case 'home':
       return 'chip';
     default:

@@ -26,7 +26,7 @@ export function DynamicTabBar({ state }: DynamicTabBarProps) {
   // 계절 배경이 화면 전체에 깔린 탭이면, 탭 바 뒤를 골목 땅과 같은 눈밭 색으로 이어 붙이고
   // 탭 바 윗변에도 눈을 얹는다. 탭 바는 화면 밖에 그려져서 화면의 장면이 여기까지 오지 않는다.
   const seasonal = useSeasonal();
-  const snowy = seasonal.visible && scopeForTab(activeRoute, seasonal.night) === 'full';
+  const snowy = seasonal.visible && scopeForTab(activeRoute) === 'full';
 
   return (
     <View style={[styles.safeArea, snowy && styles.snowField, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>

@@ -28,9 +28,8 @@ export type SeasonalScreen = {
  */
 export function useSeasonalScreen(tab: string): SeasonalScreen {
   const { visible, night } = useSeasonal();
-  const scope: SeasonScope = visible ? scopeForTab(tab, night) : 'none';
-  const sky = scope === 'full' || scope === 'head';
-  const onDarkSky = sky && night;
+  const scope: SeasonScope = visible ? scopeForTab(tab) : 'none';
+  const onDarkSky = scope === 'full' && night;
 
   useFocusEffect(useCallback(() => {
     StatusBar.setStyle(onDarkSky ? 'light' : 'dark');
