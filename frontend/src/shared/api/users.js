@@ -7,9 +7,9 @@ import { apiClient } from './client'
 /**
  * 프로필을 바꾼다. **넘긴 필드만 바뀐다.**
  *
- * @param {{nickname?: string, themeKey?: string}} form
+ * @param {{nickname?: string, themeKey?: string, seasonalBackgroundEnabled?: boolean, seasonalBackgroundTime?: 'auto'|'day'|'night'}} form
  * @returns {Promise<object>} 갱신된 사용자 정보. `/auth/me`와 같은 형태다
- * @throws 다른 사람이 쓰는 닉네임이면 409, 지원하지 않는 테마 키면 422
+ * @throws 다른 사람이 쓰는 닉네임이면 409, 지원하지 않는 테마 키나 낮·밤 값이면 422
  *
  * 응답을 그대로 AuthContext에 넣으면 상단 프로필과 테마가 함께 갱신된다.
  *
@@ -17,10 +17,13 @@ import { apiClient } from './client'
  * 보낼 필요가 없다. 그렇게 하면 그 사이 다른 기기에서 바꾼 닉네임을 옛 값으로
  * 덮어쓰게 된다.
  */
-export async function updateProfile({ nickname, themeKey }) {
+export async function updateProfile({ nickname, themeKey, seasonalBackgroundEnabled, seasonalBackgroundTime }) {
   const body = {}
   if (nickname !== undefined) body.nickname = nickname
   if (themeKey !== undefined) body.theme_key = themeKey
+  // false도 보내야 하는 값이라 undefined와만 구분한다.
+  if (seasonalBackgroundEnabled !== undefined) body.seasonal_background_enabled = seasonalBackgroundEnabled
+  if (seasonalBackgroundTime !== undefined) body.seasonal_background_time = seasonalBackgroundTime
 
   const { data } = await apiClient.patch('/users/me', body)
   return data

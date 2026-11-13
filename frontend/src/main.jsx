@@ -4,6 +4,7 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { AuthProvider } from './shared/contexts/AuthContext'
 import ThemeSync from './shared/theme/ThemeSync'
+import { SeasonalProvider } from './shared/seasonal/SeasonalContext'
 import App from './App.jsx'
 import { SpaceProvider } from './features/spaces/SpaceContext'
 import './index.css'
@@ -25,7 +26,10 @@ const router = createBrowserRouter([{
       {/* 로그인 상태를 따라 테마를 적용한다. App보다 앞에 둬서 첫 화면이 그려지기
           전에 색이 맞도록 한다. */}
       <ThemeSync />
-      <SpaceProvider><App /></SpaceProvider>
+      {/* 계절 배경 설정도 계정에 저장된다. 테마와 같이 AuthProvider 안이어야 한다. */}
+      <SeasonalProvider>
+        <SpaceProvider><App /></SpaceProvider>
+      </SeasonalProvider>
     </AuthProvider>
   ),
 }])

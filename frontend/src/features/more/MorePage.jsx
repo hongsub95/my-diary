@@ -23,6 +23,7 @@ import { useMenus } from '../../shared/api/queries'
 import { buildAllMenus } from '../../shared/navigation/allMenus'
 import { Snackbar, useSnackbar } from '../../shared/components/Snackbar'
 import { useSpaces } from '../spaces/SpaceContext'
+import SeasonalSettingsRows from '../../shared/seasonal/SeasonalSettingsRows'
 
 // 더보기 안의 항목은 동작이 제각각이라 DB로 관리하지 않고 여기서 관리한다
 // (docs/BOTTOM_NAVIGATION_SPEC.md 8.1절). 그룹 구성은 같은 문서 6.5절을 따른다.
@@ -33,6 +34,8 @@ import { useSpaces } from '../spaces/SpaceContext'
 const MENU_GROUPS = [
   {
     title: '나에게 맞추기',
+    // 기간 한정인 계절 배경 설정을 이 묶음 끝에 붙인다.
+    seasonal: true,
     items: [
       // 소셜 로그인 계정에는 노출하지 않아야 하는 항목이다. 판별 필드는 6.5절 요구사항이지만
       // /auth/me 응답(UserResponse)에 아직 없고 소셜 로그인 자체가 미구현이라, 필드가 생기기
@@ -201,6 +204,8 @@ export default function MorePage() {
                     {i < items.length - 1 && <div className="more-menu__divider" />}
                   </div>
                 ))}
+                {/* 기간 한정인 계절 배경 설정을 이 묶음 끝에 붙인다. 기간 밖에는 저절로 사라진다. */}
+                {group.seasonal && <SeasonalSettingsRows onError={showSnackbar} />}
               </div>
             </section>
           )
