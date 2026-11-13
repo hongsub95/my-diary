@@ -9,7 +9,12 @@ import { buildAllMenus } from '@/features/menus/all-menus';
 import { IconBadge } from '@/features/menus/icon-badge';
 import { useNavigableMenus } from '@/features/menus/menu-api';
 import { MenuIcon } from '@/features/menus/menu-icon';
+import { ChristmasBackdrop } from '@/features/seasonal/christmas-backdrop';
+import { NIGHT_TEXT, NIGHT_TEXT_SHADOW } from '@/features/seasonal/scene-colors';
+import { SeasonalHeader } from '@/features/seasonal/seasonal-header';
 import { SeasonalSettingsRows } from '@/features/seasonal/seasonal-settings';
+import { SnowCapped } from '@/features/seasonal/snow-cap';
+import { useSeasonalScreen } from '@/features/seasonal/use-seasonal-screen';
 import { useSpaces } from '@/features/spaces/space-context';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
@@ -53,6 +58,10 @@ export default function MoreScreen() {
   const palette = useTheme();
   const menuQuery = useNavigableMenus();
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
+  // 계절 배경. 카드 밖 글씨(제목·묶음 제목·계정 줄)만 밤 색으로 바꾸고 카드 안은 그대로 둔다.
+  const seasonal = useSeasonalScreen('more');
+  const dark = seasonal.onDarkSky;
+  const cap = { show: seasonal.full, night: seasonal.night };
 
   useEffect(() => {
     if (menuQuery.error) showSnackbar('메뉴를 불러오지 못했어요. 다시 시도해 주세요.');
@@ -63,13 +72,18 @@ export default function MoreScreen() {
   const canChangePassword = accountType ? accountType === 'email' : true;
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content}>
+    <View style={styles.root}>
+    {seasonal.full && <ChristmasBackdrop night={seasonal.night} />}
+    <SafeAreaView edges={['top']} style={[styles.safeArea, seasonal.full && styles.transparent]}>
+      {/* 화면 전체 장면일 때는 맨 아래 글씨가 흰 눈밭 위가 아니라 건물 위에서 끝나도록 여백을 늘린다. */}
+      <ScrollView contentContainerStyle={[styles.content, seasonal.full && styles.contentOverVillage]}>
+        {seasonal.showGreeting && <SeasonalHeader night={dark} onNotice={showSnackbar} />}
         <View style={styles.header}>
-          <Text accessibilityRole="header" style={styles.title}>더보기</Text>
-          <Text style={styles.brand}>나의 일기 <Text style={styles.brandAccent}>(내일)</Text></Text>
+          <Text accessibilityRole="header" style={[styles.title, dark && styles.nightStrong]}>더보기</Text>
+          <Text style={[styles.brand, dark && styles.nightMuted]}>나의 일기 <Text style={[styles.brandAccent, dark && styles.nightAccent]}>(내일)</Text></Text>
         </View>
 
+        <SnowCapped {...cap}>
         <View style={styles.profile}>
           <View style={styles.profileTop}>
             <View style={styles.avatar}>
@@ -89,7 +103,9 @@ export default function MoreScreen() {
           </View>
           <Text style={styles.profileNote}>나답게 쌓아가는 하루</Text>
         </View>
+        </SnowCapped>
 
+        <SnowCapped {...cap} style={styles.spaceCardWrap}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={`나의 공간, ${currentSpace?.name ?? '공간 바꾸기 및 관리'}. 바꾸기`}
@@ -105,9 +121,11 @@ export default function MoreScreen() {
             <MenuIcon name="chevron-right" size={15} color={colors.muted} />
           </View>
         </Pressable>
+        </SnowCapped>
 
         <View style={styles.group}>
-          <Text accessibilityRole="header" style={styles.groupTitle}>전체 메뉴</Text>
+          <Text accessibilityRole="header" style={[styles.groupTitle, dark && styles.nightStrong]}>전체 메뉴</Text>
+          <SnowCapped {...cap}>
           <View style={styles.menuPanel}>
             <View style={styles.menuGrid}>
               {buildAllMenus(menuQuery.data ?? []).map(menu => (
@@ -129,13 +147,15 @@ export default function MoreScreen() {
               </Pressable>
             )}
           </View>
+          </SnowCapped>
         </View>
 
         {MENU_GROUPS.map(group => {
           const items = group.items.filter(item => !item.emailAccountOnly || canChangePassword);
           return (
             <View key={group.title} style={styles.group}>
-              <Text accessibilityRole="header" style={styles.groupTitle}>{group.title}</Text>
+              <Text accessibilityRole="header" style={[styles.groupTitle, dark && styles.nightStrong]}>{group.title}</Text>
+              <SnowCapped {...cap}>
               <View style={styles.card}>
                 {items.map((item, index) => {
                   const disabled = !item.href && !item.legalCode;
@@ -171,34 +191,42 @@ export default function MoreScreen() {
                 })}
                 {group.seasonal && <SeasonalSettingsRows onError={showSnackbar} />}
               </View>
+              </SnowCapped>
             </View>
           );
         })}
 
         <View style={styles.account}>
           <Pressable accessibilityRole="button" onPress={logout} style={({ pressed }) => [styles.accountButton, pressed && styles.pressed]}>
-            <MenuIcon name="logout" size={16} color={colors.muted} />
-            <Text style={styles.accountText}>로그아웃</Text>
+            <MenuIcon name="logout" size={16} color={dark ? NIGHT_TEXT.muted : colors.muted} />
+            <Text style={[styles.accountText, dark && styles.nightMuted]}>로그아웃</Text>
           </Pressable>
-          <Text accessible={false} style={styles.accountSeparator}>·</Text>
+          <Text accessible={false} style={[styles.accountSeparator, dark && styles.nightMuted]}>·</Text>
           {/* This only opens the account deletion explanation and reauthentication flow. */}
           <Pressable
             accessibilityRole="button"
             onPress={() => router.push('/more/delete')}
             style={({ pressed }) => [styles.accountButton, pressed && styles.pressed]}>
-            <Text style={styles.accountText}>계정 탈퇴</Text>
+            <Text style={[styles.accountText, dark && styles.nightMuted]}>계정 탈퇴</Text>
           </Pressable>
         </View>
-        <Text style={styles.signature}>계획한 하루가, 소중한 기억으로.</Text>
+        <Text style={[styles.signature, dark && styles.nightMuted]}>계획한 하루가, 소중한 기억으로.</Text>
       </ScrollView>
       <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background },
   safeArea: { flex: 1, backgroundColor: colors.background },
+  transparent: { backgroundColor: 'transparent' },
+  nightStrong: { color: NIGHT_TEXT.strong, ...NIGHT_TEXT_SHADOW },
+  nightMuted: { color: NIGHT_TEXT.muted, ...NIGHT_TEXT_SHADOW },
+  nightAccent: { color: NIGHT_TEXT.accent, ...NIGHT_TEXT_SHADOW },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl, paddingTop: spacing.lg },
+  contentOverVillage: { paddingBottom: 120 },
   header: { alignItems: 'center', flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, justifyContent: 'space-between', marginBottom: spacing.lg },
   title: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold },
   brand: { color: colors.muted, fontSize: 11, fontWeight: typography.regular },
@@ -211,7 +239,9 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   email: { color: colors.muted, fontSize: typography.body, fontWeight: typography.regular },
   editButton: { alignItems: 'center', borderRadius: radii.full, justifyContent: 'center', minHeight: 44, minWidth: 44 },
   profileNote: { color: palette.primaryDark, fontSize: typography.body, fontWeight: typography.regular },
-  spaceCard: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.card, flexDirection: 'row', gap: spacing.md, marginTop: spacing.md, minHeight: 76, padding: spacing.md },
+  // 바깥 여백은 눈 얹는 틀에 둔다. 카드에 두면 눈이 카드 윗변이 아니라 여백 위에 뜬다.
+  spaceCardWrap: { marginTop: spacing.md },
+  spaceCard: { alignItems: 'center', backgroundColor: colors.surface, borderRadius: radii.card, flexDirection: 'row', gap: spacing.md, minHeight: 76, padding: spacing.md },
   spaceText: { flex: 1, gap: spacing.xs, minWidth: 0 },
   eyebrow: { color: colors.muted, fontSize: 12, fontWeight: typography.regular },
   spaceName: { color: colors.text, fontSize: typography.body, fontWeight: typography.semibold },

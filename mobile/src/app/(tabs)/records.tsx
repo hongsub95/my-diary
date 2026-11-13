@@ -5,6 +5,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useDiaryFeed } from '@/features/diaries/diary-queries';
 import type { RecordView } from '@/features/diaries/diary-adapter';
+import { ChristmasBackdrop } from '@/features/seasonal/christmas-backdrop';
+import { NIGHT_TEXT, NIGHT_TEXT_SHADOW } from '@/features/seasonal/scene-colors';
+import { SeasonalHeader } from '@/features/seasonal/seasonal-header';
+import { SnowCapped } from '@/features/seasonal/snow-cap';
+import { useSeasonalScreen } from '@/features/seasonal/use-seasonal-screen';
+import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
 import { ErrorState } from '@/shared/components/error-state';
 import { LoadingScreen } from '@/shared/components/loading-screen';
 import { LoadingIndicator } from '@/shared/components/loading-indicator';
@@ -67,46 +73,67 @@ export default function RecordsScreen() {
   const palette = useTheme();
   const styles = useThemedStyles(createStyles);
   const feed = useDiaryFeed();
+  // 계절 배경. 카드 밖 글씨만 밤 색으로 바꾸고 카드 안은 그대로 둔다.
+  const seasonal = useSeasonalScreen('records');
+  const dark = seasonal.onDarkSky;
+  const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
 
   if (feed.isLoading) return <LoadingScreen message="기록을 불러오고 있어요." />;
   if (feed.isError) return <ErrorState message={getApiError(feed.error).message} onRetry={() => feed.refetch()} />;
   const records = feed.data?.pages.flatMap(page => page.records) ?? [];
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    <View style={styles.root}>
+    {seasonal.full && <ChristmasBackdrop night={seasonal.night} />}
+    <SafeAreaView edges={['top']} style={[styles.safeArea, seasonal.full && styles.transparent]}>
       <FlatList
         data={records}
         keyExtractor={record => String(record.scheduleId)}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
         ListHeaderComponent={
+          <>
+          {seasonal.showGreeting && <SeasonalHeader night={dark} onNotice={showSnackbar} />}
           <View style={styles.heading}>
             <View style={styles.headingIcon}>
               <SymbolView name={{ ios: 'square.and.pencil', android: 'edit_note', web: 'edit_note' }} size={22} tintColor={palette.primaryDark} fallback={<Text style={styles.emptyPhotoMark}>▤</Text>} />
             </View>
-            <View style={styles.headingCopy}><Text accessibilityRole="header" style={styles.title}>기록</Text><Text style={styles.description}>사진과 한 문장으로 쌓인 하루.</Text></View>
+            <View style={styles.headingCopy}><Text accessibilityRole="header" style={[styles.title, dark && styles.titleNight]}>기록</Text><Text style={[styles.description, dark && styles.descriptionNight]}>사진과 한 문장으로 쌓인 하루.</Text></View>
           </View>
+          </>
         }
-        renderItem={({ item, index }) => <RecordCard record={item} featured={index === 0} onPress={() => router.push({ pathname: '/schedules/[id]', params: { id: item.scheduleId } })} />}
+        renderItem={({ item, index }) => (
+          <SnowCapped show={seasonal.full} night={seasonal.night}>
+            <RecordCard record={item} featured={index === 0} onPress={() => router.push({ pathname: '/schedules/[id]', params: { id: item.scheduleId } })} />
+          </SnowCapped>
+        )}
         ListEmptyComponent={
-          <View style={styles.emptyCard}><EmptyState icon="📖" title="아직 남긴 하루가 없어요" description="사진 한 장이나 한 문장으로 하루를 남겨 보세요." actionLabel="일정 보러 가기" onAction={() => router.push('/(tabs)/schedules')} /></View>
+          <SnowCapped show={seasonal.full} night={seasonal.night}>
+            <View style={styles.emptyCard}><EmptyState icon="📖" title="아직 남긴 하루가 없어요" description="사진 한 장이나 한 문장으로 하루를 남겨 보세요." actionLabel="일정 보러 가기" onAction={() => router.push('/(tabs)/schedules')} /></View>
+          </SnowCapped>
         }
         onEndReached={() => { if (feed.hasNextPage && !feed.isFetchingNextPage) feed.fetchNextPage(); }}
         onEndReachedThreshold={0.4}
         ListFooterComponent={feed.isFetchingNextPage ? <View style={styles.footer}><LoadingIndicator message="다음 기록을 불러오고 있어요." /></View> : null}
       />
+      <Snackbar notice={notice} onDismiss={dismissSnackbar} />
     </SafeAreaView>
+    </View>
   );
 }
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background },
   safeArea: { flex: 1, backgroundColor: colors.background },
+  transparent: { backgroundColor: 'transparent' },
   content: { padding: spacing.lg, paddingBottom: 132, paddingTop: spacing.xl },
   heading: { alignItems: 'center', flexDirection: 'row', gap: spacing.md, marginBottom: spacing.xl },
   headingIcon: { alignItems: 'center', backgroundColor: palette.primarySoft, borderRadius: radii.lg, height: 48, justifyContent: 'center', width: 48 },
   headingCopy: { flex: 1 },
   title: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold },
   description: { color: colors.muted, fontSize: typography.body, lineHeight: 22, marginTop: spacing.xs },
+  titleNight: { color: NIGHT_TEXT.strong, ...NIGHT_TEXT_SHADOW },
+  descriptionNight: { color: NIGHT_TEXT.muted, ...NIGHT_TEXT_SHADOW },
   card: { alignItems: 'flex-start', backgroundColor: colors.surface, borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth, borderRadius: radii.card, elevation: 2, flexDirection: 'row', gap: spacing.md, marginBottom: spacing.lg, padding: spacing.md, shadowColor: '#432F28', shadowOffset: { width: 0, height: 5 }, shadowOpacity: 0.04, shadowRadius: 14 },
   cardFeatured: { alignItems: 'stretch', flexDirection: 'column', gap: 0, padding: spacing.sm },
   pressed: { opacity: 0.8 },

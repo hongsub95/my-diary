@@ -1,13 +1,16 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AccessibilityInfo, Keyboard, Pressable, StyleSheet, Text, View } from 'react-native';
 
-type Notice = { message: string } | null;
+/** 안내 옆에 붙는 동작 하나. 예: 크리스마스 배경을 끈 뒤 "되돌리기" */
+export type SnackbarAction = { label: string; onPress: () => void };
+
+type Notice = { message: string; action?: SnackbarAction } | null;
 
 export function useSnackbar() {
   const [notice, setNotice] = useState<Notice>(null);
-  const showSnackbar = useCallback((message: string) => {
+  const showSnackbar = useCallback((message: string, action?: SnackbarAction) => {
     Keyboard.dismiss();
-    setNotice({ message });
+    setNotice({ message, action });
     AccessibilityInfo.announceForAccessibility(message);
   }, []);
   const dismissSnackbar = useCallback(() => setNotice(null), []);
@@ -31,6 +34,11 @@ export function Snackbar({ notice, onDismiss }: { notice: Notice; onDismiss: () 
   if (!notice) return null;
   return <View style={styles.snackbar}>
     <Text style={styles.message}>{notice.message}</Text>
+    {notice.action && (
+      <Pressable accessibilityRole="button" onPress={() => { notice.action?.onPress(); onDismiss(); }} style={styles.close}>
+        <Text style={styles.actionText}>{notice.action.label}</Text>
+      </Pressable>
+    )}
     <Pressable accessibilityRole="button" accessibilityLabel="안내 닫기" onPress={onDismiss} style={styles.close}>
       <Text style={styles.closeText}>닫기</Text>
     </Pressable>
@@ -42,4 +50,5 @@ const styles = StyleSheet.create({
   message: { color: '#fff', flex: 1, fontSize: 14, lineHeight: 21, paddingVertical: 8 },
   close: { minWidth: 48, minHeight: 48, justifyContent: 'center', alignItems: 'center', marginLeft: 8 },
   closeText: { color: '#d2e6ce', fontSize: 14, fontWeight: '600' },
+  actionText: { color: '#FFD27A', fontSize: 14, fontWeight: '700' },
 });
