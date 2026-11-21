@@ -121,11 +121,30 @@ async function shoot(page, name) {
       assert.equal(calendarTitle === 'rgb(255, 255, 255)', label === 'night', `${label} 캘린더 제목 색 ${calendarTitle}`);
       await shoot(page, `${label}-calendar`);
 
-      // 홈은 지도 위에 칩만. 인사 글씨는 없다.
+      // 홈은 머리말에만 하늘·인사·눈을 둔다. 지도 영역까지 장면이 내려오면 안 된다.
       await page.goto(origin + '/home');
       await expect(page.getByText('크리스마스까지 D-11')).toBeVisible({ timeout: 30000 });
-      await expect(page.getByText('하루님, 메리 크리스마스')).toHaveCount(0);
+      await expect(page.getByText('하루님, 메리 크리스마스')).toBeVisible();
+      const headScene = page.getByTestId('home-header').getByTestId('seasonal-backdrop-head');
+      await expect(headScene).toBeVisible();
+      await expect(page.getByTestId('home-map-area').getByTestId('seasonal-backdrop-head')).toHaveCount(0);
+      const headBounds = await headScene.boundingBox();
+      const mapBounds = await page.getByTestId('home-map-area').boundingBox();
+      assert.ok(headBounds.height > 0 && headBounds.y + headBounds.height <= mapBounds.y + 1, '머리말 하늘은 지도 위에서 끝난다');
+      const monthTitle = page.getByRole('button', { name: '2026년 12월, 월 선택 열기' });
+      await expect(monthTitle).toBeVisible();
+      const monthColor = await monthTitle.getByText('2026년 12월', { exact: true }).evaluate(el => getComputedStyle(el).color);
+      assert.equal(monthColor === 'rgb(255, 255, 255)', label === 'night', `${label} 홈 월 제목 색 ${monthColor}`);
       await shoot(page, `${label}-home`);
+
+      if (label === 'day') {
+        await page.getByRole('button', { name: '크리스마스 배경 끄기' }).click();
+        await expect.poll(() => patches.at(-1)).toEqual({ seasonal_background_enabled: false });
+        await expect(page.getByTestId('seasonal-backdrop-head')).toHaveCount(0);
+        await expect(page.getByTestId('home-map-area')).toBeVisible();
+        await page.getByRole('button', { name: '되돌리기' }).click();
+        await expect(headScene).toBeVisible();
+      }
 
       await page.goto(origin + '/more');
       await expect(page.getByText('12월 26일까지만 보여요')).toBeVisible({ timeout: 30000 });
@@ -174,6 +193,9 @@ async function shoot(page, name) {
     await expect(page.getByText('테마', { exact: true })).toBeVisible({ timeout: 60000 });
     await expect(page.getByText('크리스마스 배경')).toHaveCount(0);
     await expect(page.getByText('하루님, 메리 크리스마스')).toHaveCount(0);
+    await page.goto(origin + '/home');
+    await expect(page.getByTestId('home-map-area')).toBeVisible({ timeout: 30000 });
+    await expect(page.getByTestId('seasonal-backdrop-head')).toHaveCount(0);
     await context.close();
     console.log('after season: no scene, no settings rows.');
     console.log(`screenshots: ${artifacts}`);

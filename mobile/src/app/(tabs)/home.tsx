@@ -12,12 +12,14 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HomeWeekStrip } from '@/features/calendar/home-week-strip';
 import { parseDate } from '@/features/calendar/calendar-dates';
 import { KakaoMap } from '@/features/places/kakao-map';
+import { ChristmasBackdrop } from '@/features/seasonal/christmas-backdrop';
 import { SeasonalHeader } from '@/features/seasonal/seasonal-header';
+import { SnowCap } from '@/features/seasonal/snow-cap';
 import { useSeasonalScreen } from '@/features/seasonal/use-seasonal-screen';
 import { useSchedules } from '@/features/schedules/schedule-queries';
 import { HomePlaceCard } from '@/features/schedules/home-place-card';
@@ -78,8 +80,9 @@ export default function HomeScreen() {
   const router = useRouter();
   const { currentSpaceId } = useSpaces();
   const { height: windowHeight } = useWindowDimensions();
-  // 계절 배경. 지도가 화면을 채우므로 장면은 깔지 않고 지도 위에 D-데이 칩만 띄운다.
+  // 계절 배경. 지도는 그대로 두고 머리말(주간 날짜 줄) 뒤에만 하늘을 깐다.
   const seasonal = useSeasonalScreen('home');
+  const insets = useSafeAreaInsets();
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
   const [selectedDate, setSelectedDate] = useState(() => parseDate(seoulDateKey(new Date().toISOString())));
   const [weekStart, setWeekStart] = useState(() => startOfWeek(selectedDate));
@@ -228,19 +231,25 @@ export default function HomeScreen() {
     router.push({ pathname: '/schedules/new', params: { date: selectedDateKey } });
 
   return (
-    <SafeAreaView edges={['top']} style={styles.safeArea}>
+    // 머리말 하늘은 상태 바 뒤까지 올라가야 해서, 하늘이 깔릴 때는 위쪽 안전 영역을 직접 띄운다.
+    <SafeAreaView edges={seasonal.head ? [] : ['top']} style={styles.safeArea}>
       <View style={styles.screen}>
-        <HomeWeekStrip
-          selectedDate={selectedDateKey}
-          onSelect={(key) => {
-            const date = parseDate(key);
-            setSelectedDate(date);
-            setWeekStart(startOfWeek(date));
-            setSelection(null);
-          }}
-        />
+        <View testID="home-header" style={seasonal.head ? [styles.skyHeader, { paddingTop: insets.top }] : undefined}>
+          {seasonal.head && <ChristmasBackdrop night={seasonal.night} variant="head" />}
+          {seasonal.head && <View style={styles.seasonGreeting}><SeasonalHeader night={seasonal.onDarkSky} onNotice={showSnackbar} /></View>}
+          <HomeWeekStrip
+            seasonal={{ active: seasonal.head, night: seasonal.night, onDarkSky: seasonal.onDarkSky }}
+            selectedDate={selectedDateKey}
+            onSelect={(key) => {
+              const date = parseDate(key);
+              setSelectedDate(date);
+              setWeekStart(startOfWeek(date));
+              setSelection(null);
+            }}
+          />
+        </View>
 
-        <View style={styles.mapArea} onLayout={event => setMapHeight(event.nativeEvent.layout.height)}>
+        <View testID="home-map-area" style={styles.mapArea} onLayout={event => setMapHeight(event.nativeEvent.layout.height)}>
           <KakaoMap
             places={mapData.places}
             selectedId={selectedMarkerId}
@@ -255,17 +264,12 @@ export default function HomeScreen() {
               }
             }}
           />
-          {/* 지도 위에서는 인사 글씨가 묻히므로 칩만 왼쪽 위에 띄운다. 오른쪽 위는 지도 확대 버튼 자리다. */}
-          {seasonal.showGreeting && (
-            <View pointerEvents="box-none" style={styles.seasonChip}>
-              <SeasonalHeader night={false} chipOnly onNotice={showSnackbar} />
-            </View>
-          )}
         </View>
 
         <Animated.View
           style={[
             styles.sheet,
+            seasonal.head && styles.sheetOnSky,
             {
               height: sheetHeight,
               transform: [{
@@ -277,6 +281,7 @@ export default function HomeScreen() {
               }],
             },
           ]}>
+          {seasonal.head && <SnowCap night={seasonal.night} />}
           <View style={styles.dragArea} {...sheetPanResponder.panHandlers}>
             <Pressable accessibilityRole="button" accessibilityLabel={expanded ? '하루 시트 접기' : '하루 시트 펼치기'} accessibilityValue={{ min: 1, max: 3, now: sheetLevel, text: `${sheetLevel}단계` }} accessibilityState={{ expanded: sheetLevel > 1 }} accessibilityActions={[{ name: 'increment', label: '한 단계 펼치기' }, { name: 'decrement', label: '한 단계 접기' }]} onAccessibilityAction={event => {
               if (event.nativeEvent.actionName === 'increment') moveSheet(Math.min(3, sheetLevel + 1) as SheetLevel);
@@ -414,7 +419,11 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: colors.background },
   screen: { flex: 1, overflow: 'hidden', backgroundColor: colors.background },
   mapArea: { flex: 1, backgroundColor: colors.sand },
-  seasonChip: { left: spacing.md, position: 'absolute', top: spacing.md },
+  // 머리말 하늘. 아래 지도보다 위에 그려야 눈 둔덕이 지도와의 경계를 덮는다.
+  skyHeader: { overflow: 'hidden', zIndex: 3 },
+  seasonGreeting: { paddingHorizontal: spacing.lg, paddingTop: 40 },
+  // 시트 윗변의 눈이 위로 올라오게 잘라내기를 푼다. 시트 안 목록은 자기 스크롤 영역에서 잘린다.
+  sheetOnSky: { overflow: 'visible' },
   smallChevron: { color: colors.muted, fontSize: 18 },
   sheet: {
     backgroundColor: colors.surface,

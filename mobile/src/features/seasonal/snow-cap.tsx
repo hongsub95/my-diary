@@ -26,6 +26,23 @@ const CAP_PATH = (() => {
 })();
 
 /**
+ * 눈 모양 하나. 부모의 맨 위에 절대 위치로 붙는다(위로 8px 올라온다).
+ *
+ * @param night 낮 하늘은 밝아서 흰 눈이 묻히므로 낮에만 옅은 윤곽선을 그린다
+ *
+ * 보통은 SnowCapped를 쓴다. 움직이는 판(홈 시트)처럼 바깥 틀로 감쌀 수 없을 때 판 안에 직접 넣는다.
+ */
+export function SnowCap({ night }: { night: boolean }) {
+  return (
+    <View pointerEvents="none" style={styles.cap}>
+      <Svg width="100%" height={12} viewBox="0 0 300 12" preserveAspectRatio="none">
+        <Path d={CAP_PATH} fill="#FFFFFF" stroke={night ? 'none' : 'rgba(90,115,150,0.35)'} strokeWidth={0.6} />
+      </Svg>
+    </View>
+  );
+}
+
+/**
  * 카드 위에 눈을 얹는 바깥 틀. **카드 안은 건드리지 않는다.**
  *
  * @param show false면 틀만 남고 눈은 없다. 계절 배경이 꺼졌거나 이 화면이 대상이 아닐 때다
@@ -39,13 +56,7 @@ export function SnowCapped({ show, night, style, children }: PropsWithChildren<{
   return (
     <View style={style}>
       {children}
-      {show && (
-        <View pointerEvents="none" style={styles.cap}>
-          <Svg width="100%" height={12} viewBox="0 0 300 12" preserveAspectRatio="none">
-            <Path d={CAP_PATH} fill="#FFFFFF" stroke={night ? 'none' : 'rgba(90,115,150,0.35)'} strokeWidth={0.6} />
-          </Svg>
-        </View>
-      )}
+      {show && <SnowCap night={night} />}
     </View>
   );
 }

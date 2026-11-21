@@ -6,6 +6,8 @@ import { DatePickerPopover } from '@/shared/components/date-picker-popover';
 import { colors, radii, typography, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
 import { dateKey, moveDate, parseDate, weekDates } from './calendar-dates';
+import { NIGHT_TEXT, NIGHT_TEXT_SHADOW } from '@/features/seasonal/scene-colors';
+import { SnowCapped } from '@/features/seasonal/snow-cap';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 const WEEK_PAGE_RADIUS = 520;
@@ -19,11 +21,15 @@ function weekPageIndex(anchor: string, date: string) {
 }
 
 /** 고정된 주 페이지를 탐색한다. 스와이프 후 가운데로 되돌리지 않는다. */
-export function HomeWeekStrip({ selectedDate, onSelect }: {
+export function HomeWeekStrip({ selectedDate, onSelect, seasonal }: {
   selectedDate: string;
   onSelect: (date: string) => void;
+  /** 계절 배경. active면 바탕을 비워 뒤의 하늘이 보이게 하고 날짜 카드 위에 눈을 얹는다 */
+  seasonal?: { active: boolean; night: boolean; onDarkSky: boolean };
 }) {
   const styles = useThemedStyles(createStyles);
+  const onSky = seasonal?.active ?? false;
+  const dark = seasonal?.onDarkSky ?? false;
   const pager = useRef<FlatList<number>>(null);
   const scrollOffset = useRef(0);
   const webSnapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -83,7 +89,7 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
   };
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, onSky && styles.rootOnSky]}>
       <View style={styles.monthRow}>
         <Pressable
           ref={pickerAnchor}
@@ -92,14 +98,14 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
           accessibilityState={{ expanded: pickerOpen }}
           onPress={openPicker}
           style={styles.monthButton}>
-          <Text style={styles.monthTitle}>
+          <Text style={[styles.monthTitle, dark && styles.monthTitleNight]}>
             {Number(visibleDate.slice(0, 4))}년 {Number(visibleDate.slice(5, 7))}월
           </Text>
           <SymbolView
             name={{ ios: 'chevron.down', android: 'expand_more' }}
             size={18}
-            tintColor={colors.muted}
-            fallback={<View style={styles.chevronDown} />}
+            tintColor={dark ? NIGHT_TEXT.muted : colors.muted}
+            fallback={<View style={[styles.chevronDown, dark && styles.chevronDownNight]} />}
           />
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => selectDate(today)} style={styles.todayButton}>
@@ -107,6 +113,7 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
         </Pressable>
       </View>
       <View style={styles.divider} />
+      <SnowCapped show={onSky} night={seasonal?.night ?? false}>
       <View style={styles.viewport} onLayout={event => {
         const nextWidth = event.nativeEvent.layout.width;
         if (nextWidth !== width) {
@@ -177,6 +184,7 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
           />
         )}
       </View>
+      </SnowCapped>
 
       <DatePickerPopover visible={pickerOpen} anchorRef={pickerAnchor} value={visibleDate} mode="month" onChange={showDate} onClose={() => setPickerOpen(false)} />
     </View>
@@ -185,6 +193,10 @@ export function HomeWeekStrip({ selectedDate, onSelect }: {
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   root: { zIndex: 3, backgroundColor: colors.background, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 12 },
+  // 아랫단 눈 둔덕(16px)이 날짜 카드에 닿지 않게 아래 여백을 조금 늘린다.
+  rootOnSky: { backgroundColor: 'transparent', paddingBottom: 18 },
+  monthTitleNight: { color: NIGHT_TEXT.strong, ...NIGHT_TEXT_SHADOW },
+  chevronDownNight: { borderColor: NIGHT_TEXT.muted },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 5 },
   monthButton: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
   monthTitle: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold, letterSpacing: -0.4 },

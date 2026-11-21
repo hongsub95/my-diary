@@ -9,6 +9,8 @@ export type SeasonalScreen = {
   scope: SeasonScope;
   /** 하늘이 화면 전체에 깔리는지 (장면·카드 위 눈·탭 바 눈밭) */
   full: boolean;
+  /** 머리말 뒤에만 하늘이 깔리는지 (홈) */
+  head: boolean;
   /** 장면이 밤인지 */
   night: boolean;
   /** 카드 밖 글씨를 밤 색(흰색 계열)으로 바꿔야 하는지 */
@@ -29,12 +31,12 @@ export type SeasonalScreen = {
 export function useSeasonalScreen(tab: string): SeasonalScreen {
   const { visible, night } = useSeasonal();
   const scope: SeasonScope = visible ? scopeForTab(tab) : 'none';
-  const onDarkSky = scope === 'full' && night;
+  const onDarkSky = (scope === 'full' || scope === 'head') && night;
 
   useFocusEffect(useCallback(() => {
     StatusBar.setStyle(onDarkSky ? 'light' : 'dark');
     return () => StatusBar.setStyle('dark');
   }, [onDarkSky]));
 
-  return { scope, full: scope === 'full', night, onDarkSky, showGreeting: scope !== 'none' };
+  return { scope, full: scope === 'full', head: scope === 'head', night, onDarkSky, showGreeting: scope !== 'none' };
 }

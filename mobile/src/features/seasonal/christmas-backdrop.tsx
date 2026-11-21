@@ -23,7 +23,7 @@ const AnimatedG = Animated.createAnimatedComponent(G);
  * 멈추지 않으면 안 보이는 탭 다섯 개가 함께 배터리를 쓴다. 기기의 "동작 줄이기"가
  * 켜져 있으면 처음부터 멈춘 장면만 그린다.
  */
-export function ChristmasBackdrop({ night }: { night: boolean }) {
+export function ChristmasBackdrop({ night, variant = 'full' }: { night: boolean; variant?: 'full' | 'head' }) {
   const palette = useTheme();
   const focused = useIsFocused();
   const reduceMotion = useReducedMotion();
@@ -33,6 +33,7 @@ export function ChristmasBackdrop({ night }: { night: boolean }) {
 
   return (
     <View
+      testID={`seasonal-backdrop-${variant}`}
       pointerEvents="none"
       style={[StyleSheet.absoluteFill, { backgroundColor: colors.sky[0] }]}
       onLayout={event => {
@@ -41,9 +42,9 @@ export function ChristmasBackdrop({ night }: { night: boolean }) {
       }}>
       {size.width > 0 && (
         <>
-          <Sky width={size.width} height={size.height} colors={colors} night={night} />
+          <Sky width={size.width} height={size.height} colors={colors} night={night} head={variant === 'head'} />
           <TopScene width={size.width} colors={colors} night={night} running={running} />
-          <BottomVillage width={size.width} colors={colors} night={night} />
+          {variant === 'full' ? <BottomVillage width={size.width} colors={colors} night={night} /> : <SnowBank night={night} />}
           <Snowfall width={size.width} height={size.height} running={running} night={night} />
         </>
       )}
@@ -52,23 +53,24 @@ export function ChristmasBackdrop({ night }: { night: boolean }) {
 }
 
 /** 하늘 그라데이션과 화면 가운데 별. 밤에는 지평선이 따뜻하게, 낮에는 오른쪽 위가 햇빛으로 밝다. */
-const Sky = memo(function Sky({ width, height, colors, night }: { width: number; height: number; colors: SceneColors; night: boolean }) {
+const Sky = memo(function Sky({ width, height, colors, night, head }: { width: number; height: number; colors: SceneColors; night: boolean; head: boolean }) {
   const stars = useMemo(() => {
-    if (!night) return [];
+    if (!night || head) return [];
     const random = seededRandom(23);
     return Array.from({ length: 30 }, (_, i) => (
       <Circle key={i} cx={random() * width} cy={270 + random() * Math.max(0, height - 470)} r={0.5 + random() * 0.8} fill="#FFFFFF" opacity={0.6 + random() * 0.4} />
     ));
-  }, [height, night, width]);
+  }, [head, height, night, width]);
 
   return (
     <Svg width={width} height={height} style={StyleSheet.absoluteFill}>
       <Defs>
         <LinearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <Stop offset="0" stopColor={colors.sky[0]} />
-          <Stop offset={String(Math.min(0.6, 260 / height))} stopColor={colors.sky[1]} />
-          <Stop offset="0.68" stopColor={colors.sky[2]} />
-          <Stop offset="1" stopColor={colors.sky[3]} />
+          {/* 머리말 하늘은 짧아서 위 세 칸만 쓴다. SVG 자식에는 Stop 요소만 전달한다. */}
+          {(head
+            ? [['0', colors.sky[0]], ['0.55', colors.sky[1]], ['1', colors.sky[2]]]
+            : [['0', colors.sky[0]], [String(Math.min(0.6, 260 / height)), colors.sky[1]], ['0.68', colors.sky[2]], ['1', colors.sky[3]]]
+          ).map(([offset, color]) => <Stop key={offset} offset={offset} stopColor={color} />)}
         </LinearGradient>
         <RadialGradient id="glow" cx={night ? '50%' : '88%'} cy={night ? '100%' : '14%'} rx={night ? '65%' : '60%'} ry={night ? '13%' : '15%'}>
           <Stop offset="0" stopColor={night ? '#FFCD8C' : '#FFF3C8'} stopOpacity={night ? 0.32 : 0.6} />
@@ -76,7 +78,7 @@ const Sky = memo(function Sky({ width, height, colors, night }: { width: number;
         </RadialGradient>
       </Defs>
       <Rect width={width} height={height} fill="url(#sky)" />
-      <Rect width={width} height={height} fill="url(#glow)" />
+      {!(head && night) && <Rect width={width} height={height} fill="url(#glow)" />}
       {stars}
     </Svg>
   );
@@ -199,7 +201,21 @@ const BottomVillage = memo(function BottomVillage({ width, colors, night }: { wi
   );
 });
 
+/**
+ * 머리말 하늘의 아랫단 눈 둔덕. 하늘이 지도와 맞닿는 곳을 곧은 선 대신 눈 쌓인 물결로 끝낸다.
+ */
+function SnowBank({ night }: { night: boolean }) {
+  return (
+    <View style={styles.bank}>
+      <Svg width="100%" height={16} viewBox="0 0 300 16" preserveAspectRatio="none">
+        <Path d="M0 16 V9 Q 20 4 40 8 T 80 7 T 120 9 T 160 6 T 200 8 T 240 7 T 280 9 T 300 8 V16 Z" fill="#FFFFFF" stroke={night ? 'none' : 'rgba(90,115,150,0.3)'} strokeWidth={0.6} />
+      </Svg>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   top: { left: 0, position: 'absolute', top: 0 },
+  bank: { bottom: 0, height: 16, left: 0, position: 'absolute', right: 0 },
   bottom: { bottom: 0, left: 0, position: 'absolute' },
 });
