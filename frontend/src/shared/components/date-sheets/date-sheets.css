@@ -1,0 +1,199 @@
+/* 날짜 시트(하루 A·기간 B). 화면 아래에서 올라온다. 데스크톱에서는 앱 기둥 폭(480px)으로 가운데. */
+
+.ds-layer { position: fixed; inset: 0; z-index: 3000; }
+
+.ds-dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(28, 25, 23, 0.38);
+  animation: ds-fade 0.2s ease-out;
+}
+
+.ds-sheet {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  display: flex;
+  flex-direction: column;
+  width: min(480px, 100%);
+  max-height: calc(100dvh - 24px);
+  padding: 10px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+  overflow: auto;
+  border-radius: 28px 28px 0 0;
+  background: var(--color-surface, #fff);
+  color: var(--color-text-primary, #282321);
+  box-shadow: 0 -8px 28px rgba(0, 0, 0, 0.14);
+  transform: translateX(-50%);
+  animation: ds-rise 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.ds-sheet--tall { height: 86dvh; overflow: hidden; }
+
+@keyframes ds-rise { from { transform: translate(-50%, 40%); } to { transform: translate(-50%, 0); } }
+@keyframes ds-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.ds-grab { align-self: center; flex-shrink: 0; width: 42px; height: 4px; margin-bottom: 12px; border-radius: 2px; background: var(--color-border, #e9e2dc); }
+
+.ds-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.ds-title { font-size: 17px; font-weight: 700; }
+.ds-chips { display: flex; gap: 6px; }
+
+.ds-chip {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-primary-light);
+  color: var(--color-primary-text);
+  font-family: inherit; font-size: 12px; font-weight: 600;
+  cursor: pointer;
+}
+
+.ds-chip--quiet { background: var(--color-bg, #f5f0eb); color: var(--color-text-secondary, #756d68); }
+.ds-chip:disabled { opacity: 0.4; cursor: default; }
+
+.ds-nav { display: flex; align-items: center; margin: 8px 0 4px; }
+.ds-nav-titles { display: flex; flex: 1; justify-content: center; }
+
+.ds-nav-title {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: inherit;
+  font-family: inherit; font-size: 16px; font-weight: 700;
+  cursor: pointer;
+}
+
+.ds-nav-title span { color: var(--color-text-secondary, #756d68); font-size: 12px; }
+
+.ds-arrow {
+  width: 40px;
+  height: 40px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--color-bg, #f5f0eb);
+  color: var(--color-text-secondary, #756d68);
+  font-size: 20px;
+  cursor: pointer;
+}
+
+/* 한 달 칸: 누르기 쉬운 크기(44px)를 지킨다. */
+.ds-weekdays,
+.ds-days { display: grid; grid-template-columns: repeat(7, 1fr); }
+
+.ds-weekdays span { height: 28px; color: var(--color-text-secondary, #756d68); font-size: 12px; line-height: 28px; text-align: center; }
+
+.ds-day {
+  position: relative;
+  display: grid;
+  height: 44px;
+  place-items: center;
+  border: 0;
+  background: none;
+  color: var(--color-text-primary, #282321);
+  font-family: inherit; font-size: 14px; font-weight: 500;
+  cursor: pointer;
+}
+
+.ds-day--empty { cursor: default; }
+.ds-day:disabled { color: var(--color-text-disabled, #c9c1bb); cursor: default; }
+
+.ds-num { display: grid; width: 34px; height: 34px; place-items: center; border-radius: 12px; }
+.ds-sun { color: var(--color-danger, #d64545); }
+.ds-sat { color: #47749e; }
+.ds-today .ds-num { box-shadow: inset 0 0 0 1.5px var(--color-primary); color: var(--color-primary-text); font-weight: 700; }
+.ds-picked .ds-num { background: var(--color-primary); box-shadow: none; color: #fff; font-weight: 700; }
+.ds-day:hover:not(:disabled):not(.ds-picked) .ds-num { background: var(--color-surface-hover, #f8f4f0); }
+.ds-day:focus-visible { outline: none; }
+.ds-day:focus-visible .ds-num { outline: 2px solid var(--color-primary-text); outline-offset: 1px; }
+
+.ds-holiday-name {
+  position: absolute;
+  bottom: 1px;
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--color-danger, #d64545);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ds-band { background: var(--color-primary-light); }
+.ds-band--start { border-radius: 14px 0 0 14px; }
+.ds-band--end { border-radius: 0 14px 14px 0; }
+
+/* 연도·달 고르기 */
+.ds-grid { display: grid; grid-template-columns: repeat(3, 1fr); padding: 6px 0; }
+
+.ds-grid-cell {
+  display: flex;
+  min-height: 56px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.ds-grid-cell strong { font-size: 14px; font-weight: 500; }
+.ds-grid-cell small { color: var(--color-danger, #d64545); font-size: 10.5px; }
+.ds-grid-cell--picked { background: var(--color-primary); color: #fff; }
+.ds-grid-cell--picked small { color: #fff; }
+.ds-grid-cell:disabled { opacity: 0.3; cursor: default; }
+
+.ds-note { margin-top: 8px; color: var(--color-text-secondary, #756d68); font-size: 12px; }
+
+.ds-close,
+.ds-secondary,
+.ds-primary {
+  min-height: 50px;
+  border: 0;
+  border-radius: 16px;
+  font-family: inherit; font-size: 15px; font-weight: 600;
+  cursor: pointer;
+}
+
+.ds-close { width: 100%; margin-top: 12px; background: var(--color-bg, #f5f0eb); color: var(--color-text-secondary, #756d68); }
+.ds-hint { margin-top: 8px; color: var(--color-text-secondary, #756d68); font-size: 12px; text-align: center; }
+
+/* 기간 시트 */
+.ds-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--color-bg, #f5f0eb);
+  font-size: 13px;
+}
+
+.ds-summary strong { color: var(--color-primary-text); }
+.ds-summary span { color: var(--color-text-secondary, #756d68); font-size: 12px; }
+.ds-scroll { flex: 1; min-height: 0; margin-top: 4px; overflow-y: auto; scrollbar-width: thin; }
+.ds-month-title { height: 44px; padding: 0 4px; font-size: 15px; font-weight: 700; line-height: 44px; }
+.ds-actions { display: flex; flex-shrink: 0; gap: 8px; margin-top: 10px; }
+.ds-secondary { padding: 0 18px; background: var(--color-bg, #f5f0eb); color: var(--color-text-secondary, #756d68); }
+.ds-primary { flex: 1; background: var(--color-primary); color: #fff; font-weight: 700; }
+
+.ds-chip:focus-visible,
+.ds-nav-title:focus-visible,
+.ds-arrow:focus-visible,
+.ds-grid-cell:focus-visible,
+.ds-close:focus-visible,
+.ds-secondary:focus-visible,
+.ds-primary:focus-visible {
+  outline: 2px solid var(--color-primary-text);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ds-sheet,
+  .ds-dim { animation: none; }
+}

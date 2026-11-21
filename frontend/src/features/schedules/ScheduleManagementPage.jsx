@@ -189,7 +189,8 @@ function ManagementForm({ schedule, access, mode }) {
           <input id="edit-title" name="title" required className="snew-form__input" value={form.title} onChange={e => set('title', e.target.value)} /></div>
         <div className="snew-timing-card">{['start', 'end'].map(edge => <div key={edge} className={'snew-timing-row snew-timing-row--' + edge}>
           <div className="snew-form__field"><label className="snew-form__label" htmlFor={'edit-' + edge + '-date'}>{edge === 'start' ? '시작일' : '종료일'} *</label>
-            <DatePicker id={'edit-' + edge + '-date'} name={edge + '_date'} label={edge === 'start' ? '시작일' : '종료일'} required className="snew-form__input" value={form[edge + '_date']} onChange={date => set(edge + '_date', date)} /></div>
+            <DatePicker id={'edit-' + edge + '-date'} name={edge + '_date'} label={edge === 'start' ? '시작일' : '종료일'} required className="snew-form__input" value={form[edge + '_date']} onChange={date => set(edge + '_date', date)}
+              range={{ start: form.start_date, end: form.end_date }} onRangeChange={({ start, end }) => { set('start_date', start); set('end_date', end) }} /></div>
           <div className="snew-form__field snew-timing-row__time"><label className="snew-form__label" htmlFor={'edit-' + edge + '-time'}>{edge === 'start' ? '시작 시간' : '종료 시간'} *</label>
             <select id={'edit-' + edge + '-time'} name={edge + '_time'} className="snew-form__input" value={form[edge + '_time']} onChange={e => set(edge + '_time', e.target.value)}>
               {!TIME_OPTIONS.includes(form[edge + '_time']) && <option value={form[edge + '_time']} disabled>{form[edge + '_time']} (기존)</option>}

@@ -177,9 +177,12 @@ function ScheduleBasicsForm({ existing }) {
             <div className="snew-timing-row">
               <div className="snew-form__field">
                 <label className="snew-form__label" htmlFor="schedule-start-date">시작일 <span className="snew-form__required" aria-hidden="true">*</span></label>
+                {/* 시작일·종료일 어느 칸을 눌러도 같은 기간 시트가 열리고, 적용하면 두 칸이 함께 바뀐다. */}
                 <DatePicker
                   id="schedule-start-date"
                   label="시작일"
+                  range={{ start: form.start_date, end: form.end_date }}
+                  onRangeChange={({ start, end }) => setForm((current) => ({ ...current, start_date: start, end_date: end }))}
                   value={form.start_date}
                   onChange={(startDate) => {
                     setForm((current) => ({
@@ -212,6 +215,8 @@ function ScheduleBasicsForm({ existing }) {
                 <DatePicker
                   id="schedule-end-date"
                   label="종료일"
+                  range={{ start: form.start_date, end: form.end_date }}
+                  onRangeChange={({ start, end }) => setForm((current) => ({ ...current, start_date: start, end_date: end }))}
                   min={form.start_date}
                   value={form.end_date}
                   onChange={date => set('end_date', date)}
