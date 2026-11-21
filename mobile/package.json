@@ -53,7 +53,8 @@
     "check:map": "node scripts/check-map.cjs",
     "check:home": "node scripts/check-home.cjs",
     "check:create-flow": "node scripts/check-create-flow-ui.cjs",
-    "check:seasonal": "node scripts/check-seasonal-ui.cjs"
+    "check:seasonal": "node scripts/check-seasonal-ui.cjs",
+    "check:date-sheets": "node scripts/check-date-sheets-ui.cjs"
   },
   "private": true
 }

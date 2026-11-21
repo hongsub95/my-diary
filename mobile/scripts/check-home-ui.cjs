@@ -136,15 +136,19 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     await expect(page.getByRole('button', { name: /^10월 25일 일요일/ })).toBeInViewport({ ratio: 0.95 });
     await page.getByRole('button', { name: '오늘', exact: true }).click();
     await expect(page.getByRole('button', { name: /^10월 13일 화요일/ })).toBeInViewport({ ratio: 0.95 });
+    // 달 이름을 누르면 월간 시트(하루 상태 점)가 올라온다. 다음 달의 날을 골라 "이 주 보기"로 옮긴다.
     await page.getByRole('button', { name: '2026년 10월, 월 선택 열기', exact: true }).click();
-    await expect(page.getByRole('button', { name: '2026년 11월', exact: true })).toBeVisible();
-    await expect(page.getByText(/공휴일 \d+일/)).toHaveCount(0);
-    await page.getByRole('button', { name: '2026년 11월', exact: true }).click();
+    await expect(page.getByRole('button', { name: '이 주 보기', exact: true })).toBeVisible();
+    await page.getByRole('button', { name: '다음 달', exact: true }).click();
+    await page.getByRole('button', { name: /^2026년 11월 3일 화요일/ }).click();
+    await page.getByRole('button', { name: '이 주 보기', exact: true }).click();
     await expect(page.getByRole('button', { name: '2026년 11월, 월 선택 열기', exact: true })).toBeVisible();
-    await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toBeVisible();
+    await expect(page.getByRole('button', { name: /^11월 3일 화요일/ })).toBeInViewport({ ratio: 0.95 });
+    // 둘러보기만 하고 바깥을 눌러 닫으면 아무것도 바뀌지 않는다.
     await page.getByRole('button', { name: '2026년 11월, 월 선택 열기', exact: true }).click();
-    await page.getByRole('button', { name: '다음 연도', exact: true }).click();
-    await page.keyboard.press('Escape');
+    await page.getByRole('button', { name: '다음 달', exact: true }).click();
+    // 어두운 막의 가운데는 시트가 덮고 있어서, 시트 위쪽 빈 곳을 누른다.
+    await page.getByRole('button', { name: '달 보기 닫기', exact: true }).click({ position: { x: 20, y: 20 } });
     await expect(page.getByRole('button', { name: '2026년 11월, 월 선택 열기', exact: true })).toBeVisible();
     await page.getByRole('button', { name: '오늘', exact: true }).click();
     await expect(page.getByRole('button', { name: /^10월 13일 화요일/ })).toBeInViewport({ ratio: 0.95 });

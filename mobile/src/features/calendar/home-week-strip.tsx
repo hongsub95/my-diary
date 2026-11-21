@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
 import { FlatList, Platform, Pressable, StyleSheet, Text, View, type ViewToken } from 'react-native';
-import { DatePickerPopover } from '@/shared/components/date-picker-popover';
+import { MonthSheet } from '@/shared/components/date-sheets/month-sheet';
 
 import { colors, radii, typography, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
@@ -48,7 +48,6 @@ export function HomeWeekStrip({ selectedDate, onSelect, seasonal }: {
   const pageIndex = weekPageIndex(anchorDate, navigationDate);
   const today = dateKey(new Date());
   const [pickerOpen, setPickerOpen] = useState(false);
-  const pickerAnchor = useRef<View>(null);
   const onViewableItemsChanged = useCallback(({ viewableItems }: { viewableItems: ViewToken<number>[] }) => {
     const page = viewableItems.find(item => item.isViewable);
     // 같은 페이지의 알림이 중복되어도 동일한 주를 표시한다.
@@ -92,7 +91,6 @@ export function HomeWeekStrip({ selectedDate, onSelect, seasonal }: {
     <View style={[styles.root, onSky && styles.rootOnSky]}>
       <View style={styles.monthRow}>
         <Pressable
-          ref={pickerAnchor}
           accessibilityRole="button"
           accessibilityLabel={`${Number(visibleDate.slice(0, 4))}년 ${Number(visibleDate.slice(5, 7))}월, 월 선택 열기`}
           accessibilityState={{ expanded: pickerOpen }}
@@ -186,7 +184,8 @@ export function HomeWeekStrip({ selectedDate, onSelect, seasonal }: {
       </View>
       </SnowCapped>
 
-      <DatePickerPopover visible={pickerOpen} anchorRef={pickerAnchor} value={visibleDate} mode="month" onChange={showDate} onClose={() => setPickerOpen(false)} />
+      {/* 달 이름을 누르면 하루 상태 점이 찍힌 월간 시트가 올라온다. 고른 날의 주로 옮기고 그날을 고른다. */}
+      <MonthSheet visible={pickerOpen} value={selectedDate} onSelect={selectDate} onClose={() => setPickerOpen(false)} />
     </View>
   );
 }
