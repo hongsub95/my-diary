@@ -1,8 +1,8 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { Redirect, useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { FlatList, Image, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { DatePickerPopover } from '@/shared/components/date-picker-popover';
+import { DateSheet } from '@/shared/components/date-sheets/date-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/features/auth/auth-context';
@@ -25,8 +25,6 @@ export default function CollectionScreen() {
   const [kind, setKind] = useState<'schedules' | 'records'>('schedules');
   const [filters, setFilters] = useState<Filters>(EMPTY);
   const [draft, setDraft] = useState<Filters>(EMPTY);
-  const fromAnchor = useRef<View>(null);
-  const toAnchor = useRef<View>(null);
   const [dateTarget, setDateTarget] = useState<'from' | 'to' | null>(null);
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
   const spaceId = useCurrentSpaceId();
@@ -76,7 +74,7 @@ export default function CollectionScreen() {
           <View style={styles.dateRow}>
             {(['from', 'to'] as const).map(target => <View style={styles.dateField} key={target}>
               <Text style={styles.hint}>{target === 'from' ? '시작일' : '종료일'}</Text>
-              <Pressable ref={target === 'from' ? fromAnchor : toAnchor} accessibilityRole="button" accessibilityLabel={`${target === 'from' ? '시작일' : '종료일'} ${draft[target] || '선택'}`} style={styles.dateButton} onPress={() => setDateTarget(target)}><Text style={styles.text}>{draft[target] || '날짜 선택'}</Text></Pressable>
+              <Pressable accessibilityRole="button" accessibilityLabel={`${target === 'from' ? '시작일' : '종료일'} ${draft[target] || '선택'}`} style={styles.dateButton} onPress={() => setDateTarget(target)}><Text style={styles.text}>{draft[target] || '날짜 선택'}</Text></Pressable>
             </View>)}
           </View>
           <View style={styles.dateRow}>
@@ -96,7 +94,7 @@ export default function CollectionScreen() {
       </Pressable>}
       ListFooterComponent={query.isError ? <Pressable accessibilityRole="button" style={styles.load} onPress={() => query.isFetchNextPageError ? query.fetchNextPage() : refetch()}><Text style={styles.link}>다시 불러오기</Text></Pressable> : query.hasNextPage ? <Pressable accessibilityRole="button" style={styles.load} disabled={query.isFetchingNextPage} onPress={() => query.fetchNextPage()}><Text style={styles.link}>{query.isFetchingNextPage ? '불러오는 중…' : '더 보기'}</Text></Pressable> : null}
     />
-    <DatePickerPopover key={dateTarget} visible={Boolean(dateTarget)} anchorRef={dateTarget === 'from' ? fromAnchor : toAnchor} value={dateTarget ? draft[dateTarget] : ''} clearable onChange={date => { if (dateTarget) setDraft({ ...draft, [dateTarget]: date }); }} onClose={() => setDateTarget(null)} />
+    <DateSheet visible={Boolean(dateTarget)} title={dateTarget === 'to' ? '끝나는 날' : '시작하는 날'} value={dateTarget ? draft[dateTarget] : ''} clearable onChange={date => { if (dateTarget) setDraft({ ...draft, [dateTarget]: date }); }} onClose={() => setDateTarget(null)} />
     <Snackbar notice={notice} onDismiss={dismissSnackbar} />
   </SafeAreaView>;
 }

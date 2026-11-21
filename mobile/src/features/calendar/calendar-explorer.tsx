@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 import { Calendar } from 'react-native-calendars';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { DatePickerPopover } from '@/shared/components/date-picker-popover';
+import { DateSheet } from '@/shared/components/date-sheets/date-sheet';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { PhaseTag, phaseColors, phaseKind, phaseKindLabels } from '@/features/schedules/phase-tag';
@@ -70,7 +70,6 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
   const pager = useRef<ScrollView>(null);
   const moving = useRef(false);
   const [picker, setPicker] = useState(false);
-  const pickerAnchor = useRef<View>(null);
   const active = { backgroundColor: palette.primarySoft };
   const accent = { color: palette.primaryDark };
 
@@ -101,7 +100,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
     <View style={s.card}>
       <View style={s.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="이전 기간" onPress={() => move(-1)} style={s.button}><Text style={s.arrow}>‹</Text></Pressable>
-        <Pressable ref={pickerAnchor} accessibilityRole="button" accessibilityLabel={`${periodLabel(selectedDate, mode)}, 날짜 이동 선택창 열기`} onPress={openPicker} style={s.dateButton}><Text style={s.dateTitle}>{periodLabel(selectedDate, mode)} <Text style={s.dateChevron}>⌄</Text></Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${periodLabel(selectedDate, mode)}, 날짜 이동 선택창 열기`} onPress={openPicker} style={s.dateButton}><Text style={s.dateTitle}>{periodLabel(selectedDate, mode)} <Text style={s.dateChevron}>⌄</Text></Text></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="다음 기간" onPress={() => move(1)} style={s.button}><Text style={s.arrow}>›</Text></Pressable>
       </View>
       {/* 일간은 그날 하루를 따로 조회하고 상태도 스스로 보여 준다(DayAgenda). 석 달치 조회 상태를 겹쳐 띄우지 않는다. */}
@@ -150,7 +149,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
       </View>}
     </View>
     </SnowCapped>
-    <DatePickerPopover visible={picker} anchorRef={pickerAnchor} value={selectedDate} mode={mode === 'month' ? 'month' : 'date'} onChange={onSelect} onClose={() => setPicker(false)} />
+    <DateSheet visible={picker} title={mode === 'month' ? '달 이동' : '날짜 이동'} value={selectedDate} mode={mode === 'month' ? 'month' : 'date'} onChange={onSelect} onClose={() => setPicker(false)} />
   </View>;
 }
 
