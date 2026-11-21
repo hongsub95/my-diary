@@ -1,4 +1,4 @@
-import { forwardRef, useRef, useState } from 'react';
+import { forwardRef, useState } from 'react';
 import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { colors, radii, type ThemePalette } from '@/shared/theme';
@@ -31,7 +31,6 @@ export const ScheduleBasicsFields = forwardRef<TextInput, {
   memoLabel?: string;
 }>(function ScheduleBasicsFields({ form, onChange, disabled = false, memoLabel = '하루의 밑그림' }, ref) {
   const styles = useThemedStyles(createStyles);
-  const dateAnchor = useRef<View>(null);
   const [rangeOpen, setRangeOpen] = useState(false);
   const range = formatRangeShort(form.start_date, form.end_date);
   const period = periodBetween(form.start_date, form.end_date);
@@ -58,7 +57,6 @@ export const ScheduleBasicsFields = forwardRef<TextInput, {
         {/* 날짜 행 전체가 버튼이다. 박수(당일·1박 2일) 배지는 화면에 두지 않는다(2026-10-15
             사용자 결정). 날짜 시트 위쪽에서 고르는 동안 보여 주고, 화면 읽기 도구에는 계속 알린다. */}
         <Pressable
-          ref={dateAnchor}
           accessibilityRole="button"
           accessibilityLabel={`날짜, ${range}, ${period}, 바꾸기`}
           disabled={disabled}
@@ -99,7 +97,6 @@ export const ScheduleBasicsFields = forwardRef<TextInput, {
       />
 
       <ScheduleRangeSheet
-        anchorRef={dateAnchor}
         visible={rangeOpen}
         start={form.start_date}
         end={form.end_date}
