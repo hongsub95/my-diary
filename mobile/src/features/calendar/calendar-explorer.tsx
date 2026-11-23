@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SymbolView } from 'expo-symbols';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DateSheet } from '@/shared/components/date-sheets/date-sheet';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
@@ -8,7 +8,7 @@ import { phaseColors, phaseKind, phaseKindLabels } from '@/features/schedules/ph
 import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
 import { LoadingIndicator } from '@/shared/components/loading-indicator';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
-import { dateKey, dateLabel, moveDate, parseDate, periodLabel, weekDates, type CalendarMode } from './calendar-dates';
+import { dateKey, dateLabel, moveDate, parseDate, periodCount, periodIndex, periodLabel, periodStart, weekDates, type CalendarMode } from './calendar-dates';
 import { DayAgenda } from './day-agenda';
 import { MonthEventGrid } from './month-event-grid';
 import { DownChevron } from '@/shared/components/down-chevron';
@@ -59,26 +59,41 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
   const s = useThemedStyles(createStyles);
   const [mode, setMode] = useState<CalendarMode>('month');
   const [size, setSize] = useState({ width: 0, height: 0 });
-  const pager = useRef<ScrollView>(null);
-  const moving = useRef(false);
-  // 한 번 민 것으로 이미 달을 넘겼다는 표시. 안드로이드는 한 번 튕겨도 끝 이벤트를 두 번 보낼 때가 있고,
-  // 두 번째는 가운데로 되돌리기 전 위치(옆 장)를 담고 있어 그대로 두면 한 달을 더 넘긴다.
-  // 다음에 손가락을 대거나 화살표를 누를 때 풀린다.
-  const settled = useRef(false);
+  // 옆으로 넘기는 달력. 1900~2100년의 달(주·날)을 한 줄로 깔아 두고 화면 근처 장만 그린다.
+  // 예전에는 앞·지금·다음 세 장만 두고, 넘길 때마다 세 장 내용을 바꾼 뒤 가운데로 되돌렸다.
+  // 안드로이드에서는 되돌리기와 내용 바꾸기가 다른 프레임에 그려져 한순간 이전 달로 튀어
+  // 버벅여 보였고, 끝 이벤트가 두 번 오면 두 달을 넘겼다. 한 줄로 깔면 되돌릴 일이 없다.
+  const pager = useRef<FlatList<number>>(null);
+  // 지금 화면에 멈춰 있는 장 번호. 같은 자리에서 끝 이벤트가 또 와도 다시 넘기지 않는다.
+  const shown = useRef(-1);
+  const target = periodIndex(selectedDate, mode);
+  // 멀리 뛸 때마다 하나씩 늘려 장 줄을 그 자리에서 새로 깐다(아래 jumpTo).
+  const [jump, setJump] = useState(0);
   const [picker, setPicker] = useState(false);
   const accent = { color: palette.primaryDark };
 
-  useLayoutEffect(() => {
-    pager.current?.scrollTo({ x: size.width, animated: false });
-    moving.current = false;
-  }, [selectedDate, mode, size.width]);
+  // 고른 날이 옆 장으로 바뀌면(화살표) 그 장으로 밀어 옮긴다. 손으로 넘긴 경우는 이미 그 장에
+  // 있어 아무것도 하지 않는다.
+  useEffect(() => {
+    if (!size.width || shown.current === target) return;
+    const near = Math.abs(shown.current - target) === 1;
+    shown.current = target;
+    pager.current?.scrollToOffset({ offset: target * size.width, animated: near });
+  }, [target, size.width]);
 
-  const move = (step: number) => {
-    if (moving.current || !size.width) return;
-    moving.current = true;
-    settled.current = false;
-    pager.current?.scrollTo({ x: size.width * (1 + step), animated: true });
+  const move = (step: number) => onSelect(moveDate(selectedDate, mode, step));
+  // "오늘"·날짜 고르기처럼 멀리 뛸 때는 굴려 가지 않고 그 장에서 줄을 새로 깐다. 수십 장을 건너
+  // 굴리면 사이 장을 그리느라 느리고, 웹에서는 장 맞춤(scroll snap)이 길을 잃고 첫 장으로 튄다.
+  const jumpTo = (date: string) => {
+    const index = periodIndex(date, mode);
+    if (Math.abs(index - shown.current) > 1) {
+      shown.current = index;
+      setJump(count => count + 1);
+    }
+    onSelect(date);
   };
+  // 장 번호 목록은 모드가 바뀔 때만 새로 만든다(일간은 7만 장이 넘는다).
+  const items = useMemo(() => Array.from({ length: periodCount(mode) }, (_, index) => index), [mode]);
   const openPicker = () => setPicker(true);
   const renderDay = (key: string, compact = false) => {
     const items = schedules[key] ?? [];
@@ -90,7 +105,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
   };
 
   return <View style={s.root}>
-    <View style={s.top}><View style={s.heading}><View style={s.headingIcon}><SymbolView name={{ ios: 'calendar', android: 'calendar_month', web: 'calendar_month' }} size={22} tintColor={palette.primaryDark} fallback={<Text style={accent}>▦</Text>} /></View><View style={s.headingCopy}><Text accessibilityRole="header" style={[s.title, dark && s.titleNight]}>캘린더</Text><Text style={[s.description, dark && s.descriptionNight]}>날짜마다 쌓이는 나의 하루.</Text></View></View><Pressable accessibilityRole="button" onPress={() => onSelect(dateKey(new Date()))} style={s.todayButton}><Text style={s.todayText}>오늘</Text></Pressable></View>
+    <View style={s.top}><View style={s.heading}><View style={s.headingIcon}><SymbolView name={{ ios: 'calendar', android: 'calendar_month', web: 'calendar_month' }} size={22} tintColor={palette.primaryDark} fallback={<Text style={accent}>▦</Text>} /></View><View style={s.headingCopy}><Text accessibilityRole="header" style={[s.title, dark && s.titleNight]}>캘린더</Text><Text style={[s.description, dark && s.descriptionNight]}>날짜마다 쌓이는 나의 하루.</Text></View></View><Pressable accessibilityRole="button" onPress={() => jumpTo(dateKey(new Date()))} style={s.todayButton}><Text style={s.todayText}>오늘</Text></Pressable></View>
     <View style={s.modes} accessibilityRole="tablist">{modes.map(item => <Pressable key={item.value} accessibilityRole="tab" accessibilityState={{ selected: mode === item.value }} aria-selected={mode === item.value} onPress={() => setMode(item.value)} style={[s.mode, mode === item.value && s.modeActive]}><Text style={[s.modeLabel, mode === item.value && accent]}>{item.label}</Text></Pressable>)}</View>
     <SnowCapped show={seasonal?.full ?? false} night={seasonal?.night ?? false} style={s.cardWrap}>
     <View style={s.card}>
@@ -104,27 +119,41 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
       {mode !== 'day' && failed && <Pressable accessibilityRole="button" onPress={retry}><Text style={s.status}>일정을 불러오지 못했어요. 다시 시도</Text></Pressable>}
       {mode === 'month' && <View style={s.weekStrip}>{weekdays.map(day => <Text key={day} style={s.weekdayLabel}>{day}</Text>)}</View>}
       <View style={s.viewport} onLayout={event => setSize(event.nativeEvent.layout)}>
-        {size.width > 0 && size.height > 0 && <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: size.width, y: 0 }} onScrollBeginDrag={() => { settled.current = false; }} onMomentumScrollEnd={event => {
-          const step = Math.round(event.nativeEvent.contentOffset.x / size.width) - 1;
-          moving.current = false;
-          if (!step || settled.current) return;
-          settled.current = true;
-          onSelect(moveDate(selectedDate, mode, step));
-        }}>
-          {[-1, 0, 1].map(step => {
-            const key = moveDate(selectedDate, mode, step);
+        {size.width > 0 && size.height > 0 && <FlatList
+          // 모드나 폭이 바뀌거나 멀리 뛰면 고른 날의 장부터 다시 깐다.
+          key={`${mode}-${size.width}-${jump}`}
+          ref={pager}
+          data={items}
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          keyExtractor={String}
+          getItemLayout={(_, index) => ({ length: size.width, offset: size.width * index, index })}
+          initialScrollIndex={target}
+          initialNumToRender={1}
+          maxToRenderPerBatch={2}
+          windowSize={3}
+          extraData={[schedules, selectedDate, loading, failed, size.height]}
+          onMomentumScrollEnd={event => {
+            const index = Math.round(event.nativeEvent.contentOffset.x / size.width);
+            if (index === shown.current) return;
+            // 처음 깔린 뒤 첫 이동이면 shown이 아직 비어 있다. 고른 날의 장에서 출발한 것으로 센다.
+            const from = shown.current < 0 ? target : shown.current;
+            shown.current = index;
+            if (index !== from) onSelect(moveDate(selectedDate, mode, index - from));
+          }}
+          renderItem={({ index }) => {
+            const key = periodStart(index, mode);
             const days = weekDates(key);
-            // 장마다 달(주·날)로 이름을 붙인다. 자리(왼쪽·가운데·오른쪽)로 붙이면 달을 넘길 때 세 장을
-            // 모두 새 달로 다시 그린다. 달로 붙이면 이미 그린 장은 자리만 옮기고 새로 생긴 한 장만 그린다.
-            const period = mode === 'month' ? key.slice(0, 7) : mode === 'week' ? days[0] : key;
-            return <View key={period} style={{ width: size.width, height: size.height }} aria-hidden={step !== 0} accessibilityElementsHidden={step !== 0} importantForAccessibility={step === 0 ? 'auto' : 'no-hide-descendants'}>
+            const current = index === target;
+            return <View style={{ width: size.width, height: size.height }} aria-hidden={!current} accessibilityElementsHidden={!current} importantForAccessibility={current ? 'auto' : 'no-hide-descendants'}>
               {mode === 'month' ? <MonthEventGrid month={key} schedules={schedules} onOpenDay={onOpenDay} height={size.height} /> : <View style={s.viewport}>
-                {mode === 'week' && <View style={s.weekStrip}>{days.map((day, index) => <WeekDate key={day} day={day} weekday={weekdays[index]} items={schedules[day] ?? []} selected={selectedDate === day} onPress={() => onSelect(day)} />)}</View>}
+                {mode === 'week' && <View style={s.weekStrip}>{days.map((day, dayIndex) => <WeekDate key={day} day={day} weekday={weekdays[dayIndex]} items={schedules[day] ?? []} selected={selectedDate === day} onPress={() => onSelect(day)} />)}</View>}
                 <ScrollView contentContainerStyle={s.agenda}>{mode === 'week' ? days.map(day => renderDay(day, true)) : <DayAgenda day={key} />}</ScrollView>
               </View>}
             </View>;
-          })}
-        </ScrollView>}
+          }}
+        />}
       </View>
       {mode === 'month' && <View style={s.legend}>
         {(['plan', 'pending', 'done'] as const).map(kind => {
@@ -135,7 +164,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
       </View>}
     </View>
     </SnowCapped>
-    <DateSheet visible={picker} title={mode === 'month' ? '달 이동' : '날짜 이동'} value={selectedDate} mode={mode === 'month' ? 'month' : 'date'} onChange={onSelect} onClose={() => setPicker(false)} />
+    <DateSheet visible={picker} title={mode === 'month' ? '달 이동' : '날짜 이동'} value={selectedDate} mode={mode === 'month' ? 'month' : 'date'} onChange={jumpTo} onClose={() => setPicker(false)} />
   </View>;
 }
 
