@@ -1,4 +1,6 @@
 import { useId, useRef, useState } from 'react'
+import { Icon } from './Icon'
+import chevronDownRaw from '../../assets/icons/chevron-down.svg?raw'
 import { DateSheet } from './date-sheets/DateSheet'
 import { RangeSheet } from './date-sheets/RangeSheet'
 import './date-picker.css'
@@ -34,7 +36,8 @@ export function DatePicker({ value, onChange, mode = 'date', label, id, name, mi
       className={`date-picker-trigger ${className}`} aria-label={label} aria-required={required || undefined}
       aria-haspopup="dialog" aria-expanded={open} onClick={() => setOpen(!open)}>
       {children || text}
-      <span aria-hidden="true" className="dp-caret">⌄</span>
+      {/* 글자 "⌄"는 기준선에 붙어 아래로 처져 보여서 아이콘으로 그린다. 버튼이 가운데 정렬한다. */}
+      <Icon raw={chevronDownRaw} size={16} className="dp-caret" />
     </button>
     {name && <input type="hidden" name={name} value={value} />}
     {open && !disabled && (range

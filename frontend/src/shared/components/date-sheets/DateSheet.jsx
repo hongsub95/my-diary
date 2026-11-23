@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Icon } from '../Icon'
+import chevronDownRaw from '../../../assets/icons/chevron-down.svg?raw'
 import { BottomSheet } from './BottomSheet'
 import { parseKey, shiftMonth, toKey, todayKey } from './dateKeys'
 import { MonthGrid } from './MonthGrid'
@@ -56,11 +58,11 @@ export function DateSheet({ value, onChange, onClose, title = '날짜', mode = '
         <button type="button" className="ds-arrow" aria-label={`이전 ${unit}`} onClick={() => move(-1)}>‹</button>
         <div className="ds-nav-titles">
           <button type="button" className="ds-nav-title" aria-label={`${cursor.year}년, 연도 고르기`} onClick={() => setView('year')}>
-            {view === 'year' ? `${Math.max(1900, yearStart)}–${Math.min(2100, yearStart + 11)}` : `${cursor.year}년`} <span aria-hidden="true">⌄</span>
+            {view === 'year' ? `${Math.max(1900, yearStart)}–${Math.min(2100, yearStart + 11)}` : `${cursor.year}년`}<Icon raw={chevronDownRaw} size={13} className="ds-caret" />
           </button>
           {view === 'date' && (
             <button type="button" className="ds-nav-title" aria-label={`${cursor.month}월, 달 고르기`} onClick={() => setView('month')}>
-              {cursor.month}월 <span aria-hidden="true">⌄</span>
+              {cursor.month}월<Icon raw={chevronDownRaw} size={13} className="ds-caret" />
             </button>
           )}
         </div>

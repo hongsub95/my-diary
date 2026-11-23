@@ -10,7 +10,7 @@ import '@fullcalendar/react/themes/classic/palette.css'
 import { Icon } from '../../shared/components/Icon'
 import chevronLeftRaw from '../../assets/icons/chevron-left.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
-import { useSchedules } from '../../shared/api/queries'
+import { useMonthlySchedules } from '../../shared/api/queries'
 import { phaseKind, phaseKindLabels } from '../schedules/phase'
 import { DayAgenda } from './DayAgenda'
 import './calendar.css'
@@ -24,10 +24,6 @@ function formatDateKey(date) {
     String(date.getMonth() + 1).padStart(2, '0'),
     String(date.getDate()).padStart(2, '0'),
   ].join('-')
-}
-
-function lastDayOfMonth(monthStart) {
-  return new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 0)
 }
 
 /** 참인 클래스 이름만 공백으로 잇는다. FullCalendar 7의 *Class 옵션은 배열이 아니라 문자열을 받는다. */
@@ -64,12 +60,15 @@ export default function CalendarPage() {
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   )
 
-  // 보고 있는 달만 받아온다. 달을 넘기면 그 달을 다시 조회한다.
-  // 앞달에 시작해 이번 달로 넘어오는 하루도 서버가 날짜가 겹치면 함께 준다(API_SPEC 5절).
-  const { data: schedules = [], isLoading, isError, refetch } = useSchedules({
-    from: formatDateKey(viewDate),
-    to: formatDateKey(lastDayOfMonth(viewDate)),
-  })
+  // 보고 있는 달과 앞뒤 달을 달마다 따로 받아 둔다. 달을 넘겨도 이미 받은 달은 비지 않고
+  // 바로 보인다(useMonthlySchedules). 앞달에 시작해 이번 달로 넘어오는 하루도 서버가 날짜가
+  // 겹치면 함께 준다(API_SPEC 5절).
+  const monthKey = (date) => formatDateKey(date).slice(0, 7)
+  const { data: schedules, stamp, isLoading, isError, refetch } = useMonthlySchedules([
+    monthKey(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1)),
+    monthKey(viewDate),
+    monthKey(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1)),
+  ])
 
   // 칩마다 상태 모양을 정한다. 예정과 기록을 같은 모양으로 그리면 캘린더가 "무엇이
   // 있었는지"를 알려주지 못한다(docs/UX_INFORMATION_ARCHITECTURE_SPEC.md 6절).
@@ -82,12 +81,15 @@ export default function CalendarPage() {
     end: nextDateKey(schedule.end_date_key),
     allDay: true,
     extendedProps: { kind: phaseKind(schedule.experience_phase) },
-  })), [schedules])
+    // schedules는 매 렌더 새 배열이라, 받은 시각이 바뀔 때만 다시 만든다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  })), [stamp])
   const selectedSchedules = useMemo(
     () => schedules.filter(
       (schedule) => schedule.date_key <= selectedDate && selectedDate <= schedule.end_date_key,
     ),
-    [schedules, selectedDate],
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [stamp, selectedDate],
   )
 
   const moveMonth = (direction) => {

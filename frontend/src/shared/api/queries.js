@@ -1,4 +1,4 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useInfiniteQuery, useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query'
 import { apiClient } from './client'
 import { toNavigableMenus } from '../navigation/menuRoutes'
 import { useCurrentSpaceId } from '../../features/spaces/SpaceContext'
@@ -74,6 +74,43 @@ export function useMenus() {
  * @param {boolean} [options.includePlaces] 장소까지 함께 받을지. 지도나 장소 이름을
  *   보여주는 화면만 켠다. 캘린더처럼 개수만 쓰는 화면은 끄는 편이 응답이 가볍다
  */
+/**
+ * 여러 달의 일정을 달마다 따로 조회한다. 앱 useMonthlySchedules와 같은 규칙이다.
+ *
+ * @param {string[]} months 'YYYY-MM' 목록. 캘린더는 앞달·이번 달·다음 달을 넘긴다
+ * @returns {{data: object[], stamp: string, isLoading: boolean, isError: boolean, refetch: () => Promise<unknown>}}
+ *   data는 받은 일정 전부(여러 달에 걸친 하루는 한 번만), isLoading은 가운데(이번 달)를 받는 중인지
+ *
+ * 보이는 달만 조회하면 달을 넘길 때마다 그 달을 새로 받는 동안 달력이 비었다가 채워졌다.
+ * 앞뒤 달을 미리 받아 두면 넘긴 달은 이미 캐시에 있어 바로 보이고, 바깥 달 하나만 뒤에서 받는다.
+ */
+export function useMonthlySchedules(months) {
+  const spaceId = useCurrentSpaceId()
+  const results = useQueries({
+    queries: months.map((month) => {
+      const [year, monthNumber] = month.split('-').map(Number)
+      const from = `${month}-01`
+      const to = `${month}-${String(new Date(year, monthNumber, 0).getDate()).padStart(2, '0')}`
+      return {
+        // useSchedules와 같은 키 모양이라 같은 범위를 쓰는 다른 화면과 캐시를 나눠 쓴다.
+        queryKey: ['schedules', spaceId, from, to, false],
+        queryFn: async () => (await listSchedules({ spaceId, from, to, includePlaces: false })).map(toScheduleView),
+        enabled: Boolean(spaceId),
+      }
+    }),
+  })
+  const byId = new Map()
+  for (const result of results) for (const item of result.data ?? []) byId.set(item.id, item)
+  const center = results[Math.floor(results.length / 2)]
+  return {
+    data: [...byId.values()],
+    stamp: results.map((result) => result.dataUpdatedAt).join(','),
+    isLoading: Boolean(center?.isLoading),
+    isError: results.some((result) => result.isError),
+    refetch: () => Promise.all(results.map((result) => result.refetch())),
+  }
+}
+
 export function useSchedules({ from, to, includePlaces = false } = {}) {
   const spaceId = useCurrentSpaceId()
 

@@ -31,6 +31,7 @@ try {
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'Asia/Seoul' })
   const page = await context.newPage()
   const errors = []
+  const requestedMonths = []
   page.on('pageerror', error => errors.push(error.message))
   await page.clock.install({ time: new Date('2026-12-14T03:00:00Z') })
   await page.route('**/api/v1/**', async route => {
@@ -45,7 +46,10 @@ try {
     else if (routePath === '/spaces') data = { spaces: [space] }
     else if (routePath === `/spaces/${space.id}`) data = space
     else if (routePath === '/menus') data = { menus: ['home', 'calendar', 'schedules', 'records', 'more'].map((code, i) => ({ code, name: ['홈', '캘린더', '일정', '기록', '더보기'][i], icon: code, children: [] })) }
-    else if (/\/spaces\/[^/]+\/schedules$/.test(routePath)) data = { items: schedules }
+    else if (/\/spaces\/[^/]+\/schedules$/.test(routePath)) {
+      requestedMonths.push(new URL(req.url()).searchParams.get('from')?.slice(0, 7))
+      data = { items: schedules }
+    }
     else if (routePath === '/calendar/holidays') data = { year: 2026, coverage: 'complete', days: [{ date: '2026-12-25', names: ['성탄절'], kind: 'public' }], months: [] }
     await route.fulfill({ status, headers, ...(status === 204 ? {} : { contentType: 'application/json', body: JSON.stringify(data) }) })
   })
@@ -64,6 +68,14 @@ try {
   await page.waitForTimeout(300)
   await page.screenshot({ path: path.join(artifacts, 'month.png') })
   console.log('Month: multi-day bar is one piece with bar style, today is number color only.')
+
+  // 앞뒤 달을 미리 받아 둔다. 다음 달로 넘기면 새로 받는 건 바깥 달 하나뿐이다.
+  await expect.poll(() => [...new Set(requestedMonths)].sort()).toEqual(['2026-11', '2026-12', '2027-01'])
+  await page.getByRole('button', { name: '다음 달', exact: true }).click()
+  await expect.poll(() => [...new Set(requestedMonths)].sort()).toEqual(['2026-11', '2026-12', '2027-01', '2027-02'])
+  await page.getByRole('button', { name: '이전 달', exact: true }).click()
+  await expect(trip).toHaveCount(1)
+  console.log('Months: neighbours are prefetched, moving fetches only the new outer month.')
 
   await page.getByText('17', { exact: true }).click()
   const drawer = page.getByRole('dialog', { name: '12월 17일 일정' })

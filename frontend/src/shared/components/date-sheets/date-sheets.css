@@ -65,7 +65,9 @@
   cursor: pointer;
 }
 
-.ds-nav-title span { color: var(--color-text-secondary, #756d68); font-size: 12px; }
+/* 제목과 아래 화살표를 한 줄에서 위아래 가운데로 맞춘다. */
+.ds-nav-title { display: inline-flex; align-items: center; gap: 3px; }
+.ds-caret { color: var(--color-text-secondary, #756d68); }
 
 .ds-arrow {
   width: 40px;
