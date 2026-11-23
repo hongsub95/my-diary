@@ -44,6 +44,10 @@
   --sky-4: color-mix(in srgb, var(--color-primary-light) 22%, #5f6d9a);
 }
 
+/* 배경을 입지 않는 화면에서는 장면을 그대로 둔 채 숨기고 반짝임도 멈춘다(AppLayout). */
+.season-scene--resting { visibility: hidden; }
+.season-scene--resting * { animation-play-state: paused; }
+
 .season-scene--day {
   --sky-1: color-mix(in srgb, var(--color-primary-light) 25%, #b9cfe3);
   --sky-2: #d5e2ec;

@@ -1,30 +1,37 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { midStarsSvg, topSceneSvg, villageSvg } from './sceneSvg'
 
 /** 크기가 이만큼 바뀌어야 그림을 다시 만든다. 창 크기를 끌 때마다 다시 그리지 않게 한다. */
 const SIZE_STEP = 24
+const stepped = (rect) => ({ width: Math.ceil(rect.width / SIZE_STEP) * SIZE_STEP, height: Math.ceil(rect.height / SIZE_STEP) * SIZE_STEP })
 
 /**
  * 크리스마스 배경 A "눈 오는 골목". 탭 화면 뒤에 고정으로 깔린다.
  *
- * @param {{night: boolean}} props 밤 장면인지. 낮에는 해·구름이 뜨고 별·달·창 불빛이 꺼진다
+ * @param {object} props
+ * @param {boolean} props.night 밤 장면인지. 낮에는 해·구름이 뜨고 별·달·창 불빛이 꺼진다
+ * @param {boolean} [props.active=true] false면 장면을 숨기고 눈·반짝임을 멈춘다. 그림은 그대로
+ *   남겨 두어 다시 보일 때 바로 뜬다(AppLayout)
  *
  * 위에서부터 하늘 → 전구 줄·달(해)·별(구름) → 가운데 별 → 화면 아래 골목 → 내리는 눈.
  * 목록을 내려도 움직이지 않고 카드만 올라간다 (docs/API_SPEC.md 3-U절 화면 규칙).
  * 그림은 폭이 바뀔 때만 다시 만들고, 낮·밤 전환은 CSS 클래스로만 바꾼다.
  */
-export default function ChristmasBackdrop({ night }) {
+export default function ChristmasBackdrop({ night, active = true }) {
   const rootRef = useRef(null)
   const [size, setSize] = useState({ width: 0, height: 0 })
 
-  useEffect(() => {
+  // 화면에 처음 칠하기 전에 크기를 재서 첫 장면부터 그림이 들어가게 한다. 크기를 나중에(관찰자
+  // 알림으로) 받으면 빈 하늘이 먼저 보였다가 그림이 늦게 들어왔다.
+  useLayoutEffect(() => {
     const element = rootRef.current
     if (!element) return undefined
-    const observer = new ResizeObserver(([entry]) => {
-      const width = Math.ceil(entry.contentRect.width / SIZE_STEP) * SIZE_STEP
-      const height = Math.ceil(entry.contentRect.height / SIZE_STEP) * SIZE_STEP
-      setSize((prev) => (prev.width === width && prev.height === height ? prev : { width, height }))
-    })
+    const apply = (rect) => {
+      const next = stepped(rect)
+      setSize((prev) => (prev.width === next.width && prev.height === next.height ? prev : next))
+    }
+    apply(element.getBoundingClientRect())
+    const observer = new ResizeObserver(([entry]) => apply(entry.contentRect))
     observer.observe(element)
     return () => observer.disconnect()
   }, [])
@@ -35,12 +42,12 @@ export default function ChristmasBackdrop({ night }) {
   const mid = useMemo(() => (size.width && midHeight ? midStarsSvg(size.width, midHeight) : ''), [size.width, midHeight])
 
   return (
-    <div ref={rootRef} className={`season-scene ${night ? 'season-scene--night' : 'season-scene--day'}`} aria-hidden="true">
+    <div ref={rootRef} className={`season-scene ${night ? 'season-scene--night' : 'season-scene--day'}${active ? '' : ' season-scene--resting'}`} aria-hidden="true">
       <div className="season-scene__sky" />
       <div className="season-scene__mid" dangerouslySetInnerHTML={{ __html: mid }} />
       <div className="season-scene__top" dangerouslySetInnerHTML={{ __html: top }} />
       <div className="season-scene__bottom" dangerouslySetInnerHTML={{ __html: village }} />
-      <Snowfall night={night} />
+      <Snowfall night={night} active={active} />
     </div>
   )
 }
@@ -57,9 +64,10 @@ const LAYERS = [
  *
  * 화면 넓이에 맞춰 송이 수를 늘리되 너무 많아지지 않게 막는다. 브라우저 탭이 안 보이면
  * requestAnimationFrame이 저절로 멈춘다. "동작 줄이기"가 켜져 있으면 한 장면만 그린다.
- * 낮 하늘은 밝아서 흰 눈이 묻히므로 그림자를 조금 더 진하게 준다.
+ * 낮 하늘은 밝아서 흰 눈이 묻히므로 그림자를 조금 더 진하게 준다. 장면이 숨어 있으면(active
+ * false) 돌리지 않는다.
  */
-function Snowfall({ night }) {
+function Snowfall({ night, active }) {
   const canvasRef = useRef(null)
   const nightRef = useRef(night)
   nightRef.current = night
@@ -118,9 +126,9 @@ function Snowfall({ night }) {
     const observer = new ResizeObserver(() => { resize(); draw(performance.now()) })
     observer.observe(canvas)
     const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    if (!still) frame = requestAnimationFrame(tick)
+    if (!still && active) frame = requestAnimationFrame(tick)
     return () => { cancelAnimationFrame(frame); observer.disconnect() }
-  }, [])
+  }, [active])
 
   return <canvas ref={canvasRef} className="season-scene__snow" />
 }
