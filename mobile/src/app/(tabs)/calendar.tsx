@@ -3,7 +3,7 @@ import { LocaleConfig } from 'react-native-calendars';
 import { Animated, Dimensions, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { useSchedules } from '@/features/schedules/schedule-queries';
+import { useMonthlySchedules } from '@/features/schedules/schedule-queries';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
 import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
@@ -61,14 +61,12 @@ export default function CalendarScreen() {
   const seasonal = useSeasonalScreen('calendar');
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
 
-  // 옆 페이지를 미는 동안에도 일정이 보이도록 앞뒤 한 달을 함께 조회한다.
+  // 옆 페이지를 미는 동안에도 일정이 보이도록 앞뒤 한 달을 함께 조회한다. 달마다 따로
+  // 캐시해서, 달을 넘겨도 이미 받은 달은 비지 않고 바로 보인다(useMonthlySchedules).
   const visibleMonth = selectedDate.slice(0, 7);
   const previousMonth = shiftMonth(visibleMonth, -1);
   const nextMonth = shiftMonth(visibleMonth, 1);
-  const schedules = useSchedules({
-    from: `${previousMonth}-01`,
-    to: lastDayOfMonth(nextMonth),
-  });
+  const schedules = useMonthlySchedules([previousMonth, visibleMonth, nextMonth]);
 
   const schedulesByDate = useMemo(() => {
     const grouped: Record<string, ScheduleView[]> = {};
@@ -80,7 +78,9 @@ export default function CalendarScreen() {
       }
     }
     return grouped;
-  }, [schedules.data, previousMonth, nextMonth]);
+    // data는 매 렌더 새 배열이라, 받은 시각이 바뀔 때만 다시 묶는다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [schedules.stamp, previousMonth, nextMonth]);
 
   const selectedSchedules = useMemo(
     () => schedulesByDate[selectedDate] ?? [],
@@ -101,8 +101,12 @@ export default function CalendarScreen() {
     .start(() => setDrawerOpen(false));
   // 서랍을 왼쪽에서 오른쪽으로 밀면 따라 움직이다가, 4분의 1 넘게 밀거나 빠르게 튕기면 닫힌다.
   // 세로로 움직일 때는 잡지 않아 안의 목록 스크롤을 막지 않는다. 한 번만 만들므로 화면 폭은 그때그때 읽는다.
+  // 서랍 안 목록(세로 ScrollView)이 터치를 먼저 잡기 때문에, 가로로 미는 움직임은 캡처
+  // 단계에서 서랍이 먼저 가져온다. 한 번 잡으면 목록에 넘겨주지 않는다.
   const [swipe] = useState(() => PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_, g) => g.dx > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
     onMoveShouldSetPanResponder: (_, g) => g.dx > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onPanResponderTerminationRequest: () => false,
     onPanResponderMove: (_, g) => drawerX.setValue(Math.max(0, g.dx)),
     onPanResponderRelease: (_, g) => {
       const screenWidth = Dimensions.get('window').width;

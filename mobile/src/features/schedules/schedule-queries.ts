@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueries, useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useCurrentSpaceId } from '@/features/spaces/space-context';
 import {
@@ -37,6 +37,44 @@ export type UseSchedulesOptions = {
  * 기간과 include 여부를 쿼리 키에 모두 넣는다. 빠뜨리면 캘린더가 홈이 받아온
  * 하루치 캐시를 그대로 그린다.
  */
+/**
+ * 여러 달의 일정을 달마다 따로 조회한다.
+ *
+ * @param months 'YYYY-MM' 목록. 캘린더는 앞달·이번 달·다음 달을 넘긴다
+ * @returns 받은 일정 전부(달이 겹치는 여러 날 하루는 한 번만), 이번 달(가운데)을 받는 중인지, 실패했는지
+ *
+ * 석 달을 한 번에 조회하면 달을 넘길 때마다 범위가 통째로 바뀌어, 이미 본 달까지 다시
+ * 받는 동안 달력이 비었다가 채워졌다. 달마다 캐시하면 넘긴 달은 대부분 이미 받아 둔 상태라
+ * 바로 보이고, 새로 필요한 바깥 달 하나만 뒤에서 받는다.
+ */
+export function useMonthlySchedules(months: string[]) {
+  const spaceId = useCurrentSpaceId();
+  const results = useQueries({
+    queries: months.map(month => {
+      const [year, monthNumber] = month.split('-').map(Number);
+      const last = new Date(year, monthNumber, 0).getDate();
+      const from = `${month}-01`;
+      const to = `${month}-${String(last).padStart(2, '0')}`;
+      return {
+        // useSchedules와 같은 키 모양이라 같은 범위를 쓰는 다른 화면과 캐시를 나눠 쓴다.
+        queryKey: ['schedules', spaceId, from, to, false],
+        queryFn: async () => (await listSchedules({ spaceId: spaceId as string, from, to, includePlaces: false })).map(toScheduleView),
+        enabled: Boolean(spaceId),
+      };
+    }),
+  });
+  const byId = new Map<number, ScheduleView>();
+  for (const result of results) for (const item of result.data ?? []) byId.set(item.id, item);
+  const center = results[Math.floor(results.length / 2)];
+  return {
+    data: [...byId.values()],
+    stamp: results.map(result => result.dataUpdatedAt).join(','),
+    isLoading: Boolean(center?.isLoading),
+    isError: results.some(result => result.isError),
+    refetch: () => Promise.all(results.map(result => result.refetch())),
+  };
+}
+
 export function useSchedules({ from, to, includePlaces = false }: UseSchedulesOptions = {}) {
   const spaceId = useCurrentSpaceId();
 
