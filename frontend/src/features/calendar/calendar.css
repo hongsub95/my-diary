@@ -83,18 +83,45 @@
   justify-content: center;
 }
 
-/* 칩의 모양은 안에 그리는 PhaseTag가 맡는다. FullCalendar가 주는 바깥 바탕·여백은 지운다. */
+/* 하루 막대: 옅은 바탕 + 왼쪽 색 줄(앱 MonthEventGrid와 같은 모양). 예정은 테마 색,
+   남기기 전은 주황, 남긴 하루는 세이지. 다른 주로 이어지는 쪽은 모서리를 각지게 둔다. */
 .product-calendar__event {
   min-width: 0;
-  margin: 2px 1px 0;
-  padding: 0;
+  margin: 2px 2px 0;
+  padding: 0 4px 0 6px;
   border: 0;
-  background: transparent;
+  border-left: 3px solid var(--bar-line);
+  border-radius: 5px;
+  background: var(--bar-bg);
+  color: var(--bar-text);
 }
 
-.product-calendar__event .phase-tag {
-  display: flex;
-  width: 100%;
+.product-calendar__event--plan { --bar-bg: var(--color-primary-light); --bar-line: var(--color-primary); --bar-text: var(--color-primary-text); }
+.product-calendar__event--pending { --bar-bg: #f6ebdf; --bar-line: #b7773f; --bar-text: #8a5626; }
+.product-calendar__event--done { --bar-bg: #e6ece4; --bar-line: #6c8069; --bar-text: #45573f; }
+.product-calendar__event--open-left { margin-left: 0; border-left: 0; border-radius: 0 5px 5px 0; }
+.product-calendar__event--open-right { margin-right: 0; border-radius: 5px 0 0 5px; }
+.product-calendar__event--open-left.product-calendar__event--open-right { border-radius: 0; }
+
+/* FullCalendar 테마가 막대 안쪽 글자를 흰색으로 덮어써서 글자색을 여기서 직접 준다. */
+.product-calendar__bar {
+  display: block;
+  color: var(--bar-text);
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-calendar__sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .product-calendar__more {
@@ -177,19 +204,22 @@
   background: rgb(28 25 23 / 35%);
 }
 
+/* 오른쪽에서 열리고 오른쪽으로 밀면 닫힌다(앱·웹 옆 서랍 공통 규칙). */
 .calendar-drawer {
   position: absolute;
-  inset: 0 auto 0 0;
+  inset: 0 0 0 auto;
+  touch-action: pan-y;
+  transition: transform 160ms ease-out;
   display: flex;
   width: min(88%, 380px);
   flex-direction: column;
   background: var(--color-bg);
-  box-shadow: 12px 0 30px rgb(28 25 23 / 18%);
+  box-shadow: -12px 0 30px rgb(28 25 23 / 18%);
   animation: calendar-drawer-enter 180ms ease-out;
 }
 
 @keyframes calendar-drawer-enter {
-  from { transform: translateX(-100%); }
+  from { transform: translateX(100%); }
   to { transform: translateX(0); }
 }
 
@@ -216,19 +246,13 @@
   color: var(--color-saturday);
 }
 
+/* 오늘: 배경·테두리 없이 숫자만 테마 색으로 굵게 */
 .product-calendar__cell--today .product-calendar__day-number {
-  background: var(--color-primary-light);
-  color: var(--color-primary-text);
-  font-weight: 600;
+  color: var(--color-primary);
+  font-weight: 800;
 }
 
-.product-calendar__cell--selected .product-calendar__day-number {
-  background: var(--color-primary);
-  color: #fff;
-  font-weight: 600;
-}
-
-/* 상태 범례. 칩 모양 그대로 보여줘 "테두리 = 예정"을 따로 설명하지 않아도 되게 한다. */
+/* 상태 범례. 달력 막대와 같은 모양으로 보여준다. */
 .calendar-legend {
   display: flex;
   justify-content: center;
@@ -236,6 +260,9 @@
   padding: 8px 0 2px;
   border-top: 1px solid var(--color-border-light);
 }
+
+.calendar-legend__item { display: inline-flex; align-items: center; gap: 5px; color: var(--color-text-secondary); font-size: 12px; }
+.calendar-legend__bar { display: inline-block; width: 16px; height: 10px; margin: 0; padding: 0; border-left: 3px solid var(--bar-line); border-radius: 3px; background: var(--bar-bg); }
 
 @media (min-width: 768px) {
   .calendar-header {

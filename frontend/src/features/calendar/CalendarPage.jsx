@@ -11,7 +11,6 @@ import { Icon } from '../../shared/components/Icon'
 import chevronLeftRaw from '../../assets/icons/chevron-left.svg?raw'
 import chevronRightRaw from '../../assets/icons/chevron-right.svg?raw'
 import { useSchedules } from '../../shared/api/queries'
-import { PhaseTag } from '../schedules/PhaseTag'
 import { phaseKind, phaseKindLabels } from '../schedules/phase'
 import { DayAgenda } from './DayAgenda'
 import './calendar.css'
@@ -56,6 +55,11 @@ export default function CalendarPage() {
   const calendarRef = useRef(null)
   const [selectedDate, setSelectedDate] = useState(() => formatDateKey(today))
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  // 서랍을 오른쪽으로 미는 중인 거리(px). null이면 손대지 않은 상태다.
+  const [drawerDrag, setDrawerDrag] = useState(null)
+  const dragStart = useRef(null)
+  // 밀기가 끝난 직후의 클릭은 무시한다. 카드 위에서 손을 떼면 그 카드로 넘어가 버린다.
+  const justDragged = useRef(false)
   const [viewDate, setViewDate] = useState(
     () => new Date(today.getFullYear(), today.getMonth(), 1),
   )
@@ -174,8 +178,8 @@ export default function CalendarPage() {
             showNonCurrentDates={false}
             height="100%"
             expandRows
-            dayMaxEvents={2}
-            // 넘친 개수를 보여준다(CALENDAR_SCREEN_SPEC: 칩 최대 2개와 +N). 앱과 같은 표기다.
+            // 칸 높이에 들어가는 만큼 막대를 쌓고 넘치면 +N(앱 MonthEventGrid와 같은 규칙).
+            dayMaxEvents
             moreLinkContent={({ num }) => `+${num}`}
             moreLinkClick={({ date, view }) => {
               openDateDrawer(formatDateKey(date))
@@ -189,10 +193,21 @@ export default function CalendarPage() {
             // FullCalendar 7은 옵션 이름이 *Class·*TopContent로 바뀌었고 문자열 하나를 받는다.
             // 6의 이름(eventClassNames, dayCellContent…)을 쓰면 경고 없이 무시된다. 내부 클래스도
             // 해시(fc-classic-xxx)라 CSS는 여기서 붙인 product-calendar__* 클래스만 기준으로 삼는다.
-            eventClass="product-calendar__event"
+            // 하루는 막대로 그린다(2026-11-23 시안). 여러 날 하루는 FullCalendar가 이어진 막대로
+            // 그리고, 다른 주로 이어지는 쪽은 모서리를 각지게 둔다.
+            eventClass={({ event, isStart, isEnd }) => classNames(
+              'product-calendar__event',
+              `product-calendar__event--${event.extendedProps.kind}`,
+              !isStart && 'product-calendar__event--open-left',
+              !isEnd && 'product-calendar__event--open-right',
+            )}
             eventContent={({ event }) => {
               const { kind } = event.extendedProps
-              return <PhaseTag size="chip" kind={kind} label={event.title} srLabel={`, ${phaseKindLabels[kind]}`} title={`${event.title} · ${phaseKindLabels[kind]}`} />
+              return (
+                <span className="product-calendar__bar" title={`${event.title} · ${phaseKindLabels[kind]}`}>
+                  {event.title}<span className="product-calendar__sr">, {phaseKindLabels[kind]}</span>
+                </span>
+              )
             }}
             moreLinkClass="product-calendar__more"
             dayHeaderContent={({ date }) => WEEKDAYS[date.getDay()]}
@@ -203,9 +218,9 @@ export default function CalendarPage() {
             )}
             dayCellClass={({ date, isOther, isToday }) => {
               if (isOther) return 'product-calendar__cell--other'
+              // 오늘은 숫자 색만 바꾼다. 고른 날 표시는 두지 않는다 — 누르면 바로 서랍이 열린다.
               return classNames(
                 'product-calendar__cell',
-                formatDateKey(date) === selectedDate && 'product-calendar__cell--selected',
                 isToday && 'product-calendar__cell--today',
                 date.getDay() === 0 && 'product-calendar__cell--sun',
                 date.getDay() === 6 && 'product-calendar__cell--sat',
@@ -216,14 +231,49 @@ export default function CalendarPage() {
           />
         </div>
         <div className="calendar-legend" aria-label="상태 범례">
-          {['plan', 'pending', 'done'].map((kind) => <PhaseTag key={kind} size="chip" kind={kind} label={phaseKindLabels[kind]} />)}
+          {['plan', 'pending', 'done'].map((kind) => (
+            <span key={kind} className="calendar-legend__item">
+              <i aria-hidden="true" className={`calendar-legend__bar product-calendar__event--${kind}`} />{phaseKindLabels[kind]}
+            </span>
+          ))}
         </div>
 
       </section>
       {isDrawerOpen && (
         <div className="calendar-drawer-layer">
           <button type="button" className="calendar-drawer-backdrop" aria-label="일정 목록 닫기" onClick={() => setIsDrawerOpen(false)} />
-          <aside className="calendar-drawer" role="dialog" aria-modal="true" aria-label={`${selectedMonth}월 ${selectedDay}일 일정`}>
+          {/* 서랍은 오른쪽에서 열리고 오른쪽으로 밀면 닫힌다(앱·웹 옆 서랍 공통 규칙). */}
+          <aside
+            className="calendar-drawer"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedMonth}월 ${selectedDay}일 일정`}
+            style={drawerDrag ? { transform: `translateX(${drawerDrag}px)`, transition: 'none' } : undefined}
+            onPointerDown={(event) => { dragStart.current = { x: event.clientX, y: event.clientY, width: event.currentTarget.offsetWidth } }}
+            onPointerMove={(event) => {
+              const start = dragStart.current
+              if (!start) return
+              const dx = event.clientX - start.x
+              // 세로로 움직이면 목록 스크롤로 보고 잡지 않는다.
+              if (drawerDrag === null && (dx < 10 || Math.abs(dx) < Math.abs(event.clientY - start.y) * 1.5)) return
+              setDrawerDrag(Math.max(0, dx))
+            }}
+            onPointerUp={() => {
+              const start = dragStart.current
+              dragStart.current = null
+              if (drawerDrag === null) return
+              justDragged.current = true
+              if (drawerDrag > start.width * 0.25) setIsDrawerOpen(false)
+              setDrawerDrag(null)
+            }}
+            onClickCapture={(event) => {
+              if (!justDragged.current) return
+              justDragged.current = false
+              event.preventDefault()
+              event.stopPropagation()
+            }}
+            onPointerCancel={() => { dragStart.current = null; setDrawerDrag(null) }}
+          >
             <div className="calendar-drawer__header">
               <div><strong>{selectedMonth}월 {selectedDay}일 {WEEKDAY_NAMES[new Date(`${selectedDate}T12:00:00`).getDay()]}</strong>{!isLoading && !isError && <span>하루 {selectedSchedules.length}개</span>}</div>
               <button type="button" onClick={() => setIsDrawerOpen(false)} aria-label="닫기">×</button>
