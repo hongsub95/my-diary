@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { memo, useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { phaseKind, phaseKindLabels, type PhaseKind } from '@/features/schedules/phase-tag';
@@ -14,7 +14,6 @@ type MonthEventGridProps = {
   month: string;
   /** 날짜별 하루. 여러 날 하루는 걸친 날마다 들어 있다(CalendarScreen이 묶어 준다) */
   schedules: Record<string, ScheduleView[]>;
-  selectedDate: string;
   /** 날짜를 누르면 그날 서랍을 연다 */
   onOpenDay: (date: string) => void;
   /** 달력에 쓸 수 있는 높이. 주 줄 높이와 막대 줄 수를 여기서 정한다 */
@@ -27,6 +26,7 @@ const BAR_HEIGHT = 17;
 const BAR_GAP = 2;
 const MAX_LANES = 3;
 
+type MonthEvent = { item: ScheduleView; start: string; end: string };
 type Bar = { id: number; title: string; kind: PhaseKind; startCol: number; span: number; lane: number; continuesLeft: boolean; continuesRight: boolean };
 
 /**
@@ -39,10 +39,39 @@ type Bar = { id: number; title: string; kind: PhaseKind; startCol: number; span:
  * 막대 줄 수는 칸 높이로 정한다(최대 3줄). 넘치는 하루가 있는 날은 숫자 오른쪽 위에 "+N".
  * 날짜를 누르면 지금처럼 그날 서랍이 열린다.
  *
- * 오늘은 배경·테두리 없이 숫자만 테마 색으로 굵게. 고른 날 바탕은 두지 않는다 — 날짜를 누르면
+ * 오늘은 배경·테두리 없이 숫자만 테마 색으로 굵게. 고른 날 표시는 두지 않는다 — 날짜를 누르면
  * 바로 서랍이 열려 어느 날인지 보이고, 처음 열면 오늘이 골라져 있어 오늘 칸에 바탕이 깔리기 때문이다.
+ *
+ * 달을 넘길 때마다 날짜별 묶음이 새로 만들어진다. 그대로 넘기면 내용이 같은 옆 달까지 매번
+ * 다시 그려 스와이프가 버벅인다. 그래서 여기서는 이 달에 걸친 하루만 골라 "지문"을 만들고,
+ * 지문이 같으면 달력 본문(MonthBody)을 다시 그리지 않는다.
  */
-export function MonthEventGrid({ month, schedules, selectedDate, onOpenDay, height }: MonthEventGridProps) {
+export function MonthEventGrid({ month, schedules, onOpenDay, height }: MonthEventGridProps) {
+  const { year, month: monthNumber } = parseKey(month);
+  const first = toKey(year, monthNumber, 1);
+  const last = toKey(year, monthNumber, monthShape(year, monthNumber).length);
+  // 이 달에 걸친 하루를 한 번씩만 모은다. 날짜별 묶음에는 여러 날 하루가 날마다 들어 있다.
+  const byId = new Map<number, ScheduleView>();
+  for (const [day, list] of Object.entries(schedules)) {
+    if (day < first || day > last) continue;
+    for (const item of list) byId.set(item.id, item);
+  }
+  const events = [...byId.values()]
+    .sort((a, b) => a.start_at.localeCompare(b.start_at) || a.id - b.id)
+    .map(item => ({ item, start: item.dateKey, end: seoulDateKey(item.end_at) }));
+  // 달력에 보이는 것(이름·상태·날짜)만 담는다. 이것이 같으면 화면도 같다.
+  const signature = events.map(e => `${e.item.id}|${e.item.title}|${e.item.experience_phase}|${e.start}|${e.end}`).join(';');
+  return <MonthBody month={month} events={events} signature={signature} onOpenDay={onOpenDay} height={height} />;
+}
+
+/**
+ * 달력 본문. 달·높이·지문이 같으면 다시 그리지 않는다.
+ * onOpenDay는 비교하지 않는다. 서랍을 여는 동작은 늘 같아서, 새로 만든 함수가 와도 결과가 같다.
+ *
+ * @param events 이 달에 걸친 하루(시작 순)
+ * @param signature events를 글로 줄인 것. 비교에만 쓴다
+ */
+const MonthBody = memo(function MonthBody({ month, events, onOpenDay, height }: Omit<MonthEventGridProps, 'schedules'> & { events: MonthEvent[]; signature: string }) {
   const s = useThemedStyles(createStyles);
   const { year, month: monthNumber } = parseKey(month);
   const { firstWeekday, length, rows } = monthShape(year, monthNumber);
@@ -50,13 +79,6 @@ export function MonthEventGrid({ month, schedules, selectedDate, onOpenDay, heig
   const today = todayKey();
   const rowHeight = Math.floor(height / rows);
   const lanes = Math.max(1, Math.min(MAX_LANES, Math.floor((rowHeight - NUMBER_ROW - 4) / (BAR_HEIGHT + BAR_GAP))));
-
-  // 달에 걸친 하루를 한 번씩만 모은다. 날짜별 묶음에는 여러 날 하루가 날마다 들어 있다.
-  const events = useMemo(() => {
-    const byId = new Map<number, ScheduleView>();
-    for (const list of Object.values(schedules)) for (const item of list) byId.set(item.id, item);
-    return [...byId.values()].map(item => ({ item, start: item.dateKey, end: seoulDateKey(item.end_at) }));
-  }, [schedules]);
 
   const weeks = useMemo(() => Array.from({ length: rows }, (_, w) => {
     const firstDay = w * 7 - firstWeekday + 1;
@@ -96,23 +118,20 @@ export function MonthEventGrid({ month, schedules, selectedDate, onOpenDay, heig
             const day = firstDay + col;
             if (day < 1 || day > length) return <View key={col} style={s.cell} />;
             const key = toKey(year, monthNumber, day);
-            const items = schedules[key] ?? [];
+            const items = events.filter(e => e.start <= key && e.end >= key).map(e => e.item);
             const holiday = holidays.get(key);
             const isToday = key === today;
-            const selected = key === selectedDate;
             // 막대 모양은 화면 읽기 도구에 전달되지 않으니 하루 이름과 상태를 칸 이름에 함께 읽어 준다.
             const label = [
               `${monthNumber}월 ${day}일 ${WEEKDAYS[col]}요일${holiday ? `, ${holiday.join(', ')}` : ''}${isToday ? ', 오늘' : ''}`,
               `하루 ${items.length}개`,
               ...items.map(item => `${item.title} ${phaseKindLabels[phaseKind(item.experience_phase)]}`),
-              ...(selected ? ['선택됨'] : []),
             ].join(', ');
             return (
               <Pressable
                 key={col}
                 accessibilityRole="button"
                 accessibilityLabel={label}
-                accessibilityState={{ selected }}
                 onPress={() => onOpenDay(key)}
                 style={s.cell}>
                 <Text style={[
@@ -148,7 +167,7 @@ export function MonthEventGrid({ month, schedules, selectedDate, onOpenDay, heig
       ))}
     </View>
   );
-}
+}, (a, b) => a.month === b.month && a.height === b.height && a.signature === b.signature);
 
 const createStyles = (palette: ThemePalette) => StyleSheet.create({
   week: { flexDirection: 'row' },

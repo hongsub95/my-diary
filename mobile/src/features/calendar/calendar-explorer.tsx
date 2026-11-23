@@ -114,8 +114,11 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
           {[-1, 0, 1].map(step => {
             const key = moveDate(selectedDate, mode, step);
             const days = weekDates(key);
-            return <View key={step} style={{ width: size.width, height: size.height }} aria-hidden={step !== 0} accessibilityElementsHidden={step !== 0} importantForAccessibility={step === 0 ? 'auto' : 'no-hide-descendants'}>
-              {mode === 'month' ? <MonthEventGrid month={key} schedules={schedules} selectedDate={selectedDate} onOpenDay={onOpenDay} height={size.height} /> : <View style={s.viewport}>
+            // 장마다 달(주·날)로 이름을 붙인다. 자리(왼쪽·가운데·오른쪽)로 붙이면 달을 넘길 때 세 장을
+            // 모두 새 달로 다시 그린다. 달로 붙이면 이미 그린 장은 자리만 옮기고 새로 생긴 한 장만 그린다.
+            const period = mode === 'month' ? key.slice(0, 7) : mode === 'week' ? days[0] : key;
+            return <View key={period} style={{ width: size.width, height: size.height }} aria-hidden={step !== 0} accessibilityElementsHidden={step !== 0} importantForAccessibility={step === 0 ? 'auto' : 'no-hide-descendants'}>
+              {mode === 'month' ? <MonthEventGrid month={key} schedules={schedules} onOpenDay={onOpenDay} height={size.height} /> : <View style={s.viewport}>
                 {mode === 'week' && <View style={s.weekStrip}>{days.map((day, index) => <WeekDate key={day} day={day} weekday={weekdays[index]} items={schedules[day] ?? []} selected={selectedDate === day} onPress={() => onSelect(day)} />)}</View>}
                 <ScrollView contentContainerStyle={s.agenda}>{mode === 'week' ? days.map(day => renderDay(day, true)) : <DayAgenda day={key} />}</ScrollView>
               </View>}
