@@ -9,7 +9,6 @@ import { buildAllMenus } from '@/features/menus/all-menus';
 import { IconBadge } from '@/features/menus/icon-badge';
 import { useNavigableMenus } from '@/features/menus/menu-api';
 import { MenuIcon } from '@/features/menus/menu-icon';
-import { ChristmasBackdrop } from '@/features/seasonal/christmas-backdrop';
 import { NIGHT_TEXT, NIGHT_TEXT_SHADOW } from '@/features/seasonal/scene-colors';
 import { SeasonalHeader } from '@/features/seasonal/seasonal-header';
 import { SeasonalSettingsRows } from '@/features/seasonal/seasonal-settings';
@@ -72,8 +71,8 @@ export default function MoreScreen() {
   const canChangePassword = accountType ? accountType === 'email' : true;
 
   return (
-    <View style={styles.root}>
-    {seasonal.full && <ChristmasBackdrop night={seasonal.night} />}
+    <View style={[styles.root, seasonal.full && styles.transparent]}>
+    {/* 배경 장면은 탭 묶음 뒤에 한 장만 깔려 있다((tabs)/_layout.tsx). 화면은 비워 두어 그 장면을 보인다. */}
     <SafeAreaView edges={['top']} style={[styles.safeArea, seasonal.full && styles.transparent]}>
       {/* 화면 전체 장면일 때는 맨 아래 글씨가 흰 눈밭 위가 아니라 건물 위에서 끝나도록 여백을 늘린다. */}
       <ScrollView contentContainerStyle={[styles.content, seasonal.full && styles.contentOverVillage]}>

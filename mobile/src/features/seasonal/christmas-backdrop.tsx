@@ -18,18 +18,20 @@ const AnimatedG = Animated.createAnimatedComponent(G);
  * 목록을 내려도 움직이지 않고 카드만 올라간다 (docs/API_SPEC.md 3-U절 화면 규칙).
  *
  * @param night 밤 장면인지. 낮에는 해·구름이 뜨고 별·달·창 불빛이 꺼진다
+ * @param active false면 눈·반짝임을 멈춘다. 탭 묶음 뒤에 깔린 배경이 홈처럼 배경을 덮는 탭 뒤에
+ *   가려져 있을 때 쓴다
  *
  * 눈과 전구 반짝임은 화면이 보일 때만 돈다. 탭은 화면을 떠나도 마운트된 채로 남아서,
  * 멈추지 않으면 안 보이는 탭 다섯 개가 함께 배터리를 쓴다. 기기의 "동작 줄이기"가
  * 켜져 있으면 처음부터 멈춘 장면만 그린다.
  */
-export function ChristmasBackdrop({ night, variant = 'full' }: { night: boolean; variant?: 'full' | 'head' }) {
+export function ChristmasBackdrop({ night, variant = 'full', active = true }: { night: boolean; variant?: 'full' | 'head'; active?: boolean }) {
   const palette = useTheme();
   const focused = useIsFocused();
   const reduceMotion = useReducedMotion();
   const [size, setSize] = useState({ width: 0, height: 0 });
   const colors = useMemo(() => sceneColors(palette, night), [palette, night]);
-  const running = focused && !reduceMotion;
+  const running = focused && active && !reduceMotion;
 
   return (
     <View

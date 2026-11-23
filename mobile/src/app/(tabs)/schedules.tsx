@@ -5,7 +5,6 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ScheduleCard } from '@/features/schedules/schedule-card';
-import { ChristmasBackdrop } from '@/features/seasonal/christmas-backdrop';
 import { NIGHT_TEXT, NIGHT_TEXT_SHADOW } from '@/features/seasonal/scene-colors';
 import { SeasonalHeader } from '@/features/seasonal/seasonal-header';
 import { SnowCapped } from '@/features/seasonal/snow-cap';
@@ -52,8 +51,8 @@ export default function SchedulesScreen() {
   const hasSchedules = todaySchedules.length + upcomingSchedules.length > 0;
 
   return (
-    <View style={styles.root}>
-    {seasonal.full && <ChristmasBackdrop night={seasonal.night} />}
+    <View style={[styles.root, seasonal.full && styles.transparent]}>
+    {/* 배경 장면은 탭 묶음 뒤에 한 장만 깔려 있다((tabs)/_layout.tsx). 화면은 비워 두어 그 장면을 보인다. */}
     <SafeAreaView edges={['top']} style={[styles.safeArea, seasonal.full && styles.transparent]}>
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {seasonal.showGreeting && <SeasonalHeader night={dark} onNotice={showSnackbar} />}

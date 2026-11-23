@@ -14,9 +14,11 @@ import { tabHref } from './menu-routes';
 
 type DynamicTabBarProps = {
   state: { index: number; routes: { name: string }[] };
+  /** 탭 바 높이가 정해지거나 바뀌면 알린다. 탭 묶음 뒤 계절 배경을 탭 바 위에서 끝내는 데 쓴다 */
+  onHeight?: (height: number) => void;
 };
 
-export function DynamicTabBar({ state }: DynamicTabBarProps) {
+export function DynamicTabBar({ state, onHeight }: DynamicTabBarProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { data: menus = [] } = useNavigableMenus();
@@ -29,7 +31,7 @@ export function DynamicTabBar({ state }: DynamicTabBarProps) {
   const snowy = seasonal.visible && scopeForTab(activeRoute) === 'full';
 
   return (
-    <View style={[styles.safeArea, snowy && styles.snowField, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
+    <View onLayout={event => onHeight?.(event.nativeEvent.layout.height)} style={[styles.safeArea, snowy && styles.snowField, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
       <SnowCapped show={snowy} night={seasonal.night}>
       <View style={styles.container}>
         {menus.map((menu) => {

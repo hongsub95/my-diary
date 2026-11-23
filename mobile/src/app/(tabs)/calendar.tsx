@@ -10,7 +10,6 @@ import { useThemedStyles } from '@/shared/theme-context';
 import { CalendarExplorer } from '@/features/calendar/calendar-explorer';
 import { moveDate, parseDate } from '@/features/calendar/calendar-dates';
 import { DayAgenda } from '@/features/calendar/day-agenda';
-import { ChristmasBackdrop } from '@/features/seasonal/christmas-backdrop';
 import { SeasonalHeader } from '@/features/seasonal/seasonal-header';
 import { useSeasonalScreen } from '@/features/seasonal/use-seasonal-screen';
 import { Snackbar, useSnackbar } from '@/shared/components/snackbar';
@@ -119,8 +118,8 @@ export default function CalendarScreen() {
   const [, month, day] = selectedDate.split('-').map(Number);
 
   return (
-    <View style={styles.root}>
-    {seasonal.full && <ChristmasBackdrop night={seasonal.night} />}
+    <View style={[styles.root, seasonal.full && styles.transparent]}>
+    {/* 배경 장면은 탭 묶음 뒤에 한 장만 깔려 있다((tabs)/_layout.tsx). 화면은 비워 두어 그 장면을 보인다. */}
     <SafeAreaView edges={['top']} style={[styles.safeArea, seasonal.full && styles.transparent]}>
       <View style={styles.content}>
         {seasonal.showGreeting && <SeasonalHeader night={seasonal.onDarkSky} onNotice={showSnackbar} />}
