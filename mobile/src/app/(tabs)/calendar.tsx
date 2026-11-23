@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { LocaleConfig } from 'react-native-calendars';
-import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { Animated, Dimensions, Modal, PanResponder, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useSchedules } from '@/features/schedules/schedule-queries';
@@ -54,7 +54,9 @@ export default function CalendarScreen() {
   const [selectedDate, setSelectedDate] = useState(initialDate);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { width } = useWindowDimensions();
-  const [drawerX] = useState(() => new Animated.Value(-width));
+  // 그날 서랍은 오른쪽에서 열리고, 오른쪽으로 밀면 닫힌다(앱·웹 옆 서랍 공통 규칙).
+  // 값이 0이면 열린 자리, 양수만큼 오른쪽 화면 밖으로 밀려 있다.
+  const [drawerX] = useState(() => new Animated.Value(width));
   // 계절 배경. 날짜 칸은 흰 카드 안이라 밤에도 카드 밖 제목·설명만 밤 색으로 바꾼다.
   const seasonal = useSeasonalScreen('calendar');
   const { notice, showSnackbar, dismissSnackbar } = useSnackbar();
@@ -87,7 +89,7 @@ export default function CalendarScreen() {
 
   useEffect(() => {
     if (!drawerOpen) return;
-    drawerX.setValue(-width);
+    drawerX.setValue(width);
     Animated.timing(drawerX, { duration: 180, toValue: 0, useNativeDriver: true }).start();
   }, [drawerOpen, drawerX, width]);
 
@@ -95,8 +97,21 @@ export default function CalendarScreen() {
     setSelectedDate(dateString);
     setDrawerOpen(true);
   };
-  const closeDrawer = () => Animated.timing(drawerX, { duration: 160, toValue: -width, useNativeDriver: true })
+  const closeDrawer = () => Animated.timing(drawerX, { duration: 160, toValue: width, useNativeDriver: true })
     .start(() => setDrawerOpen(false));
+  // 서랍을 왼쪽에서 오른쪽으로 밀면 따라 움직이다가, 4분의 1 넘게 밀거나 빠르게 튕기면 닫힌다.
+  // 세로로 움직일 때는 잡지 않아 안의 목록 스크롤을 막지 않는다. 한 번만 만들므로 화면 폭은 그때그때 읽는다.
+  const [swipe] = useState(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_, g) => g.dx > 10 && Math.abs(g.dx) > Math.abs(g.dy) * 1.5,
+    onPanResponderMove: (_, g) => drawerX.setValue(Math.max(0, g.dx)),
+    onPanResponderRelease: (_, g) => {
+      const screenWidth = Dimensions.get('window').width;
+      if (g.dx > Math.min(screenWidth * 0.88, 380) * 0.25 || g.vx > 0.5) {
+        Animated.timing(drawerX, { duration: 140, toValue: screenWidth, useNativeDriver: true }).start(() => setDrawerOpen(false));
+      } else Animated.spring(drawerX, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start();
+    },
+    onPanResponderTerminate: () => Animated.spring(drawerX, { toValue: 0, useNativeDriver: true, bounciness: 0 }).start(),
+  }));
   const [, month, day] = selectedDate.split('-').map(Number);
 
   return (
@@ -115,7 +130,7 @@ export default function CalendarScreen() {
       <Modal visible={drawerOpen} transparent animationType="none" onRequestClose={closeDrawer}>
         <View style={styles.drawerLayer}>
           <Pressable accessibilityLabel="일정 목록 닫기" onPress={closeDrawer} style={styles.backdrop} />
-          <Animated.View style={[styles.drawer, { width: Math.min(width * 0.88, 380), transform: [{ translateX: drawerX }] }]}>
+          <Animated.View {...swipe.panHandlers} style={[styles.drawer, { width: Math.min(width * 0.88, 380), transform: [{ translateX: drawerX }] }]}>
             <SafeAreaView edges={['top', 'bottom']} style={styles.drawerSafeArea} accessibilityViewIsModal>
               <View style={styles.drawerHeader}>
                 <View style={styles.drawerHeading}><Text accessibilityRole="header" style={styles.drawerTitle}>{month}월 {day}일 {WEEKDAY_NAMES[parseDate(selectedDate).getDay()]}</Text><Text style={styles.drawerCount}>이날의 하루 {selectedSchedules.length}개</Text></View>
@@ -143,7 +158,7 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   content: { flex: 1, padding: spacing.lg, paddingBottom: spacing.md, paddingTop: spacing.xl },
   drawerLayer: { flex: 1 },
   backdrop: { backgroundColor: 'rgba(28, 25, 23, 0.35)', bottom: 0, left: 0, position: 'absolute', right: 0, top: 0 },
-  drawer: { borderTopRightRadius: radii.card, borderBottomRightRadius: radii.card, bottom: 0, left: 0, overflow: 'hidden', position: 'absolute', top: 0 },
+  drawer: { borderTopLeftRadius: radii.card, borderBottomLeftRadius: radii.card, bottom: 0, overflow: 'hidden', position: 'absolute', right: 0, top: 0 },
   drawerSafeArea: { backgroundColor: colors.background, flex: 1 },
   drawerHeader: { alignItems: 'center', backgroundColor: colors.surface, borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: 'row', gap: spacing.sm, justifyContent: 'space-between', paddingHorizontal: spacing.lg, paddingVertical: spacing.lg },
   drawerHeading: { flex: 1 },
