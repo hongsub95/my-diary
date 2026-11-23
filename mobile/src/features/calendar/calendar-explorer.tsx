@@ -11,6 +11,7 @@ import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { dateKey, dateLabel, moveDate, parseDate, periodLabel, weekDates, type CalendarMode } from './calendar-dates';
 import { DayAgenda } from './day-agenda';
 import { MonthEventGrid } from './month-event-grid';
+import { DownChevron } from '@/shared/components/down-chevron';
 import { NIGHT_TEXT, NIGHT_TEXT_SHADOW } from '@/features/seasonal/scene-colors';
 import { SnowCapped } from '@/features/seasonal/snow-cap';
 
@@ -90,7 +91,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
     <View style={s.card}>
       <View style={s.header}>
         <Pressable accessibilityRole="button" accessibilityLabel="이전 기간" onPress={() => move(-1)} style={s.button}><Text style={s.arrow}>‹</Text></Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`${periodLabel(selectedDate, mode)}, 날짜 이동 선택창 열기`} onPress={openPicker} style={s.dateButton}><Text style={s.dateTitle}>{periodLabel(selectedDate, mode)} <Text style={s.dateChevron}>⌄</Text></Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`${periodLabel(selectedDate, mode)}, 날짜 이동 선택창 열기`} onPress={openPicker} style={s.dateButton}><Text style={s.dateTitle}>{periodLabel(selectedDate, mode)}</Text><DownChevron /></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="다음 기간" onPress={() => move(1)} style={s.button}><Text style={s.arrow}>›</Text></Pressable>
       </View>
       {/* 일간은 그날 하루를 따로 조회하고 상태도 스스로 보여 준다(DayAgenda). 석 달치 조회 상태를 겹쳐 띄우지 않는다. */}
@@ -150,9 +151,9 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   modeLabel: { color: colors.muted, fontSize: typography.body, fontWeight: typography.semibold },
   card: { flex: 1, backgroundColor: colors.surface, borderRadius: radii.card, borderWidth: StyleSheet.hairlineWidth, borderColor: colors.border, overflow: 'hidden' },
   header: { flexDirection: 'row', alignItems: 'center', minHeight: 64, paddingHorizontal: spacing.xs },
-  dateButton: { flex: 1, minHeight: 44, justifyContent: 'center' },
+  // 제목과 화살표를 한 줄에 두고 위아래 가운데를 맞춘다.
+  dateButton: { alignItems: 'center', flex: 1, flexDirection: 'row', gap: 4, justifyContent: 'center', minHeight: 44 },
   dateTitle: { fontSize: typography.emphasis, fontWeight: typography.semibold, textAlign: 'center', color: colors.text },
-  dateChevron: { color: colors.muted, fontSize: typography.body },
   arrow: { fontSize: 24, color: colors.muted },
   viewport: { flex: 1 },
   stateMarker: { width: 6, height: 6, borderRadius: 3 },

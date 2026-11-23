@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { SymbolView } from 'expo-symbols';
 import { FlatList, Platform, Pressable, StyleSheet, Text, View, type ViewToken } from 'react-native';
 import { MonthSheet } from '@/shared/components/date-sheets/month-sheet';
+import { DownChevron } from '@/shared/components/down-chevron';
 
 import { colors, radii, typography, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
@@ -99,12 +99,7 @@ export function HomeWeekStrip({ selectedDate, onSelect, seasonal }: {
           <Text style={[styles.monthTitle, dark && styles.monthTitleNight]}>
             {Number(visibleDate.slice(0, 4))}년 {Number(visibleDate.slice(5, 7))}월
           </Text>
-          <SymbolView
-            name={{ ios: 'chevron.down', android: 'expand_more' }}
-            size={18}
-            tintColor={dark ? NIGHT_TEXT.muted : colors.muted}
-            fallback={<View style={[styles.chevronDown, dark && styles.chevronDownNight]} />}
-          />
+          <DownChevron size={16} color={dark ? NIGHT_TEXT.muted : colors.muted} />
         </Pressable>
         <Pressable accessibilityRole="button" onPress={() => selectDate(today)} style={styles.todayButton}>
           <Text style={styles.todayText}>오늘</Text>
@@ -195,11 +190,9 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   // 아랫단 눈 둔덕(16px)이 날짜 카드에 닿지 않게 아래 여백을 조금 늘린다.
   rootOnSky: { backgroundColor: 'transparent', paddingBottom: 18 },
   monthTitleNight: { color: NIGHT_TEXT.strong, ...NIGHT_TEXT_SHADOW },
-  chevronDownNight: { borderColor: NIGHT_TEXT.muted },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 5 },
-  monthButton: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44 },
+  monthButton: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44 },
   monthTitle: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold, letterSpacing: -0.4 },
-  chevronDown: { width: 9, height: 9, borderBottomWidth: 2, borderRightWidth: 2, borderColor: colors.muted, transform: [{ rotate: '45deg' }], marginTop: -4 },
   todayButton: { minWidth: 52, minHeight: 44, alignItems: 'center', justifyContent: 'center', backgroundColor: palette.primarySoft, borderRadius: radii.md },
   todayText: { color: palette.primaryDark, fontSize: 12, fontWeight: typography.semibold },
   divider: { height: 0, marginBottom: 10 },

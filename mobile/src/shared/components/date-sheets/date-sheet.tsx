@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, type ThemePalette } from '@/shared/theme';
 import { useThemedStyles } from '@/shared/theme-context';
+import { DownChevron } from '../down-chevron';
 import { BottomSheet } from './bottom-sheet';
 import { parseKey, shiftMonth, toKey, todayKey } from './date-keys';
 import { MonthGrid } from './month-grid';
@@ -83,11 +84,13 @@ function DateSheetBody({ value, onChange, onClose, title, mode = 'date', clearab
         <Pressable accessibilityRole="button" accessibilityLabel={moveLabel('이전')} onPress={() => move(-1)} style={s.arrow}><Text style={s.arrowText}>‹</Text></Pressable>
         <View style={s.navTitles}>
           <Pressable accessibilityRole="button" accessibilityLabel={`${cursor.year}년, 연도 고르기`} onPress={() => setView('year')} style={s.navTitle}>
-            <Text style={s.navText}>{view === 'year' ? `${Math.max(1900, yearStart)}–${Math.min(2100, yearStart + 11)}` : `${cursor.year}년`} <Text style={s.caret}>⌄</Text></Text>
+            <Text style={s.navText}>{view === 'year' ? `${Math.max(1900, yearStart)}–${Math.min(2100, yearStart + 11)}` : `${cursor.year}년`}</Text>
+            <DownChevron size={12} />
           </Pressable>
           {view === 'date' && (
             <Pressable accessibilityRole="button" accessibilityLabel={`${cursor.month}월, 달 고르기`} onPress={() => setView('month')} style={s.navTitle}>
-              <Text style={s.navText}>{cursor.month}월 <Text style={s.caret}>⌄</Text></Text>
+              <Text style={s.navText}>{cursor.month}월</Text>
+              <DownChevron size={12} />
             </Pressable>
           )}
         </View>
@@ -140,9 +143,8 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   arrow: { alignItems: 'center', backgroundColor: colors.surfaceMuted, borderRadius: 22, height: 40, justifyContent: 'center', width: 40 },
   arrowText: { color: colors.muted, fontSize: 20, lineHeight: 22 },
   navTitles: { flex: 1, flexDirection: 'row', justifyContent: 'center' },
-  navTitle: { justifyContent: 'center', minHeight: 44, paddingHorizontal: 4 },
+  navTitle: { alignItems: 'center', flexDirection: 'row', gap: 3, justifyContent: 'center', minHeight: 44, paddingHorizontal: 4 },
   navText: { color: colors.text, fontSize: 16, fontWeight: '700' },
-  caret: { color: colors.muted, fontSize: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', paddingVertical: 6 },
   gridCell: { alignItems: 'center', borderRadius: 12, justifyContent: 'center', minHeight: 52, width: '33.3333%' },
   gridSelected: { backgroundColor: palette.primary },
