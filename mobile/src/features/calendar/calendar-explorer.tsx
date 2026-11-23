@@ -1,28 +1,21 @@
 import { useLayoutEffect, useRef, useState } from 'react';
-import { Calendar } from 'react-native-calendars';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { DateSheet } from '@/shared/components/date-sheets/date-sheet';
 import { ScheduleCard } from '@/features/schedules/schedule-card';
 import type { ScheduleView } from '@/features/schedules/schedule-adapter';
-import { PhaseTag, phaseColors, phaseKind, phaseKindLabels } from '@/features/schedules/phase-tag';
+import { phaseColors, phaseKind, phaseKindLabels } from '@/features/schedules/phase-tag';
 import { colors, radii, spacing, typography, type ThemePalette } from '@/shared/theme';
 import { LoadingIndicator } from '@/shared/components/loading-indicator';
 import { useTheme, useThemedStyles } from '@/shared/theme-context';
 import { dateKey, dateLabel, moveDate, parseDate, periodLabel, weekDates, type CalendarMode } from './calendar-dates';
 import { DayAgenda } from './day-agenda';
+import { MonthEventGrid } from './month-event-grid';
 import { NIGHT_TEXT, NIGHT_TEXT_SHADOW } from '@/features/seasonal/scene-colors';
 import { SnowCapped } from '@/features/seasonal/snow-cap';
 
 const modes = [{ value: 'month', label: '월간' }, { value: 'week', label: '주간' }, { value: 'day', label: '일간' }] as const;
 const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
-const fillTheme = {
-  'stylesheet.calendar.main': {
-    monthView: { flex: 1 },
-    week: { flex: 1, flexDirection: 'row', marginVertical: 0 },
-  },
-};
-const noHeader = () => null;
 
 /**
  * 주간 보기 위쪽 날짜 줄의 날짜 하나. 날짜 아래 점으로 그날 첫 하루의 상태를 보여 준다.
@@ -65,12 +58,9 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
   const s = useThemedStyles(createStyles);
   const [mode, setMode] = useState<CalendarMode>('month');
   const [size, setSize] = useState({ width: 0, height: 0 });
-  // 작은 화면에서는 제목 칩 대신 상태 마커를 써서 다음 주 날짜와 겹치지 않게 한다.
-  const compactMonth = size.height < 300;
   const pager = useRef<ScrollView>(null);
   const moving = useRef(false);
   const [picker, setPicker] = useState(false);
-  const active = { backgroundColor: palette.primarySoft };
   const accent = { color: palette.primaryDark };
 
   useLayoutEffect(() => {
@@ -117,23 +107,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
             const key = moveDate(selectedDate, mode, step);
             const days = weekDates(key);
             return <View key={step} style={{ width: size.width, height: size.height }} aria-hidden={step !== 0} accessibilityElementsHidden={step !== 0} importantForAccessibility={step === 0 ? 'auto' : 'no-hide-descendants'}>
-              {mode === 'month' ? <Calendar key={key.slice(0, 7)} current={key} customHeader={noHeader} hideExtraDays firstDay={0} style={{ height: size.height }} theme={{ calendarBackground: colors.surface, ...fillTheme }} dayComponent={({ date }) => {
-                if (!date) return null;
-                const items = schedules[date.dateString] ?? [];
-                // 칩 모양은 화면 읽기 도구에 전달되지 않으니 상태 이름을 라벨에 함께 읽어 준다.
-                const states = items.map(item => `${item.title} ${phaseKindLabels[phaseKind(item.experience_phase)]}`);
-                return <Pressable accessibilityRole="button" accessibilityLabel={[`${dateLabel(date.dateString)}, 일정 ${items.length}개`, ...states, ...(selectedDate === date.dateString ? ['선택됨'] : [])].join(', ')} accessibilityState={{ selected: selectedDate === date.dateString }} onPress={() => onOpenDay(date.dateString)} style={[s.cell, compactMonth && s.compactCell, selectedDate === date.dateString && active]}>
-                  <View style={[s.dateCircle, compactMonth && s.compactDateCircle, date.dateString === dateKey(new Date()) && s.todayCircle]}><Text style={[s.dayNumber, compactMonth && s.compactDayNumber, selectedDate === date.dateString && s.selectedDateText, date.dateString === dateKey(new Date()) && accent]}>{date.day}</Text></View>
-                  {compactMonth ? <View style={s.compactMarkers}>{items.slice(0, 3).map(item => {
-                    const kind = phaseKind(item.experience_phase);
-                    const tone = phaseColors(kind, palette);
-                    return <View key={item.id} style={[s.stateMarker, kind === 'plan' ? { borderWidth: 1.5, borderColor: tone.dot } : { backgroundColor: tone.dot }, kind === 'pending' && s.pendingMarker]} />;
-                  })}</View> : <>
-                    {items.slice(0, 2).map(item => <PhaseTag key={item.id} size="chip" label={item.title} kind={phaseKind(item.experience_phase)} />)}
-                    {items.length > 2 && <Text style={s.more}>+{items.length - 2}</Text>}
-                  </>}
-                </Pressable>;
-              }} /> : <View style={s.viewport}>
+              {mode === 'month' ? <MonthEventGrid month={key} schedules={schedules} selectedDate={selectedDate} onOpenDay={onOpenDay} height={size.height} /> : <View style={s.viewport}>
                 {mode === 'week' && <View style={s.weekStrip}>{days.map((day, index) => <WeekDate key={day} day={day} weekday={weekdays[index]} items={schedules[day] ?? []} selected={selectedDate === day} onPress={() => onSelect(day)} />)}</View>}
                 <ScrollView contentContainerStyle={s.agenda}>{mode === 'week' ? days.map(day => renderDay(day, true)) : <DayAgenda day={key} />}</ScrollView>
               </View>}
@@ -144,7 +118,8 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
       {mode === 'month' && <View style={s.legend}>
         {(['plan', 'pending', 'done'] as const).map(kind => {
           const tone = phaseColors(kind, palette);
-          return <View key={kind} style={s.legendItem}><View style={[s.stateMarker, kind === 'plan' ? { borderWidth: 1.5, borderColor: tone.dot } : { backgroundColor: tone.dot }, kind === 'pending' && s.pendingMarker]} /><Text style={s.legendLabel}>{phaseKindLabels[kind]}</Text></View>;
+          // 범례는 달력 막대와 같은 모양(옅은 바탕 + 왼쪽 색 줄)으로 그린다.
+          return <View key={kind} style={s.legendItem}><View style={[s.legendBar, { backgroundColor: kind === 'done' ? '#E6ECE4' : tone.background === colors.surface ? palette.primarySoft : tone.background, borderLeftColor: tone.dot }]} /><Text style={s.legendLabel}>{phaseKindLabels[kind]}</Text></View>;
         })}
       </View>}
     </View>
@@ -180,20 +155,13 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   dateChevron: { color: colors.muted, fontSize: typography.body },
   arrow: { fontSize: 24, color: colors.muted },
   viewport: { flex: 1 },
-  cell: { flex: 1, width: '100%', minHeight: 44, padding: 2, borderRadius: radii.sm },
-  dateCircle: { alignSelf: 'center', borderRadius: radii.full, minHeight: 28, minWidth: 28, alignItems: 'center', justifyContent: 'center', marginVertical: spacing.xs },
-  todayCircle: { borderWidth: 1, borderColor: palette.primary },
-  compactCell: { minHeight: 0, padding: 0 },
-  compactDateCircle: { minHeight: 22, minWidth: 22, marginVertical: 0 },
-  compactDayNumber: { marginVertical: 0, lineHeight: 20 },
-  compactMarkers: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 2, height: 6 },
   stateMarker: { width: 6, height: 6, borderRadius: 3 },
   pendingMarker: { borderRadius: 1 },
+  legendBar: { borderLeftWidth: 3, borderRadius: 3, height: 10, width: 16 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendLabel: { color: colors.muted, fontSize: 12 },
   dayNumber: { textAlign: 'center', fontSize: typography.body, color: colors.text, marginVertical: spacing.xs },
   selectedDateText: { color: palette.primaryDark, fontWeight: typography.semibold },
-  more: { fontSize: 11, textAlign: 'center', color: colors.muted },
   legend: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: spacing.sm, paddingVertical: spacing.md, paddingHorizontal: spacing.xs, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.border },
   weekStrip: { flexDirection: 'row', padding: spacing.xs },
   weekdayLabel: { flex: 1, color: colors.muted, fontSize: 12, paddingVertical: spacing.sm, textAlign: 'center' },
