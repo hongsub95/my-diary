@@ -61,6 +61,10 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
   const [size, setSize] = useState({ width: 0, height: 0 });
   const pager = useRef<ScrollView>(null);
   const moving = useRef(false);
+  // 한 번 민 것으로 이미 달을 넘겼다는 표시. 안드로이드는 한 번 튕겨도 끝 이벤트를 두 번 보낼 때가 있고,
+  // 두 번째는 가운데로 되돌리기 전 위치(옆 장)를 담고 있어 그대로 두면 한 달을 더 넘긴다.
+  // 다음에 손가락을 대거나 화살표를 누를 때 풀린다.
+  const settled = useRef(false);
   const [picker, setPicker] = useState(false);
   const accent = { color: palette.primaryDark };
 
@@ -72,6 +76,7 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
   const move = (step: number) => {
     if (moving.current || !size.width) return;
     moving.current = true;
+    settled.current = false;
     pager.current?.scrollTo({ x: size.width * (1 + step), animated: true });
   };
   const openPicker = () => setPicker(true);
@@ -99,10 +104,12 @@ export function CalendarExplorer({ selectedDate, onSelect, onOpenDay, schedules,
       {mode !== 'day' && failed && <Pressable accessibilityRole="button" onPress={retry}><Text style={s.status}>일정을 불러오지 못했어요. 다시 시도</Text></Pressable>}
       {mode === 'month' && <View style={s.weekStrip}>{weekdays.map(day => <Text key={day} style={s.weekdayLabel}>{day}</Text>)}</View>}
       <View style={s.viewport} onLayout={event => setSize(event.nativeEvent.layout)}>
-        {size.width > 0 && size.height > 0 && <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: size.width, y: 0 }} onMomentumScrollEnd={event => {
+        {size.width > 0 && size.height > 0 && <ScrollView ref={pager} horizontal pagingEnabled showsHorizontalScrollIndicator={false} contentOffset={{ x: size.width, y: 0 }} onScrollBeginDrag={() => { settled.current = false; }} onMomentumScrollEnd={event => {
           const step = Math.round(event.nativeEvent.contentOffset.x / size.width) - 1;
           moving.current = false;
-          if (step) onSelect(moveDate(selectedDate, mode, step));
+          if (!step || settled.current) return;
+          settled.current = true;
+          onSelect(moveDate(selectedDate, mode, step));
         }}>
           {[-1, 0, 1].map(step => {
             const key = moveDate(selectedDate, mode, step);
