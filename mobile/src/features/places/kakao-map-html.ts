@@ -48,6 +48,12 @@ function json(value: unknown): string {
  * @param selectable 지도를 눌러 좌표를 고르는 지도인지 (위치 고르기)
  * @param center 장소가 없을 때의 중심
  * @param homeAppearance 홈 전용 동작(확대 버튼, 바텀시트 높이만큼 중심 보정)
+ *   바텀시트 높이가 바뀌면(setMapBottomInset) 지도를 다시 맞추지 않고 바뀐 만큼의 절반만 부드럽게 민다.
+ *   예전에는 시트를 만질 때마다 범위·확대를 다시 맞추고 고른 장소로 다시 옮겨 지도가 두 번씩 튀며
+ *   새로 그려졌고, 사용자가 옮겨 둔 위치와 확대도 되돌아갔다.
+ *   밖에서 같은 장소를 다시 고르면(setSelectedPlace) 아무것도 하지 않는다. 마커를 누르면 여기서 이미
+ *   그 장소로 옮겼고, 앱이 고른 값을 되돌려 보낼 때 또 옮기면 지도가 한 번 더 튄다. 마커를 직접
+ *   누르면 같은 장소여도 다시 가운데로 가져온다.
  * @param markerColors 마커 색. 생략하면 기본 로즈 테마 색
  */
 export function mapHtml(key: string, places: MapPlace[], selectedId?: string, selectable = false, center = { latitude: 37.5665, longitude: 126.978 }, homeAppearance?: HomeMapAppearance, markerColors: MarkerColors = DEFAULT_MARKER_COLORS): string {
@@ -60,10 +66,11 @@ export function mapHtml(key: string, places: MapPlace[], selectedId?: string, se
 <style>*{box-sizing:border-box}html,body,#map{margin:0;width:100%;height:100%;font-family:system-ui;background:#ffffff}#status{position:absolute;z-index:10;top:12px;left:12px;right:12px;padding:12px;border-radius:12px;background:white;color:#625b50;font-size:13px}button{font:inherit;cursor:pointer}.place-marker{position:relative;width:44px;height:44px}.pin{display:flex;width:44px;height:44px;padding:0;border:0;border-radius:50%;background:transparent;align-items:center;justify-content:center}.glow{display:block;width:34px;height:34px;border-radius:50%;flex-shrink:0;background:radial-gradient(circle,rgb(var(--m)) 0 2.5px,transparent 3px),radial-gradient(circle,rgba(var(--m),.75) 0%,rgba(var(--m),.4) 25%,rgba(var(--m),.12) 50%,rgba(var(--m),0) 70%);transition:width .15s,height .15s}.pin.active .glow{width:48px;height:48px;background:radial-gradient(circle,rgb(var(--m)) 0 4px,#fff 4.5px 7px,transparent 7.5px),radial-gradient(circle,rgba(var(--m),.9) 0%,rgba(var(--m),.5) 24%,rgba(var(--m),.16) 48%,rgba(var(--m),0) 70%)}.place-name{display:none;position:absolute;bottom:40px;left:50%;transform:translateX(-50%);max-width:180px;padding:7px 11px;border-radius:14px;background:white;color:var(--marker-dark);box-shadow:0 2px 8px #0002;font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.place-marker.active .place-name{display:block}.pin:focus-visible{outline:3px solid #282321;outline-offset:2px}#retry{margin-left:8px}</style></head>
 <body><div id="map" aria-label="장소 지도"></div><div id="status" role="status">지도를 불러오는 중…</div><script>
 const points=${json(points)}, key=${json(key)}, selectable=${json(selectable)}, center=${json(center)}, home=${json(homeAppearance ?? null)}, colors=${json(markerColors)};
-let selected=${json(selectedId ?? '')}, updateSelection=()=>{}, bottomInset=home?.bottomInset??0, updateViewport=()=>{};
-window.setSelectedPlace=id=>{selected=points.some(p=>p.id===id)?id:'';updateSelection();};
-window.setMapBottomInset=value=>{if(typeof value==='number'&&Number.isFinite(value)&&value>=0&&value!==bottomInset){bottomInset=value;updateViewport();}};
-window.addEventListener('message',event=>{if(event.source!==window.parent||event.origin!==window.parent.location.origin)return;try{const message=JSON.parse(event.data);if(message.type==='kakao-set-selection'){window.setMapBottomInset(message.bottomInset);window.setSelectedPlace(message.id);}}catch(_){}});
+let selected=${json(selectedId ?? '')}, updateSelection=()=>{}, bottomInset=home?.bottomInset??0, shiftViewport=()=>{};
+function insetFor(value){return home?Math.min(value,document.getElementById('map').clientHeight*0.65):0;}
+window.setSelectedPlace=id=>{const next=points.some(p=>p.id===id)?id:'';if(next===selected)return;selected=next;updateSelection();};
+window.setMapBottomInset=value=>{if(typeof value==='number'&&Number.isFinite(value)&&value>=0&&value!==bottomInset){const before=insetFor(bottomInset);bottomInset=value;shiftViewport(insetFor(bottomInset)-before);}};
+window.addEventListener('message',event=>{if(event.source!==window.parent||event.origin!==window.parent.location.origin)return;try{const message=JSON.parse(event.data);if(message.type==='kakao-set-selection'){if('bottomInset' in message)window.setMapBottomInset(message.bottomInset);if('id' in message)window.setSelectedPlace(message.id);}}catch(_){}});
 function rgb(hex){const h=String(hex).replace('#','');const full=h.length===3?h.split('').map(c=>c+c).join(''):h;const n=parseInt(full,16);return Number.isFinite(n)?[(n>>16)&255,(n>>8)&255,n&255].join(','):'207,82,107';}
 document.body.style.setProperty('--m',rgb(colors.primary));document.body.style.setProperty('--marker-dark',colors.primaryDark);
 const status=document.getElementById('status');
@@ -78,11 +85,11 @@ const bounds=new kakao.maps.LatLngBounds();const markers=[];
 points.forEach(p=>{const position=new kakao.maps.LatLng(Number(p.latitude),Number(p.longitude));bounds.extend(position);
 const content=document.createElement('div');content.className='place-marker';const label=document.createElement('div');label.className='place-name';label.textContent=points.length>1?p.order+' · '+p.name:p.name;
 const button=document.createElement('button');button.className='pin';button.setAttribute('aria-label',p.order+'번 '+p.name);button.title=p.name;const glow=document.createElement('span');glow.className='glow';glow.setAttribute('aria-hidden','true');button.appendChild(glow);content.append(label,button);
-button.onclick=()=>{window.setSelectedPlace(p.id);send(p.id);};const overlay=new kakao.maps.CustomOverlay({map,position,content,yAnchor:0.5});markers.push({id:p.id,button,content,position,overlay});});
-function inset(){return home?Math.min(bottomInset,document.getElementById('map').clientHeight*0.65):0;}
+button.onclick=()=>{selected=p.id;updateSelection();send(p.id);};const overlay=new kakao.maps.CustomOverlay({map,position,content,yAnchor:0.5});markers.push({id:p.id,button,content,position,overlay});});
+function inset(){return insetFor(bottomInset);}
 updateSelection=()=>{markers.forEach(marker=>{const active=marker.id===selected;marker.button.classList.toggle('active',active);marker.button.setAttribute('aria-pressed',String(active));marker.content.classList.toggle('active',active);marker.overlay.setZIndex(active?3:1);});const active=markers.find(marker=>marker.id===selected);if(active){map.setCenter(active.position);if(inset())map.panBy(0,inset()/2);}};
 function fit(){map.relayout();if(points.length===1){map.setCenter(new kakao.maps.LatLng(Number(points[0].latitude),Number(points[0].longitude)));map.setLevel(3);if(inset())map.panBy(0,inset()/2);}else if(points.length>1)map.setBounds(bounds,64,45,45+inset(),45);}
-updateViewport=()=>{fit();updateSelection();};
+shiftViewport=dy=>{if(dy)map.panBy(0,dy/2);};
 if(home)map.addControl(new kakao.maps.ZoomControl(),kakao.maps.ControlPosition.RIGHT);
 fit();updateSelection();if(window.ResizeObserver)new ResizeObserver(fit).observe(document.getElementById('map'));clearTimeout(timer);status.hidden=true;
 }catch(_){fail();}});};document.head.appendChild(sdk);}

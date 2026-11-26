@@ -31,9 +31,14 @@ export function KakaoMap({
       isHome ? { primary, primaryDark, bottomInset: 0 } : undefined, { primary, primaryDark }),
     [extra?.kakaoJavaScriptKey, places, primary, primaryDark, isHome],
   );
+  // 시트 높이와 고른 장소는 따로 보낸다. 같이 보내면 시트만 움직여도 고른 장소로 지도를 다시 옮긴다.
+  const syncInset = useCallback(() => {
+    frame.current?.injectJavaScript(`window.setMapBottomInset?.(${JSON.stringify(bottomInset)});true;`);
+  }, [bottomInset]);
   const syncSelection = useCallback(() => {
-    frame.current?.injectJavaScript(`window.setMapBottomInset?.(${JSON.stringify(bottomInset)});window.setSelectedPlace?.(${JSON.stringify(selectedId ?? '')});true;`);
-  }, [selectedId, bottomInset]);
+    frame.current?.injectJavaScript(`window.setSelectedPlace?.(${JSON.stringify(selectedId ?? '')});true;`);
+  }, [selectedId]);
+  useEffect(syncInset, [syncInset, html]);
   useEffect(syncSelection, [syncSelection, html]);
 
   if (!showEmptyMap && !places.some(hasCoordinates)) {
@@ -67,7 +72,7 @@ export function KakaoMap({
           javaScriptEnabled
           scrollEnabled={false}
           geolocationEnabled={false}
-          onLoadEnd={syncSelection}
+          onLoadEnd={() => { syncInset(); syncSelection(); }}
           onError={() => setFailed(true)}
           onHttpError={() => setFailed(true)}
           onShouldStartLoadWithRequest={(request) =>

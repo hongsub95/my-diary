@@ -24,9 +24,14 @@ export function KakaoMap({
   const bottomInset = homeAppearance?.bottomInset ?? 0;
   const html = useMemo(() => mapHtml(key, places, undefined, false, undefined,
     isHome ? { primary, primaryDark, bottomInset: 0 } : undefined, { primary, primaryDark }), [key, places, primary, primaryDark, isHome]);
+  // 시트 높이와 고른 장소는 따로 보낸다. 같이 보내면 시트만 움직여도 고른 장소로 지도를 다시 옮긴다.
+  const syncInset = useCallback(() => {
+    frame.current?.contentWindow?.postMessage(JSON.stringify({ type: 'kakao-set-selection', bottomInset }), window.location.origin);
+  }, [bottomInset]);
   const syncSelection = useCallback(() => {
-    frame.current?.contentWindow?.postMessage(JSON.stringify({ type: 'kakao-set-selection', id: selectedId ?? '', bottomInset }), window.location.origin);
-  }, [selectedId, bottomInset]);
+    frame.current?.contentWindow?.postMessage(JSON.stringify({ type: 'kakao-set-selection', id: selectedId ?? '' }), window.location.origin);
+  }, [selectedId]);
+  useEffect(syncInset, [syncInset, html]);
   useEffect(syncSelection, [syncSelection, html]);
 
   useEffect(() => {
@@ -54,7 +59,7 @@ export function KakaoMap({
       ref={frame}
       title="카카오 장소 지도"
       srcDoc={html}
-      onLoad={syncSelection}
+      onLoad={() => { syncInset(); syncSelection(); }}
       referrerPolicy="strict-origin-when-cross-origin"
       style={{
         width: '100%',
