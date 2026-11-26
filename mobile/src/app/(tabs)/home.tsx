@@ -307,7 +307,14 @@ export default function HomeScreen() {
                     {activeSchedule ? `${activeSchedule.space_name} · 장소 ${activeSchedule.place_count}곳` : `${selectedDate.getMonth() + 1}월 ${selectedDate.getDate()}일`}
                   </Text>
                 </View>
-                {!expanded && <Pressable accessibilityRole="button" accessibilityLabel="일정 목록 최소화" onPress={() => moveSheet(1)} style={styles.minimizeButton}><Text style={styles.smallChevron}>−</Text></Pressable>}
+                {/* 2단계에서는 [접기][펼치기]가 나란히 있다. 접기는 손잡이만 남기고(1단계), 펼치기는 끝까지(3단계).
+                    예전에는 "−"였는데 무엇을 하는 버튼인지 드러나지 않아 글자로 바꿨다(2026-11-26). */}
+                {!expanded && (
+                  <Pressable accessibilityRole="button" accessibilityLabel="일정 목록 접기" onPress={() => moveSheet(1)} style={styles.expandButton}>
+                    <SymbolView name={{ ios: 'chevron.down', android: 'expand_more', web: 'expand_more' }} size={16} tintColor={colors.muted} fallback={<Text style={styles.smallChevron}>⌄</Text>} />
+                    <Text style={styles.expandText}>접기</Text>
+                  </Pressable>
+                )}
                 <Pressable
                   accessibilityRole="button"
                   accessibilityLabel={expanded ? '일정 목록 접기' : '일정 목록 펼치기'}
@@ -455,7 +462,6 @@ const createStyles = (palette: ThemePalette) => StyleSheet.create({
   sheetTitle: { color: colors.text, fontSize: typography.heading, fontWeight: typography.semibold, letterSpacing: -0.4 },
   sheetSubtitle: { color: colors.muted, fontSize: 12 },
   expandButton: { alignItems: 'center', backgroundColor: colors.background, borderRadius: radii.md, flexDirection: 'row', gap: 4, justifyContent: 'center', minHeight: 44, minWidth: 64 },
-  minimizeButton: { alignItems: 'center', backgroundColor: colors.background, borderRadius: radii.md, justifyContent: 'center', minHeight: 44, minWidth: 44 },
   expandText: { color: colors.muted, fontSize: 12 },
   sheetContent: { gap: 10, paddingBottom: 20, paddingHorizontal: spacing.lg },
   otherTitle: { color: colors.muted, fontSize: 12, fontWeight: typography.semibold, marginBottom: 2 },

@@ -158,7 +158,8 @@ const mapSdk = `window.kakao={maps:{load:cb=>cb(),LatLng:class{constructor(lat,l
     await page.waitForTimeout(600);
     const defaultHandleY = await handleOffset(expandHandle());
     await page.screenshot({ path: path.join(artifacts, 'home-default-390.png') });
-    await page.getByRole('button', { name: '일정 목록 최소화', exact: true }).click();
+    // 2단계의 [접기]는 손잡이만 남긴다(1단계).
+    await page.getByRole('button', { name: '일정 목록 접기', exact: true }).click();
     await page.evaluate(() => { document.activeElement?.blur(); window.scrollTo(0, 0); });
     await expect(page.getByRole('button', { name: '성수에서 보낼 하루, 하루 상세 보기' })).toHaveCount(0);
     await page.waitForTimeout(600);
